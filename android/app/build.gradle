@@ -22,6 +22,15 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0.0'
 }
 
+// key.properties は git 管理外 (android/key.properties)
+// CI では azure-pipelines.yml が keystore を復元してこのファイルを生成する
+// ローカルでは手動で作成すること
+def keyProperties = new Properties()
+def keyPropertiesFile = rootProject.file('key.properties')
+if (keyPropertiesFile.exists()) {
+    keyProperties.load(new FileInputStream(keyPropertiesFile))
+}
+
 android {
     namespace "jp.go.digital.flutterbase"
     compileSdk flutter.compileSdkVersion
@@ -48,9 +57,19 @@ android {
         versionName flutterVersionName
     }
 
+    signingConfigs {
+        release {
+            keyAlias keyProperties['keyAlias']
+            keyPassword keyProperties['keyPassword']
+            storeFile keyProperties['storeFile'] ? file(keyProperties['storeFile']) : null
+            storePassword keyProperties['storePassword']
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            // key.properties が存在すれば release 署名、なければ debug 署名にフォールバック
+            signingConfig keyPropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
