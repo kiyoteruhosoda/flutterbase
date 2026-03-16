@@ -1,0 +1,378 @@
+# ============================================================
+# Flutterbase — Azure DevOps CI/CD Pipeline
+# デジタル庁デザインシステム Flutter ベースアプリ
+# ============================================================
+#
+# Stages:
+#   1. validate   — Format + Analyze + Test (all branches)
+#   2. build_dev  — Debug APK + IPA (feature/* branches)
+#   3. build_stg  — Release APK + IPA (develop branch)
+#   4. build_prod — Signed Release APK + IPA (main branch)
+#
+# Variable Groups (define in Azure DevOps Library):
+#   flutterbase-android-secrets:
+#     KEYSTORE_BASE64      — base64-encoded .jks keystore
+#     KEY_ALIAS            — keystore alias
+#     KEY_PASSWORD         — key password
+#     STORE_PASSWORD       — store password
+#   flutterbase-ios-secrets:
+#     P12_CERTIFICATE_BASE64  — base64-encoded .p12
+#     P12_PASSWORD            — p12 password
+#     PROVISIONING_PROFILE_BASE64
+#     BUNDLE_IDENTIFIER
+# ============================================================
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+      - fix/*
+      - claude/*
+  paths:
+    exclude:
+      - "*.md"
+      - docs/**
+      - ".claude/**"
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+  drafts: false
+
+variables:
+  FLUTTER_VERSION: "3.22.0"
+  FLUTTER_CHANNEL: "stable"
+  JAVA_VERSION: "17"
+  RUBY_VERSION: "3.2"
+
+  # Build outputs
+  ANDROID_OUTPUT_DIR: "$(Build.ArtifactStagingDirectory)/android"
+  IOS_OUTPUT_DIR: "$(Build.ArtifactStagingDirectory)/ios"
+
+  # App versioning
+  APP_VERSION: "1.0.0"
+  BUILD_NUMBER: "$(Build.BuildId)"
+
+# ============================================================
+# Stage 1: Validate
+# ============================================================
+stages:
+  - stage: validate
+    displayName: "Validate (Format · Analyze · Test)"
+    jobs:
+      - job: lint_and_test
+        displayName: "Dart Format / Analyze / Test"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: JavaToolInstaller@0
+            displayName: "Install Java $(JAVA_VERSION)"
+            inputs:
+              versionSpec: "$(JAVA_VERSION)"
+              jdkArchitectureOption: "x64"
+              jdkSourceOption: "PreInstalled"
+
+          - script: |
+              git clone https://github.com/flutter/flutter.git \
+                --depth 1 \
+                --branch $(FLUTTER_VERSION) \
+                $(Agent.ToolsDirectory)/flutter
+              echo "##vso[task.setvariable variable=PATH]$(Agent.ToolsDirectory)/flutter/bin:$(PATH)"
+            displayName: "Install Flutter $(FLUTTER_VERSION)"
+
+          - script: flutter --version
+            displayName: "Flutter version"
+
+          - script: flutter pub get
+            displayName: "pub get"
+
+          # Code generation (riverpod, etc.)
+          - script: dart run build_runner build --delete-conflicting-outputs
+            displayName: "Code generation"
+            continueOnError: false
+
+          # Format check
+          - script: |
+              dart format --output=none --set-exit-if-changed lib/ test/
+            displayName: "dart format (check)"
+
+          # Static analysis
+          - script: flutter analyze --fatal-infos
+            displayName: "flutter analyze"
+
+          # Tests
+          - script: |
+              flutter test \
+                --coverage \
+                --reporter=json \
+                | tee $(Build.ArtifactStagingDirectory)/test-results.json
+            displayName: "flutter test"
+
+          # Publish test results
+          - task: PublishTestResults@2
+            displayName: "Publish test results"
+            inputs:
+              testResultsFormat: "JUnit"
+              testResultsFiles: "$(Build.ArtifactStagingDirectory)/test-results.json"
+              failTaskOnFailedTests: true
+            condition: always()
+
+          # Publish coverage
+          - script: |
+              dart pub global activate coverage
+              dart pub global run coverage:format_coverage \
+                --lcov \
+                --in=coverage \
+                --out=coverage/lcov.info \
+                --packages=.dart_tool/package_config.json \
+                --report-on=lib
+            displayName: "Generate LCOV coverage"
+
+          - task: PublishCodeCoverageResults@1
+            displayName: "Publish coverage"
+            inputs:
+              codeCoverageTool: "Cobertura"
+              summaryFileLocation: "coverage/lcov.info"
+            condition: always()
+
+  # ============================================================
+  # Stage 2: Build Dev (feature/fix/claude branches)
+  # ============================================================
+  - stage: build_dev
+    displayName: "Build Dev (Debug)"
+    dependsOn: validate
+    condition: |
+      and(
+        succeeded(),
+        or(
+          startsWith(variables['Build.SourceBranch'], 'refs/heads/feature/'),
+          startsWith(variables['Build.SourceBranch'], 'refs/heads/fix/'),
+          startsWith(variables['Build.SourceBranch'], 'refs/heads/claude/')
+        )
+      )
+    jobs:
+      - job: android_debug
+        displayName: "Android Debug APK"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - template: .azure/templates/flutter-setup.yml
+            parameters:
+              flutterVersion: $(FLUTTER_VERSION)
+              javaVersion: $(JAVA_VERSION)
+
+          - script: |
+              flutter build apk \
+                --debug \
+                --build-name=$(APP_VERSION) \
+                --build-number=$(BUILD_NUMBER)
+            displayName: "Build debug APK"
+
+          - task: CopyFiles@2
+            inputs:
+              contents: "build/app/outputs/flutter-apk/app-debug.apk"
+              targetFolder: "$(ANDROID_OUTPUT_DIR)"
+              flattenFolders: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(ANDROID_OUTPUT_DIR)"
+              artifactName: "android-debug"
+
+  # ============================================================
+  # Stage 3: Build Staging (develop branch)
+  # ============================================================
+  - stage: build_stg
+    displayName: "Build Staging (Release unsigned)"
+    dependsOn: validate
+    condition: |
+      and(
+        succeeded(),
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+      )
+    jobs:
+      - job: android_stg
+        displayName: "Android Staging APK"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - template: .azure/templates/flutter-setup.yml
+            parameters:
+              flutterVersion: $(FLUTTER_VERSION)
+              javaVersion: $(JAVA_VERSION)
+
+          - script: |
+              flutter build apk \
+                --release \
+                --build-name=$(APP_VERSION) \
+                --build-number=$(BUILD_NUMBER) \
+                --dart-define=ENVIRONMENT=staging
+            displayName: "Build staging APK"
+
+          - task: CopyFiles@2
+            inputs:
+              contents: "build/app/outputs/flutter-apk/app-release.apk"
+              targetFolder: "$(ANDROID_OUTPUT_DIR)"
+              flattenFolders: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(ANDROID_OUTPUT_DIR)"
+              artifactName: "android-staging"
+
+      - job: ios_stg
+        displayName: "iOS Staging IPA"
+        pool:
+          vmImage: "macos-latest"
+        steps:
+          - template: .azure/templates/flutter-setup.yml
+            parameters:
+              flutterVersion: $(FLUTTER_VERSION)
+              javaVersion: $(JAVA_VERSION)
+
+          - script: |
+              flutter build ipa \
+                --release \
+                --build-name=$(APP_VERSION) \
+                --build-number=$(BUILD_NUMBER) \
+                --dart-define=ENVIRONMENT=staging \
+                --no-codesign
+            displayName: "Build staging IPA (no codesign)"
+
+          - task: CopyFiles@2
+            inputs:
+              contents: "build/ios/ipa/*.ipa"
+              targetFolder: "$(IOS_OUTPUT_DIR)"
+              flattenFolders: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(IOS_OUTPUT_DIR)"
+              artifactName: "ios-staging"
+
+  # ============================================================
+  # Stage 4: Build Production (main branch)
+  # ============================================================
+  - stage: build_prod
+    displayName: "Build Production (Signed Release)"
+    dependsOn: validate
+    condition: |
+      and(
+        succeeded(),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main')
+      )
+    jobs:
+      - job: android_prod
+        displayName: "Android Production APK + AAB"
+        pool:
+          vmImage: "ubuntu-latest"
+        variables:
+          - group: flutterbase-android-secrets
+        steps:
+          - template: .azure/templates/flutter-setup.yml
+            parameters:
+              flutterVersion: $(FLUTTER_VERSION)
+              javaVersion: $(JAVA_VERSION)
+
+          # Restore keystore
+          - script: |
+              echo "$(KEYSTORE_BASE64)" | base64 --decode > android/app/keystore.jks
+            displayName: "Restore keystore"
+
+          # Create key.properties
+          - script: |
+              cat > android/key.properties <<EOF
+              storePassword=$(STORE_PASSWORD)
+              keyPassword=$(KEY_PASSWORD)
+              keyAlias=$(KEY_ALIAS)
+              storeFile=keystore.jks
+              EOF
+            displayName: "Create key.properties"
+
+          # Build signed APK
+          - script: |
+              flutter build apk \
+                --release \
+                --build-name=$(APP_VERSION) \
+                --build-number=$(BUILD_NUMBER) \
+                --dart-define=ENVIRONMENT=production
+            displayName: "Build production APK"
+
+          # Build signed AAB (Google Play)
+          - script: |
+              flutter build appbundle \
+                --release \
+                --build-name=$(APP_VERSION) \
+                --build-number=$(BUILD_NUMBER) \
+                --dart-define=ENVIRONMENT=production
+            displayName: "Build production AAB"
+
+          - task: CopyFiles@2
+            inputs:
+              contents: |
+                build/app/outputs/flutter-apk/app-release.apk
+                build/app/outputs/bundle/release/app-release.aab
+              targetFolder: "$(ANDROID_OUTPUT_DIR)"
+              flattenFolders: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(ANDROID_OUTPUT_DIR)"
+              artifactName: "android-production"
+
+      - job: ios_prod
+        displayName: "iOS Production IPA"
+        pool:
+          vmImage: "macos-latest"
+        variables:
+          - group: flutterbase-ios-secrets
+        steps:
+          - template: .azure/templates/flutter-setup.yml
+            parameters:
+              flutterVersion: $(FLUTTER_VERSION)
+              javaVersion: $(JAVA_VERSION)
+
+          # Install certificate
+          - script: |
+              echo "$(P12_CERTIFICATE_BASE64)" | base64 --decode > certificate.p12
+              security create-keychain -p "" build.keychain
+              security import certificate.p12 -k build.keychain \
+                -P "$(P12_PASSWORD)" -T /usr/bin/codesign
+              security list-keychains -s build.keychain
+              security default-keychain -s build.keychain
+              security unlock-keychain -p "" build.keychain
+              security set-key-partition-list \
+                -S apple-tool:,apple: -s -k "" build.keychain
+            displayName: "Install signing certificate"
+
+          # Install provisioning profile
+          - script: |
+              echo "$(PROVISIONING_PROFILE_BASE64)" | base64 --decode \
+                > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            displayName: "Install provisioning profile"
+
+          - script: |
+              flutter build ipa \
+                --release \
+                --build-name=$(APP_VERSION) \
+                --build-number=$(BUILD_NUMBER) \
+                --dart-define=ENVIRONMENT=production
+            displayName: "Build production IPA"
+
+          - task: CopyFiles@2
+            inputs:
+              contents: "build/ios/ipa/*.ipa"
+              targetFolder: "$(IOS_OUTPUT_DIR)"
+              flattenFolders: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(IOS_OUTPUT_DIR)"
+              artifactName: "ios-production"
