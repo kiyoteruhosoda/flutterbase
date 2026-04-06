@@ -1,38 +1,17 @@
-name: Flutter Build
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  start-runner:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Start ACI Runner
-        run: |
-          curl -X POST \
-            "${{ secrets.FUNC_URL }}" \
-            -H "Content-Type: application/json" \
-            -d '{"github_repo": "${{ github.repository }}"}'
-
-      - name: Wait for Runner
-        run: sleep 60  # ACI起動とRunner登録を待つ
-
-  build:
-    needs: start-runner
-    runs-on: [self-hosted, flutter, android]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Flutter pub get
-        run: flutter pub get
-
-      - name: Flutter build APK
-        run: flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+- name: Start ACI Runner
+  run: |
+    RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+      "${{ secrets.FUNC_URL }}" \
+      -H "Content-Type: application/json" \
+      -d '{"github_repo": "${{ github.repository }}"}')
+    
+    HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+    BODY=$(echo "$RESPONSE" | head -1)
+    
+    echo "Response: $BODY"
+    echo "HTTP Status: $HTTP_CODE"
+    
+    if [ "$HTTP_CODE" != "200" ]; then
+      echo "Failed to start ACI"
+      exit 1
+    fi
