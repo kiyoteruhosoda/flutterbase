@@ -63,6 +63,13 @@ jobs:
     runs-on: [self-hosted, flutter, android]
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Android SDK permissions
+        run: |
+          if [ -n "$ANDROID_SDK_ROOT" ]; then
+            sudo chmod -R a+rwx "$ANDROID_SDK_ROOT" || true
+          elif [ -n "$ANDROID_HOME" ]; then
+            sudo chmod -R a+rwx "$ANDROID_HOME" || true
+          fi
       - name: Flutter pub get
         run: flutter pub get
       - name: Flutter build APK
