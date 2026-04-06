@@ -27,7 +27,6 @@ jobs:
 
       - name: Wait and monitor ACI
         run: |
-          # ACIステータス確認用URL（KeyはFUNC_URLに含まれているものを流用）
           STATUS_URL="${{ secrets.FUNC_STATUS_URL }}"
 
           for i in $(seq 1 20); do
@@ -80,6 +79,12 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Delete ACI
+      - name: Stop ACI
         run: |
-          curl -s -X POST "${{ secrets.FUNC_STOP_URL }}" || true
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.FUNC_STOP_URL }}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Response: $BODY"
+          echo "HTTP Status: $HTTP_CODE"
