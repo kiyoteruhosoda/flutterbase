@@ -18,32 +18,68 @@ jobs:
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -1)
-
           echo "Response: $BODY"
           echo "HTTP Status: $HTTP_CODE"
 
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "Failed to start ACI"
             exit 1
           fi
 
-      - name: Wait for Runner
-        run: sleep 60
+      - name: Wait and monitor ACI
+        run: |
+          # ACIステータス確認用URL（KeyはFUNC_URLに含まれているものを流用）
+          STATUS_URL="${{ secrets.FUNC_STATUS_URL }}"
+
+          for i in $(seq 1 20); do
+            echo "--- Attempt $i ---"
+            RESULT=$(curl -s "$STATUS_URL")
+            STATUS=$(echo $RESULT | jq -r '.status')
+            LOGS=$(echo $RESULT | jq -r '.logs')
+
+            echo "ACI Status: $STATUS"
+            echo "--- ACI Logs ---"
+            echo "$LOGS"
+
+            if [ "$STATUS" = "Terminated" ]; then
+              EXIT_CODE=$(echo $RESULT | jq -r '.exit_code')
+              echo "ACI terminated with exit code: $EXIT_CODE"
+              if [ "$EXIT_CODE" != "0" ]; then
+                exit 1
+              fi
+            fi
+
+            if echo "$LOGS" | grep -q "Listening for Jobs"; then
+              echo "Runner is ready!"
+              exit 0
+            fi
+
+            sleep 15
+          done
+
+          echo "Timeout waiting for runner"
+          exit 1
 
   build:
     needs: start-runner
     runs-on: [self-hosted, flutter, android]
     steps:
       - uses: actions/checkout@v4
-
       - name: Flutter pub get
         run: flutter pub get
-
       - name: Flutter build APK
         run: flutter build apk --release
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+  stop-runner:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete ACI
+        run: |
+          curl -s -X POST "${{ secrets.FUNC_STOP_URL }}" || true
