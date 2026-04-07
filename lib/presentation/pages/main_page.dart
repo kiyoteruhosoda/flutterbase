@@ -38,7 +38,15 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      // Allow pop only when already on Home tab; otherwise switch to Home.
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          setState(() => _selectedIndex = 0);
+        }
+      },
+      child: Scaffold(
       appBar: AppMainHeader(
         title: AppStrings.appName,
         leading: Builder(
@@ -146,6 +154,7 @@ class _MainPageState extends State<MainPage> {
               ),
             )
             .toList(),
+      ),
       ),
     );
   }
