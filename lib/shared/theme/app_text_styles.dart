@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
 
-/// デジタル庁デザインシステム タイポグラフィトークン
-/// フォント: Noto Sans JP
-/// サイズスケール: 14, 16, 17, 18, 20, 22, 24, 26, 28, 32, 36, 45, 48, 57, 64
+/// Typography tokens — font size, weight, and spacing only.
+/// Colors are intentionally omitted so widgets inherit the correct
+/// light/dark color from the ambient theme's DefaultTextStyle.
 class AppTextStyles {
   AppTextStyles._();
 
@@ -16,7 +15,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w400,
     height: 1.12,
     letterSpacing: -0.25,
-    color: AppColors.textBody,
   );
 
   static const TextStyle displayMedium = TextStyle(
@@ -24,7 +22,6 @@ class AppTextStyles {
     fontSize: 45,
     fontWeight: FontWeight.w400,
     height: 1.15,
-    color: AppColors.textBody,
   );
 
   static const TextStyle displaySmall = TextStyle(
@@ -32,7 +29,6 @@ class AppTextStyles {
     fontSize: 36,
     fontWeight: FontWeight.w400,
     height: 1.22,
-    color: AppColors.textBody,
   );
 
   // ─── Headline ──────────────────────────────────────────────────────
@@ -41,7 +37,6 @@ class AppTextStyles {
     fontSize: 32,
     fontWeight: FontWeight.w700,
     height: 1.25,
-    color: AppColors.textBody,
   );
 
   static const TextStyle headlineMedium = TextStyle(
@@ -49,7 +44,6 @@ class AppTextStyles {
     fontSize: 28,
     fontWeight: FontWeight.w700,
     height: 1.28,
-    color: AppColors.textBody,
   );
 
   static const TextStyle headlineSmall = TextStyle(
@@ -57,7 +51,6 @@ class AppTextStyles {
     fontSize: 24,
     fontWeight: FontWeight.w700,
     height: 1.33,
-    color: AppColors.textBody,
   );
 
   // ─── Title ─────────────────────────────────────────────────────────
@@ -66,7 +59,6 @@ class AppTextStyles {
     fontSize: 22,
     fontWeight: FontWeight.w700,
     height: 1.27,
-    color: AppColors.textBody,
   );
 
   static const TextStyle titleMedium = TextStyle(
@@ -75,7 +67,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     height: 1.5,
     letterSpacing: 0.15,
-    color: AppColors.textBody,
   );
 
   static const TextStyle titleSmall = TextStyle(
@@ -84,7 +75,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     height: 1.43,
     letterSpacing: 0.1,
-    color: AppColors.textBody,
   );
 
   // ─── Body ──────────────────────────────────────────────────────────
@@ -94,7 +84,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w400,
     height: 1.75,
     letterSpacing: 0.15,
-    color: AppColors.textBody,
   );
 
   static const TextStyle bodyMedium = TextStyle(
@@ -103,7 +92,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w400,
     height: 1.75,
     letterSpacing: 0.25,
-    color: AppColors.textBody,
   );
 
   static const TextStyle bodySmall = TextStyle(
@@ -112,7 +100,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w400,
     height: 1.6,
     letterSpacing: 0.4,
-    color: AppColors.textDescription,
   );
 
   // ─── Label ─────────────────────────────────────────────────────────
@@ -122,7 +109,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     height: 1.43,
     letterSpacing: 0.1,
-    color: AppColors.textBody,
   );
 
   static const TextStyle labelMedium = TextStyle(
@@ -131,7 +117,6 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     height: 1.33,
     letterSpacing: 0.5,
-    color: AppColors.textBody,
   );
 
   static const TextStyle labelSmall = TextStyle(
@@ -140,6 +125,5 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     height: 1.45,
     letterSpacing: 0.5,
-    color: AppColors.textBody,
   );
 }

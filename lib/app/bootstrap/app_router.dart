@@ -4,8 +4,10 @@ import 'package:flutterbase/presentation/pages/splash_page.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
 import 'package:flutterbase/presentation/pages/system/debug_page.dart';
 import 'package:flutterbase/presentation/pages/system/licenses_page.dart';
+import 'package:flutterbase/presentation/pages/system/logs_page.dart';
+import 'package:flutterbase/shared/l10n/app_strings.dart';
 
-/// アプリルーティング
+/// Named route definitions.
 class AppRouter {
   AppRouter._();
 
@@ -14,6 +16,7 @@ class AppRouter {
   static const String about = '/about';
   static const String licenses = '/licenses';
   static const String debug = '/debug';
+  static const String logs = '/logs';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     return switch (settings.name) {
@@ -37,6 +40,10 @@ class AppRouter {
           builder: (_) => const DebugPage(),
           settings: settings,
         ),
+      logs => MaterialPageRoute<void>(
+          builder: (_) => const LogsPage(),
+          settings: settings,
+        ),
       _ => MaterialPageRoute<void>(
           builder: (_) => const _NotFoundPage(),
           settings: settings,
@@ -51,10 +58,8 @@ class _NotFoundPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ページが見つかりません')),
-      body: const Center(
-        child: Text('404 - ページが見つかりません'),
-      ),
+      appBar: AppBar(title: const Text(AppStrings.commonPageNotFound)),
+      body: const Center(child: Text(AppStrings.commonNotFound)),
     );
   }
 }

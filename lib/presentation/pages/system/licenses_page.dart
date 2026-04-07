@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
+import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
-/// 利用ライブラリライセンス情報ページ
+/// Third-party package licenses page.
 class LicensesPage extends StatelessWidget {
   const LicensesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppMainHeader(title: 'ライセンス情報'),
+      appBar: AppMainHeader(title: AppStrings.licensesTitle),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.pageMargin),
         children: const [
@@ -58,6 +59,22 @@ class LicensesPage extends StatelessWidget {
             version: '^8.0.0',
             license: 'BSD 2-Clause License',
             url: 'https://pub.dev/packages/package_info_plus',
+            copyright: 'Copyright 2017 The Chromium Authors',
+          ),
+          SizedBox(height: AppSpacing.sm),
+          _LicenseSection(
+            name: 'path_provider',
+            version: '^2.1.0',
+            license: 'BSD 3-Clause License',
+            url: 'https://pub.dev/packages/path_provider',
+            copyright: 'Copyright 2017 The Chromium Authors',
+          ),
+          SizedBox(height: AppSpacing.sm),
+          _LicenseSection(
+            name: 'shared_preferences',
+            version: '^2.3.0',
+            license: 'BSD 3-Clause License',
+            url: 'https://pub.dev/packages/shared_preferences',
             copyright: 'Copyright 2017 The Chromium Authors',
           ),
           SizedBox(height: AppSpacing.sm),
@@ -122,21 +139,23 @@ class _LicenseSectionState extends State<_LicenseSection> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.name, style: AppTextStyles.titleSmall),
+                        Text(
+                          widget.name,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           '${widget.version} • ${widget.license}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                         ),
                       ],
                     ),
                   ),
                   Icon(
-                    _expanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                    _expanded ? Icons.expand_less : Icons.expand_more,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ],
@@ -150,20 +169,23 @@ class _LicenseSectionState extends State<_LicenseSection> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.copyright, style: AppTextStyles.bodySmall),
+                  Text(
+                    widget.copyright,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     widget.url,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: colorScheme.primary,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.primary,
+                        ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
                     _getLicenseText(widget.license),
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
@@ -180,13 +202,11 @@ class _LicenseSectionState extends State<_LicenseSection> {
         'Permission is hereby granted, free of charge, to any person obtaining '
             'a copy of this software and associated documentation files, to deal '
             'in the Software without restriction...',
-      'BSD 3-Clause License' =>
-        'Redistribution and use in source and binary forms, with or without '
-            'modification, are permitted provided that the following conditions are met...',
+      'BSD 3-Clause License' ||
       'BSD 2-Clause License' =>
         'Redistribution and use in source and binary forms, with or without '
             'modification, are permitted provided that the following conditions are met...',
-      _ => '詳細はパッケージのライセンスファイルを参照してください。'
+      _ => AppStrings.licensesDetails,
     };
   }
 }

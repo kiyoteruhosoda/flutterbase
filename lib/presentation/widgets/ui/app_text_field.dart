@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
-/// デジタル庁デザインシステム準拠 テキストフィールド
+/// DADS-compliant text field.
 class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
@@ -50,7 +50,7 @@ class AppTextField extends StatelessWidget {
       enabled: enabled,
       maxLines: maxLines,
       autofocus: autofocus,
-      style: AppTextStyles.bodyLarge,
+      // style inherits from theme's inputDecorationTheme / DefaultTextStyle
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

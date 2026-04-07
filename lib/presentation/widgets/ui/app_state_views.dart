@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 import 'app_primary_button.dart';
 
-/// ローディング状態表示
+/// Loading state indicator.
 class AppLoadingView extends StatelessWidget {
   const AppLoadingView({super.key, this.message});
   final String? message;
@@ -18,7 +19,10 @@ class AppLoadingView extends StatelessWidget {
           ),
           if (message != null) ...[
             const SizedBox(height: AppSpacing.lg),
-            Text(message!, style: AppTextStyles.bodyMedium),
+            Text(
+              message!,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ],
         ],
       ),
@@ -26,13 +30,13 @@ class AppLoadingView extends StatelessWidget {
   }
 }
 
-/// エラー状態表示
+/// Error state with optional retry action.
 class AppErrorView extends StatelessWidget {
   const AppErrorView({
     super.key,
     required this.message,
     this.onRetry,
-    this.retryLabel = '再試行',
+    this.retryLabel = AppStrings.commonRetry,
   });
 
   final String message;
@@ -55,15 +59,12 @@ class AppErrorView extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             Text(
               message,
-              style: AppTextStyles.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              AppPrimaryButton(
-                label: retryLabel,
-                onPressed: onRetry,
-              ),
+              AppPrimaryButton(label: retryLabel, onPressed: onRetry),
             ],
           ],
         ),
@@ -72,7 +73,7 @@ class AppErrorView extends StatelessWidget {
   }
 }
 
-/// 空状態表示
+/// Empty state with optional action.
 class AppEmptyView extends StatelessWidget {
   const AppEmptyView({
     super.key,
@@ -103,17 +104,14 @@ class AppEmptyView extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             Text(
               message,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
               textAlign: TextAlign.center,
             ),
             if (action != null && actionLabel != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              AppPrimaryButton(
-                label: actionLabel!,
-                onPressed: action,
-              ),
+              AppPrimaryButton(label: actionLabel!, onPressed: action),
             ],
           ],
         ),

@@ -75,6 +75,8 @@ jobs:
           fi
       - name: Flutter pub get
         run: flutter pub get
+      - name: Generate build info
+        run: bash scripts/generate_build_info.sh
       - name: Flutter build APK
         run: flutter build apk --release
       - name: Upload APK

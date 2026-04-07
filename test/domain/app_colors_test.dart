@@ -1,9 +1,11 @@
+// Legacy location — tests moved to test/shared/theme/app_colors_test.dart
+// Kept here to avoid breaking existing CI runs.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/shared/theme/app_colors.dart';
 
 void main() {
-  group('AppColors', () {
+  group('AppColors (legacy test location)', () {
     test('blue scale colors are not null', () {
       expect(AppColors.blue100, isNotNull);
       expect(AppColors.blue800, isNotNull);
