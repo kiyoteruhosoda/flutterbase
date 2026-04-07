@@ -33,11 +33,24 @@ final class PersistentAppLogger implements AppLogger {
   final List<LogEntry> _buffer = [];
   IOSink? _fileSink;
   File? _currentFile;
+  LogLevel _minLevel = LogLevel.debug;
 
   // ── Initialisation ────────────────────────────────────────────────────
 
-  /// Opens the initial log file. Call once after construction.
-  Future<void> init() async {
+  // ── AppLogger: min level ──────────────────────────────────────────────
+
+  @override
+  LogLevel get minLevel => _minLevel;
+
+  @override
+  void setMinLevel(LogLevel level) => _minLevel = level;
+
+  // ── Initialisation ────────────────────────────────────────────────────
+
+  /// Opens the initial log file and optionally restores [savedLevel].
+  /// Call once after construction.
+  Future<void> init({LogLevel? savedLevel}) async {
+    if (savedLevel != null) _minLevel = savedLevel;
     try {
       await _openNewLogFile();
     } catch (e) {
@@ -119,6 +132,8 @@ final class PersistentAppLogger implements AppLogger {
     Object? error,
     StackTrace? stackTrace,
   }) {
+    if (level.index < _minLevel.index) return;
+
     final entry = LogEntry(
       timestamp: DateTime.now(),
       level: level,

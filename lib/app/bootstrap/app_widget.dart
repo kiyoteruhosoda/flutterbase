@@ -5,6 +5,7 @@ import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/pages/splash_page.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/logging/app_logger.dart';
 import 'package:flutterbase/shared/theme/app_theme.dart';
 
 /// Root widget. Listens to [ThemeViewModel] for live theme switching.
@@ -15,10 +16,31 @@ class AppWidget extends StatefulWidget {
   State<AppWidget> createState() => _AppWidgetState();
 }
 
-class _AppWidgetState extends State<AppWidget> {
+class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
   bool _showSplash = true;
+  late final AppLogger _logger;
+
+  @override
+  void initState() {
+    super.initState();
+    _logger = sl<AppLogger>();
+    WidgetsBinding.instance.addObserver(this);
+    _logger.info('[App] AppWidget initialised');
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _logger.debug('[App] Lifecycle → ${state.name}');
+  }
 
   void _onSplashComplete() {
+    _logger.info('[App] Splash complete — navigating to main');
     setState(() => _showSplash = false);
   }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
+import 'package:flutterbase/shared/logging/app_logger.dart';
 import 'package:flutterbase/shared/value_objects/app_theme_mode.dart';
 
 /// Manages the app-wide [ThemeMode] and persists the user's choice via
@@ -11,6 +13,7 @@ class ThemeViewModel extends ChangeNotifier {
     this._setThemePreference,
   ) {
     _themeMode = _toFlutterMode(_getThemePreference.execute());
+    sl<AppLogger>().debug('[ThemeViewModel] init — themeMode: ${_themeMode.name}');
   }
 
   final GetThemePreferenceUseCase _getThemePreference;
@@ -22,6 +25,7 @@ class ThemeViewModel extends ChangeNotifier {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     if (_themeMode == mode) return;
+    sl<AppLogger>().debug('[ThemeViewModel] setThemeMode: ${mode.name}');
     _themeMode = mode;
     await _setThemePreference.execute(_toAppMode(mode));
     notifyListeners();

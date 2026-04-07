@@ -23,6 +23,12 @@ abstract interface class AppLogger {
   /// Entries filtered by [level]; null returns all.
   List<LogEntry> entriesForLevel(LogLevel? level);
 
+  /// Current minimum log level. Messages below this level are silently dropped.
+  LogLevel get minLevel;
+
+  /// Changes the minimum log level at runtime.
+  void setMinLevel(LogLevel level);
+
   /// Clears the in-memory buffer. Persistent files are unaffected.
   void clearBuffer();
 

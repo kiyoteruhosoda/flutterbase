@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
+import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/logging/log_level.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Main screen with bottom navigation.
@@ -54,73 +56,81 @@ class _MainPageState extends State<MainPage> {
           ),
         ],
       ),
-      drawer: AppDrawer(
-        appName: AppStrings.appName,
-        headerSubtitle: AppStrings.drawerSubtitle,
-        items: [
-          AppDrawerItem(
-            label: AppStrings.navHome,
-            icon: Icons.home_outlined,
-            isSelected: _selectedIndex == 0,
-            onTap: () {
-              setState(() => _selectedIndex = 0);
-              Navigator.of(context).pop();
-            },
-          ),
-          AppDrawerItem(
-            label: AppStrings.navSearch,
-            icon: Icons.search_outlined,
-            isSelected: _selectedIndex == 1,
-            onTap: () {
-              setState(() => _selectedIndex = 1);
-              Navigator.of(context).pop();
-            },
-          ),
-          AppDrawerItem(
-            label: AppStrings.navSettings,
-            icon: Icons.settings_outlined,
-            isSelected: _selectedIndex == 2,
-            onTap: () {
-              setState(() => _selectedIndex = 2);
-              Navigator.of(context).pop();
-            },
-          ),
-          const AppDrawerItem.divider(),
-        ],
-        bottomItems: [
-          AppDrawerItem(
-            label: AppStrings.drawerAbout,
-            icon: Icons.info_outline,
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/about');
-            },
-          ),
-          AppDrawerItem(
-            label: AppStrings.drawerLicenses,
-            icon: Icons.description_outlined,
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/licenses');
-            },
-          ),
-          AppDrawerItem(
-            label: AppStrings.drawerLogs,
-            icon: Icons.list_alt_outlined,
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/logs');
-            },
-          ),
-          AppDrawerItem(
-            label: AppStrings.drawerDebug,
-            icon: Icons.bug_report_outlined,
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/debug');
-            },
-          ),
-        ],
+      drawer: ListenableBuilder(
+        listenable: sl<DebugSettingsViewModel>(),
+        builder: (context, _) {
+          final debugEnabled = sl<DebugSettingsViewModel>().debugEnabled;
+          return AppDrawer(
+            appName: AppStrings.appName,
+            headerSubtitle: AppStrings.drawerSubtitle,
+            items: [
+              AppDrawerItem(
+                label: AppStrings.navHome,
+                icon: Icons.home_outlined,
+                isSelected: _selectedIndex == 0,
+                onTap: () {
+                  setState(() => _selectedIndex = 0);
+                  Navigator.of(context).pop();
+                },
+              ),
+              AppDrawerItem(
+                label: AppStrings.navSearch,
+                icon: Icons.search_outlined,
+                isSelected: _selectedIndex == 1,
+                onTap: () {
+                  setState(() => _selectedIndex = 1);
+                  Navigator.of(context).pop();
+                },
+              ),
+              AppDrawerItem(
+                label: AppStrings.navSettings,
+                icon: Icons.settings_outlined,
+                isSelected: _selectedIndex == 2,
+                onTap: () {
+                  setState(() => _selectedIndex = 2);
+                  Navigator.of(context).pop();
+                },
+              ),
+              const AppDrawerItem.divider(),
+            ],
+            bottomItems: [
+              AppDrawerItem(
+                label: AppStrings.drawerAbout,
+                icon: Icons.info_outline,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushNamed('/about');
+                },
+              ),
+              AppDrawerItem(
+                label: AppStrings.drawerLicenses,
+                icon: Icons.description_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushNamed('/licenses');
+                },
+              ),
+              if (debugEnabled) ...[
+                AppDrawerItem(
+                  label: AppStrings.drawerLogs,
+                  icon: Icons.list_alt_outlined,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pushNamed('/logs');
+                  },
+                ),
+                AppDrawerItem(
+                  label: AppStrings.drawerDebug,
+                  icon: Icons.bug_report_outlined,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pushNamed('/debug');
+                  },
+                ),
+              ],
+            ],
+          );
+        },
       ),
       body: _buildTabContent(),
       bottomNavigationBar: NavigationBar(
@@ -250,6 +260,7 @@ class _SettingsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeViewModel = sl<ThemeViewModel>();
+    final debugViewModel = sl<DebugSettingsViewModel>();
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
@@ -291,6 +302,46 @@ class _SettingsContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
+        // ── Developer section ────────────────────────────────────────
+        AppSectionHeader(title: AppStrings.settingsDeveloper),
+        const SizedBox(height: AppSpacing.sm),
+        ListenableBuilder(
+          listenable: debugViewModel,
+          builder: (context, _) => AppCard(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  value: debugViewModel.debugEnabled,
+                  onChanged: debugViewModel.setDebugEnabled,
+                  secondary: Icon(
+                    Icons.bug_report_outlined,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(
+                    AppStrings.settingsDebugMode,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  subtitle: Text(
+                    AppStrings.settingsDebugModeSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.componentPadding,
+                    vertical: AppSpacing.xs,
+                  ),
+                ),
+                if (debugViewModel.debugEnabled) ...[
+                  const Divider(height: 1),
+                  _LogLevelTile(
+                    currentLevel: debugViewModel.logLevel,
+                    onChanged: debugViewModel.setLogLevel,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
         AppListCard(
           title: AppStrings.settingsAbout,
           leading: const Icon(Icons.info_outline),
@@ -302,17 +353,26 @@ class _SettingsContent extends StatelessWidget {
           leading: const Icon(Icons.description_outlined),
           onTap: () => Navigator.of(context).pushNamed('/licenses'),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        AppListCard(
-          title: AppStrings.settingsLogs,
-          leading: const Icon(Icons.list_alt_outlined),
-          onTap: () => Navigator.of(context).pushNamed('/logs'),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        AppListCard(
-          title: AppStrings.settingsDebug,
-          leading: const Icon(Icons.bug_report_outlined),
-          onTap: () => Navigator.of(context).pushNamed('/debug'),
+        ListenableBuilder(
+          listenable: debugViewModel,
+          builder: (context, _) => debugViewModel.debugEnabled
+              ? Column(
+                  children: [
+                    const SizedBox(height: AppSpacing.sm),
+                    AppListCard(
+                      title: AppStrings.settingsLogs,
+                      leading: const Icon(Icons.list_alt_outlined),
+                      onTap: () => Navigator.of(context).pushNamed('/logs'),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppListCard(
+                      title: AppStrings.settingsDebug,
+                      leading: const Icon(Icons.bug_report_outlined),
+                      onTap: () => Navigator.of(context).pushNamed('/debug'),
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(),
         ),
       ],
     );
@@ -357,6 +417,58 @@ class _ThemeOptionTile extends StatelessWidget {
           : Icon(Icons.radio_button_unchecked,
               color: colorScheme.onSurfaceVariant),
       onTap: () => onChanged(value),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.componentPadding,
+        vertical: AppSpacing.xs,
+      ),
+    );
+  }
+}
+
+class _LogLevelTile extends StatelessWidget {
+  const _LogLevelTile({
+    required this.currentLevel,
+    required this.onChanged,
+  });
+
+  final LogLevel currentLevel;
+  final ValueChanged<LogLevel> onChanged;
+
+  static const List<(LogLevel, String)> _levels = [
+    (LogLevel.verbose, AppStrings.logLevelVerbose),
+    (LogLevel.debug, AppStrings.logLevelDebug),
+    (LogLevel.info, AppStrings.logLevelInfo),
+    (LogLevel.warning, AppStrings.logLevelWarning),
+    (LogLevel.error, AppStrings.logLevelError),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(
+        Icons.tune_outlined,
+        color: colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        AppStrings.settingsLogLevel,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
+      trailing: DropdownButton<LogLevel>(
+        value: currentLevel,
+        underline: const SizedBox.shrink(),
+        onChanged: (level) {
+          if (level != null) onChanged(level);
+        },
+        items: _levels
+            .map(
+              (entry) => DropdownMenuItem(
+                value: entry.$1,
+                child: Text(entry.$2),
+              ),
+            )
+            .toList(),
+      ),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.componentPadding,
         vertical: AppSpacing.xs,

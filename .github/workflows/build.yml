@@ -66,6 +66,8 @@ jobs:
     runs-on: [self-hosted, flutter, android]
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Full history needed for git rev-list --count
       - name: Setup Android SDK permissions
         run: |
           if [ -n "$ANDROID_SDK_ROOT" ]; then
@@ -79,11 +81,19 @@ jobs:
         run: bash scripts/generate_build_info.sh
       - name: Flutter build APK
         run: flutter build apk --release
+      - name: Flutter build AAB
+        run: flutter build appbundle --release
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
           name: apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+      - name: Upload AAB
+        uses: actions/upload-artifact@v5
+        with:
+          name: aab
+          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
   stop-runner:

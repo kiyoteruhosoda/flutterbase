@@ -26,6 +26,7 @@ class DebugViewModel extends ChangeNotifier {
   AppError? get appError => _error;
 
   Future<void> loadAppInfo() async {
+    _logger.debug('[DebugViewModel] loadAppInfo start');
     _state = DebugState.loading;
     _error = null;
     notifyListeners();
@@ -33,15 +34,18 @@ class DebugViewModel extends ChangeNotifier {
     try {
       _appInfo = await _getAppInfo.execute();
       _state = DebugState.loaded;
+      _logger.debug('[DebugViewModel] loadAppInfo success');
     } catch (e, st) {
       _error = UnexpectedError('Failed to load debug info', cause: e, stackTrace: st);
       _state = DebugState.error;
+      _logger.error('[DebugViewModel] loadAppInfo failed', error: e, stackTrace: st);
     } finally {
       notifyListeners();
     }
   }
 
   void clearLogs() {
+    _logger.info('[DebugViewModel] clearLogs');
     _logger.clearBuffer();
     notifyListeners();
   }
