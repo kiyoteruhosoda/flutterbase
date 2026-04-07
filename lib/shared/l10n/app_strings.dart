@@ -129,6 +129,18 @@ class AppStrings {
   static const String logsConfirm = 'Clear';
   static const String logsCopied = 'Log entry copied';
 
+  // ─── Developer settings ───────────────────────────────────────────────
+  static const String settingsDeveloper = 'Developer';
+  static const String settingsDebugMode = 'Debug Mode';
+  static const String settingsDebugModeSubtitle =
+      'Show Logs and Debug Info menu items';
+  static const String settingsLogLevel = 'Log Level';
+  static const String logLevelVerbose = 'Verbose';
+  static const String logLevelDebug = 'Debug';
+  static const String logLevelInfo = 'Info';
+  static const String logLevelWarning = 'Warning';
+  static const String logLevelError = 'Error';
+
   // ─── Licenses page ───────────────────────────────────────────────────
   static const String licensesTitle = 'Licenses';
   static const String licensesDetails =

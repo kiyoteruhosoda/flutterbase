@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/pages/splash_page.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
@@ -6,6 +7,7 @@ import 'package:flutterbase/presentation/pages/system/debug_page.dart';
 import 'package:flutterbase/presentation/pages/system/licenses_page.dart';
 import 'package:flutterbase/presentation/pages/system/logs_page.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/logging/app_logger.dart';
 
 /// Named route definitions.
 class AppRouter {
@@ -19,6 +21,7 @@ class AppRouter {
   static const String logs = '/logs';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    sl<AppLogger>().debug('[Router] → ${settings.name}');
     return switch (settings.name) {
       splash => MaterialPageRoute<void>(
           builder: (_) => const SplashPage(),
