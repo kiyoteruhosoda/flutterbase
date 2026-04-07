@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
-/// デジタル庁デザインシステム準拠 カード
+/// DADS-compliant card container.
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
@@ -25,8 +25,8 @@ class AppCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: AppRadius.lgBorder,
           child: Padding(
-            padding: padding ??
-                const EdgeInsets.all(AppSpacing.componentPadding),
+            padding:
+                padding ?? const EdgeInsets.all(AppSpacing.componentPadding),
             child: child,
           ),
         ),
@@ -35,7 +35,7 @@ class AppCard extends StatelessWidget {
   }
 }
 
-/// リスト形式のカードアイテム
+/// List-style card item with leading icon, title, subtitle, and optional action.
 class AppListCard extends StatelessWidget {
   const AppListCard({
     super.key,
@@ -58,11 +58,16 @@ class AppListCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       onTap: onTap,
       child: ListTile(
-        title: Text(title, style: AppTextStyles.titleSmall),
-        subtitle:
-            subtitle != null ? Text(subtitle!, style: AppTextStyles.bodySmall) : null,
+        title: Text(title, style: Theme.of(context).textTheme.titleSmall),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle!,
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            : null,
         leading: leading,
-        trailing: trailing ?? (onTap != null ? const Icon(Icons.chevron_right) : null),
+        trailing: trailing ??
+            (onTap != null ? const Icon(Icons.chevron_right) : null),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.componentPadding,
           vertical: AppSpacing.sm,

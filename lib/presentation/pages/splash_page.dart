@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
-/// スプラッシュ画面
+/// Animated splash screen shown once at startup.
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key, this.onComplete});
   final VoidCallback? onComplete;
@@ -40,9 +41,7 @@ class _SplashPageState extends State<SplashPage>
 
     _controller.forward().then((_) {
       Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) {
-          widget.onComplete?.call();
-        }
+        if (mounted) widget.onComplete?.call();
       });
     });
   }
@@ -71,7 +70,6 @@ class _SplashPageState extends State<SplashPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // アプリアイコン
               Container(
                 width: 96,
                 height: 96,
@@ -87,14 +85,14 @@ class _SplashPageState extends State<SplashPage>
               ),
               const SizedBox(height: AppSpacing.xl),
               Text(
-                'FlutterBase',
+                AppStrings.appName,
                 style: AppTextStyles.headlineLarge.copyWith(
                   color: colorScheme.onPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'デジタル庁デザインシステム準拠',
+                AppStrings.splashSubtitle,
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: colorScheme.onPrimary.withValues(alpha: 0.8),
                 ),

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
-/// デジタル庁デザインシステム準拠 メインヘッダー
-/// AppBar として使用
+/// DADS-compliant AppBar.
 class AppMainHeader extends StatelessWidget implements PreferredSizeWidget {
   const AppMainHeader({
     super.key,
@@ -36,7 +35,7 @@ class AppMainHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// デジタル庁デザインシステム準拠 セクションヘッダー
+/// Section header with optional subtitle and action button.
 class AppSectionHeader extends StatelessWidget {
   const AppSectionHeader({
     super.key,
@@ -64,11 +63,14 @@ class AppSectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.titleMedium),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 if (subtitle != null)
                   Text(
                     subtitle!,
-                    style: AppTextStyles.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
               ],
             ),

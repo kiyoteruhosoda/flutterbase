@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/app/di/service_locator.dart';
+import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
+import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
-/// メイン画面 (ホーム)
+/// Main screen with bottom navigation.
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -14,43 +17,49 @@ class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
   static const List<_TabItem> _tabs = [
-    _TabItem(label: 'ホーム', icon: Icons.home_outlined, selectedIcon: Icons.home),
     _TabItem(
-        label: '検索',
-        icon: Icons.search_outlined,
-        selectedIcon: Icons.search),
+      label: AppStrings.navHome,
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home,
+    ),
     _TabItem(
-        label: '設定',
-        icon: Icons.settings_outlined,
-        selectedIcon: Icons.settings),
+      label: AppStrings.navSearch,
+      icon: Icons.search_outlined,
+      selectedIcon: Icons.search,
+    ),
+    _TabItem(
+      label: AppStrings.navSettings,
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppMainHeader(
-        title: 'FlutterBase',
+        title: AppStrings.appName,
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
             onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: 'メニュー',
+            tooltip: AppStrings.commonMenu,
           ),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {},
-            tooltip: '通知',
+            tooltip: AppStrings.commonNotifications,
           ),
         ],
       ),
       drawer: AppDrawer(
-        appName: 'FlutterBase',
-        headerSubtitle: 'デジタル庁デザインシステム準拠',
+        appName: AppStrings.appName,
+        headerSubtitle: AppStrings.drawerSubtitle,
         items: [
           AppDrawerItem(
-            label: 'ホーム',
+            label: AppStrings.navHome,
             icon: Icons.home_outlined,
             isSelected: _selectedIndex == 0,
             onTap: () {
@@ -59,7 +68,7 @@ class _MainPageState extends State<MainPage> {
             },
           ),
           AppDrawerItem(
-            label: '検索',
+            label: AppStrings.navSearch,
             icon: Icons.search_outlined,
             isSelected: _selectedIndex == 1,
             onTap: () {
@@ -68,7 +77,7 @@ class _MainPageState extends State<MainPage> {
             },
           ),
           AppDrawerItem(
-            label: '設定',
+            label: AppStrings.navSettings,
             icon: Icons.settings_outlined,
             isSelected: _selectedIndex == 2,
             onTap: () {
@@ -80,7 +89,7 @@ class _MainPageState extends State<MainPage> {
         ],
         bottomItems: [
           AppDrawerItem(
-            label: 'バージョン情報',
+            label: AppStrings.drawerAbout,
             icon: Icons.info_outline,
             onTap: () {
               Navigator.of(context).pop();
@@ -88,7 +97,7 @@ class _MainPageState extends State<MainPage> {
             },
           ),
           AppDrawerItem(
-            label: 'ライセンス',
+            label: AppStrings.drawerLicenses,
             icon: Icons.description_outlined,
             onTap: () {
               Navigator.of(context).pop();
@@ -96,7 +105,15 @@ class _MainPageState extends State<MainPage> {
             },
           ),
           AppDrawerItem(
-            label: 'デバッグ情報',
+            label: AppStrings.drawerLogs,
+            icon: Icons.list_alt_outlined,
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushNamed('/logs');
+            },
+          ),
+          AppDrawerItem(
+            label: AppStrings.drawerDebug,
             icon: Icons.bug_report_outlined,
             onTap: () {
               Navigator.of(context).pop();
@@ -105,27 +122,7 @@ class _MainPageState extends State<MainPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _buildTabContent(),
-          ),
-          AppMainFooter(
-            appName: 'FlutterBase',
-            version: '1.0.0',
-            links: [
-              AppFooterLink(
-                label: 'バージョン情報',
-                onTap: () => Navigator.of(context).pushNamed('/about'),
-              ),
-              AppFooterLink(
-                label: 'ライセンス',
-                onTap: () => Navigator.of(context).pushNamed('/licenses'),
-              ),
-            ],
-          ),
-        ],
-      ),
+      body: _buildTabContent(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) =>
@@ -153,7 +150,7 @@ class _MainPageState extends State<MainPage> {
   }
 }
 
-// ─── Tab Content Widgets ─────────────────────────────────────────────────────
+// ─── Tab Content ─────────────────────────────────────────────────────────────
 
 class _HomeContent extends StatelessWidget {
   const _HomeContent();
@@ -163,55 +160,57 @@ class _HomeContent extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
-        AppSectionHeader(title: 'ようこそ', subtitle: 'デジタル庁デザインシステム準拠アプリ'),
+        AppSectionHeader(
+          title: AppStrings.homeWelcomeTitle,
+          subtitle: AppStrings.homeWelcomeSubtitle,
+        ),
         const SizedBox(height: AppSpacing.lg),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'デジタル庁デザインシステム',
-                style: AppTextStyles.titleMedium,
+                AppStrings.homeCardTitle,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'このアプリはデジタル庁が提供するデザインシステム（DADS）に準拠して構築されています。'
-                'カラートークン、タイポグラフィ、スペーシングなどのデザイン仕様に従った一貫したUIを提供します。',
-                style: AppTextStyles.bodyMedium,
+                AppStrings.homeCardBody,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        AppSectionHeader(title: 'コンポーネント例'),
+        AppSectionHeader(title: AppStrings.homeComponentsTitle),
         const SizedBox(height: AppSpacing.lg),
         AppPrimaryButton(
-          label: 'プライマリボタン',
+          label: AppStrings.homePrimaryButton,
           onPressed: () {},
           width: double.infinity,
         ),
         const SizedBox(height: AppSpacing.sm),
         AppSecondaryButton(
-          label: 'セカンダリボタン',
+          label: AppStrings.homeSecondaryButton,
           onPressed: () {},
           width: double.infinity,
         ),
         const SizedBox(height: AppSpacing.lg),
         const AppTextField(
-          label: 'テキスト入力',
-          hint: 'テキストを入力してください',
+          label: AppStrings.homeTextFieldLabel,
+          hint: AppStrings.homeTextFieldHint,
         ),
         const SizedBox(height: AppSpacing.lg),
         AppListCard(
-          title: 'リストカード',
-          subtitle: 'サブタイトルテキスト',
+          title: AppStrings.homeListCardTitle,
+          subtitle: AppStrings.homeListCardSubtitle,
           leading: const Icon(Icons.article_outlined),
           onTap: () {},
         ),
         const SizedBox(height: AppSpacing.sm),
         AppListCard(
-          title: 'アイテム 2',
-          subtitle: 'サブタイトルテキスト',
+          title: AppStrings.homeListCardItem2,
+          subtitle: AppStrings.homeListCardSubtitle,
           leading: const Icon(Icons.article_outlined),
           onTap: () {},
         ),
@@ -230,13 +229,13 @@ class _SearchContent extends StatelessWidget {
       child: Column(
         children: [
           AppTextField(
-            label: '検索',
-            hint: 'キーワードを入力',
+            label: AppStrings.searchFieldLabel,
+            hint: AppStrings.searchFieldHint,
             prefixIcon: Icon(Icons.search),
           ),
           SizedBox(height: AppSpacing.xxxl),
           AppEmptyView(
-            message: '検索キーワードを入力してください',
+            message: AppStrings.searchEmptyMessage,
             icon: Icons.search,
           ),
         ],
@@ -250,29 +249,118 @@ class _SettingsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeViewModel = sl<ThemeViewModel>();
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
-        AppSectionHeader(title: '設定'),
+        AppSectionHeader(title: AppStrings.settingsTitle),
+        const SizedBox(height: AppSpacing.lg),
+        // ── Theme switcher ──────────────────────────────────────────
+        AppSectionHeader(title: AppStrings.settingsTheme),
+        const SizedBox(height: AppSpacing.sm),
+        ListenableBuilder(
+          listenable: themeViewModel,
+          builder: (context, _) => AppCard(
+            child: Column(
+              children: [
+                _ThemeOptionTile(
+                  label: AppStrings.settingsThemeLight,
+                  icon: Icons.light_mode_outlined,
+                  value: ThemeMode.light,
+                  groupValue: themeViewModel.themeMode,
+                  onChanged: themeViewModel.setThemeMode,
+                ),
+                const Divider(height: 1),
+                _ThemeOptionTile(
+                  label: AppStrings.settingsThemeDark,
+                  icon: Icons.dark_mode_outlined,
+                  value: ThemeMode.dark,
+                  groupValue: themeViewModel.themeMode,
+                  onChanged: themeViewModel.setThemeMode,
+                ),
+                const Divider(height: 1),
+                _ThemeOptionTile(
+                  label: AppStrings.settingsThemeSystem,
+                  icon: Icons.brightness_auto_outlined,
+                  value: ThemeMode.system,
+                  groupValue: themeViewModel.themeMode,
+                  onChanged: themeViewModel.setThemeMode,
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: AppSpacing.lg),
         AppListCard(
-          title: 'バージョン情報',
+          title: AppStrings.settingsAbout,
           leading: const Icon(Icons.info_outline),
           onTap: () => Navigator.of(context).pushNamed('/about'),
         ),
         const SizedBox(height: AppSpacing.sm),
         AppListCard(
-          title: 'ライセンス',
+          title: AppStrings.settingsLicenses,
           leading: const Icon(Icons.description_outlined),
           onTap: () => Navigator.of(context).pushNamed('/licenses'),
         ),
         const SizedBox(height: AppSpacing.sm),
         AppListCard(
-          title: 'デバッグ情報',
+          title: AppStrings.settingsLogs,
+          leading: const Icon(Icons.list_alt_outlined),
+          onTap: () => Navigator.of(context).pushNamed('/logs'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AppListCard(
+          title: AppStrings.settingsDebug,
           leading: const Icon(Icons.bug_report_outlined),
           onTap: () => Navigator.of(context).pushNamed('/debug'),
         ),
       ],
+    );
+  }
+}
+
+class _ThemeOptionTile extends StatelessWidget {
+  const _ThemeOptionTile({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final ThemeMode value;
+  final ThemeMode groupValue;
+  final ValueChanged<ThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = value == groupValue;
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        label,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color:
+                  selected ? colorScheme.primary : colorScheme.onSurface,
+              fontWeight:
+                  selected ? FontWeight.w700 : FontWeight.w400,
+            ),
+      ),
+      trailing: selected
+          ? Icon(Icons.check_circle, color: colorScheme.primary)
+          : Icon(Icons.radio_button_unchecked,
+              color: colorScheme.onSurfaceVariant),
+      onTap: () => onChanged(value),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.componentPadding,
+        vertical: AppSpacing.xs,
+      ),
     );
   }
 }

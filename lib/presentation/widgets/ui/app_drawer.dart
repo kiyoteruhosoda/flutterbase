@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
-/// デジタル庁デザインシステム準拠 ドロワーメニュー
+/// DADS-compliant side drawer menu.
 class AppDrawer extends StatelessWidget {
   const AppDrawer({
     super.key,
@@ -81,13 +82,16 @@ class _DrawerHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(appName, style: AppTextStyles.titleLarge),
+                Text(
+                  appName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 if (subtitle != null)
                   Text(
                     subtitle!,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
               ],
             ),
@@ -95,7 +99,7 @@ class _DrawerHeader extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: onClose,
-            tooltip: '閉じる',
+            tooltip: AppStrings.drawerClose,
           ),
         ],
       ),
@@ -129,11 +133,13 @@ class _DrawerItemTile extends StatelessWidget {
           : null,
       title: Text(
         item.label,
-        style: AppTextStyles.bodyLarge.copyWith(
-          color: item.isSelected ? colorScheme.primary : colorScheme.onSurface,
-          fontWeight:
-              item.isSelected ? FontWeight.w700 : FontWeight.w400,
-        ),
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: item.isSelected
+                  ? colorScheme.primary
+                  : colorScheme.onSurface,
+              fontWeight:
+                  item.isSelected ? FontWeight.w700 : FontWeight.w400,
+            ),
       ),
       selected: item.isSelected,
       selectedTileColor: colorScheme.primaryContainer,
@@ -159,7 +165,7 @@ class AppDrawerItem {
     this.isDivider = false,
   });
 
-  /// セパレータアイテム用ファクトリ
+  /// Factory for separator items.
   const AppDrawerItem.divider()
       : label = '',
         icon = null,
