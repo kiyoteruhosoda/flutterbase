@@ -53,7 +53,7 @@ class AppErrorView extends StatelessWidget {
           children: [
             Icon(
               Icons.error_outline,
-              size: 48,
+              size: AppSpacing.minTapTarget,
               color: Theme.of(context).colorScheme.error,
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -98,7 +98,7 @@ class AppEmptyView extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 48,
+              size: AppSpacing.minTapTarget,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: AppSpacing.lg),

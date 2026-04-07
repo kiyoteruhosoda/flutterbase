@@ -21,4 +21,17 @@ class AppSpacing {
 
   // Minimum tap target
   static const double minTapTarget = 48.0;
+
+  // Icon sizes (Material standard)
+  static const double iconSm = 16.0;
+  static const double iconMd = 20.0;
+  static const double iconLg = 24.0;
+  static const double iconXl = 32.0;
+
+  // Component sizes
+  static const double splashIconContainer = 96.0;
+  static const double aboutIconContainer = 80.0;
+  static const double splashIconSize = 48.0;
+  static const double aboutIconSize = 40.0;
+  static const double levelBadgeSize = 20.0;
 }

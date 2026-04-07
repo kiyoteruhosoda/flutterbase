@@ -17,7 +17,6 @@ import 'package:flutterbase/infrastructure/repositories/shared_preferences_theme
 import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/main_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
 
@@ -89,7 +88,6 @@ Future<void> setupServiceLocator() async {
       sl<SetLogLevelUseCase>(),
     ),
   );
-  sl.registerFactory<MainViewModel>(() => MainViewModel());
   sl.registerFactory<AboutViewModel>(
     () => AboutViewModel(sl<GetAppInfoUseCase>()),
   );

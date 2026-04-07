@@ -57,13 +57,13 @@ class _AboutPageState extends State<AboutPage> {
         const SizedBox(height: AppSpacing.xl),
         Center(
           child: Container(
-            width: 80,
-            height: 80,
+            width: AppSpacing.aboutIconContainer,
+            height: AppSpacing.aboutIconContainer,
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer,
               borderRadius: AppRadius.xlBorder,
             ),
-            child: Icon(Icons.web_asset, size: 40, color: colorScheme.primary),
+            child: Icon(Icons.web_asset, size: AppSpacing.aboutIconSize, color: colorScheme.primary),
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
@@ -126,7 +126,7 @@ class _AboutPageState extends State<AboutPage> {
               const SizedBox(height: AppSpacing.lg),
               TextButton.icon(
                 onPressed: () {},
-                icon: const Icon(Icons.open_in_new, size: 16),
+                icon: const Icon(Icons.open_in_new, size: AppSpacing.iconSm),
                 label: const Text(AppStrings.aboutDesignSystemLink),
               ),
             ],

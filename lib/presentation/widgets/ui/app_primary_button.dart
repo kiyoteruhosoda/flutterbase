@@ -22,8 +22,8 @@ class AppPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = isLoading
         ? SizedBox(
-            width: 20,
-            height: 20,
+            width: AppSpacing.iconMd,
+            height: AppSpacing.iconMd,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(
@@ -35,7 +35,7 @@ class AppPrimaryButton extends StatelessWidget {
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 20),
+                  Icon(icon, size: AppSpacing.iconMd),
                   const SizedBox(width: AppSpacing.sm),
                   Text(label),
                 ],
@@ -74,8 +74,8 @@ class AppSecondaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = isLoading
         ? SizedBox(
-            width: 20,
-            height: 20,
+            width: AppSpacing.iconMd,
+            height: AppSpacing.iconMd,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(
@@ -87,7 +87,7 @@ class AppSecondaryButton extends StatelessWidget {
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 20),
+                  Icon(icon, size: AppSpacing.iconMd),
                   const SizedBox(width: AppSpacing.sm),
                   Text(label),
                 ],

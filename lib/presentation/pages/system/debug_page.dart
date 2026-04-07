@@ -108,8 +108,8 @@ class _DebugPageState extends State<DebugPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 16,
-                        height: 16,
+                        width: AppSpacing.iconSm,
+                        height: AppSpacing.iconSm,
                         decoration: BoxDecoration(
                           color: colorScheme.primary,
                           borderRadius: AppRadius.smBorder,
