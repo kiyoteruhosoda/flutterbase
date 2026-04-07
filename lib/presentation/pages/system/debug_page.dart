@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutterbase/app/di/service_locator.dart';
+import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
-import 'package:flutterbase/shared/build_info.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
-import 'package:flutterbase/shared/logging/app_logger.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Debug information page — shows build metadata and diagnostic actions.
@@ -16,35 +15,23 @@ class DebugPage extends StatefulWidget {
 }
 
 class _DebugPageState extends State<DebugPage> {
-  Map<String, String>? _debugInfo;
+  late final DebugViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _loadDebugInfo();
+    _viewModel = sl<DebugViewModel>();
+    _viewModel.addListener(_onViewModelChange);
+    _viewModel.loadAppInfo();
   }
 
-  Future<void> _loadDebugInfo() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    if (!mounted) return;
-    setState(() {
-      _debugInfo = {
-        AppStrings.debugAppName: AppStrings.appName,
-        AppStrings.debugVersion:
-            packageInfo.version.isNotEmpty
-                ? packageInfo.version
-                : BuildInfo.version,
-        AppStrings.debugBuildNumber: BuildInfo.buildNumber,
-        AppStrings.debugGitCommit: BuildInfo.gitCommitFull,
-        AppStrings.debugFlutterVersion: BuildInfo.flutterVersion,
-        AppStrings.debugDartVersion: BuildInfo.dartVersion,
-        AppStrings.debugPlatform: AppStrings.aboutPlatformValue,
-        AppStrings.debugDesignSystem: AppStrings.aboutDesignSystemValue,
-        AppStrings.debugBuildDate: BuildInfo.buildDate,
-        AppStrings.debugIsDebugBuild: BuildInfo.isDebug.toString(),
-      };
-    });
+  @override
+  void dispose() {
+    _viewModel.removeListener(_onViewModelChange);
+    super.dispose();
   }
+
+  void _onViewModelChange() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -91,27 +78,14 @@ class _DebugPageState extends State<DebugPage> {
           // App info card
           AppSectionHeader(title: AppStrings.debugAppInfoSection),
           const SizedBox(height: AppSpacing.sm),
-          if (_debugInfo == null)
-            const AppLoadingView()
-          else
-            AppCard(
-              child: Column(
-                children: () {
-                  final entries = _debugInfo!.entries.toList();
-                  return List.generate(entries.length, (i) {
-                    return Column(
-                      children: [
-                        if (i > 0) const Divider(height: AppSpacing.xl),
-                        _DebugInfoRow(
-                          label: entries[i].key,
-                          value: entries[i].value,
-                        ),
-                      ],
-                    );
-                  });
-                }(),
+          switch (_viewModel.state) {
+            DebugState.loading => const AppLoadingView(),
+            DebugState.error => AppErrorView(
+                message: _viewModel.appError?.message ?? AppStrings.commonError,
+                onRetry: _viewModel.loadAppInfo,
               ),
-            ),
+            DebugState.loaded => _buildInfoCard(context),
+          },
           const SizedBox(height: AppSpacing.lg),
 
           // Theme info card
@@ -167,7 +141,7 @@ class _DebugPageState extends State<DebugPage> {
             title: AppStrings.debugClearLogs,
             leading: const Icon(Icons.clear_all),
             onTap: () {
-              AppLogger.instance.clearBuffer();
+              _viewModel.clearLogs();
               _showSnackBar(AppStrings.debugClearLogsSuccess);
             },
           ),
@@ -188,10 +162,46 @@ class _DebugPageState extends State<DebugPage> {
     );
   }
 
+  Widget _buildInfoCard(BuildContext context) {
+    final info = _viewModel.appInfo!;
+    final entries = <(String, String)>[
+      (AppStrings.debugAppName, AppStrings.appName),
+      (AppStrings.debugVersion, info.version),
+      (AppStrings.debugBuildNumber, info.buildNumber),
+      (AppStrings.debugGitCommit, info.gitCommitFull),
+      (AppStrings.debugFlutterVersion, info.flutterVersion),
+      (AppStrings.debugDartVersion, info.dartVersion),
+      (AppStrings.debugPlatform, AppStrings.aboutPlatformValue),
+      (AppStrings.debugDesignSystem, AppStrings.aboutDesignSystemValue),
+      (AppStrings.debugBuildDate, info.buildDate),
+      (AppStrings.debugIsDebugBuild, info.isDebug.toString()),
+    ];
+    return AppCard(
+      child: Column(
+        children: List.generate(entries.length, (i) {
+          return Column(
+            children: [
+              if (i > 0) const Divider(height: AppSpacing.xl),
+              _DebugInfoRow(label: entries[i].$1, value: entries[i].$2),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
   void _copyAllToClipboard() {
-    if (_debugInfo == null) return;
-    final buffer = StringBuffer();
-    _debugInfo!.forEach((key, value) => buffer.writeln('$key: $value'));
+    if (_viewModel.appInfo == null) return;
+    final info = _viewModel.appInfo!;
+    final buffer = StringBuffer()
+      ..writeln('${AppStrings.debugAppName}: ${AppStrings.appName}')
+      ..writeln('${AppStrings.debugVersion}: ${info.version}')
+      ..writeln('${AppStrings.debugBuildNumber}: ${info.buildNumber}')
+      ..writeln('${AppStrings.debugGitCommit}: ${info.gitCommitFull}')
+      ..writeln('${AppStrings.debugFlutterVersion}: ${info.flutterVersion}')
+      ..writeln('${AppStrings.debugDartVersion}: ${info.dartVersion}')
+      ..writeln('${AppStrings.debugBuildDate}: ${info.buildDate}')
+      ..writeln('${AppStrings.debugIsDebugBuild}: ${info.isDebug}');
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     _showSnackBar(AppStrings.debugCopiedToClipboard);
   }

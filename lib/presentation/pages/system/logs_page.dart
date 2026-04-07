@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
@@ -15,7 +16,7 @@ class LogsPage extends StatefulWidget {
 
 class _LogsPageState extends State<LogsPage> {
   LogLevel? _filter; // null = all
-  final _logger = AppLogger.instance;
+  late final AppLogger _logger = sl<AppLogger>();
 
   @override
   Widget build(BuildContext context) {

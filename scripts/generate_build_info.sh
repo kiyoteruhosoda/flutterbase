@@ -22,8 +22,9 @@ GIT_FULL=$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
 VERSION=$(grep '^version:' "$ROOT_DIR/pubspec.yaml" | sed 's/version: //' | sed 's/+.*//' | tr -d '[:space:]')
 
 # ── Toolchain versions ───────────────────────────────────────────────────────
-FLUTTER_VERSION=$(flutter --version 2>/dev/null | head -1 | awk '{print $2}' || echo "unknown")
-DART_VERSION=$(dart --version 2>/dev/null | awk '{print $4}' || echo "unknown")
+FLUTTER_VERSION=$(flutter --version 2>&1 | head -1 | awk '{print $2}' || echo "unknown")
+# dart --version writes to stderr on some versions, so merge stderr → stdout
+DART_VERSION=$(dart --version 2>&1 | awk '{print $4}' || echo "unknown")
 
 # ── Build timestamp ──────────────────────────────────────────────────────────
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
