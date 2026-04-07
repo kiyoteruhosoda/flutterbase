@@ -14,21 +14,43 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Stop any existing ACI Runner
+        run: |
+          echo "Stopping any previously running ACI runner..."
+          curl -s -X POST "${{ secrets.FUNC_STOP_URL }}" || true
+          sleep 5
+
       - name: Start ACI Runner
         run: |
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "${{ secrets.FUNC_URL }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"github_repo\": \"${{ github.repository }}\"}")
+          for ATTEMPT in 1 2 3 4; do
+            echo "--- Start attempt $ATTEMPT ---"
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+              "${{ secrets.FUNC_URL }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"github_repo\": \"${{ github.repository }}\"}")
 
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -1)
-          echo "Response: $BODY"
-          echo "HTTP Status: $HTTP_CODE"
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -1)
+            echo "Response: $BODY"
+            echo "HTTP Status: $HTTP_CODE"
 
-          if [ "$HTTP_CODE" != "200" ]; then
-            exit 1
-          fi
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "ACI Runner started successfully."
+              exit 0
+            fi
+
+            if [ "$ATTEMPT" -lt 4 ]; then
+              WAIT=$((2 ** ATTEMPT))
+              echo "Start failed (HTTP $HTTP_CODE). Retrying in ${WAIT}s..."
+              sleep "$WAIT"
+              echo "Stopping runner before retry..."
+              curl -s -X POST "${{ secrets.FUNC_STOP_URL }}" || true
+              sleep 5
+            fi
+          done
+
+          echo "Failed to start ACI Runner after 4 attempts."
+          exit 1
 
       - name: Wait and monitor ACI
         run: |
