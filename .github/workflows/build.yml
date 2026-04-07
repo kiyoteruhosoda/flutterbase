@@ -79,10 +79,29 @@ jobs:
         run: flutter pub get
       - name: Generate build info
         run: bash scripts/generate_build_info.sh
+      - name: Setup release signing
+        env:
+          KEYSTORE_BASE64:  ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS:        ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:     ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD:   ${{ secrets.STORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+            cat > android/key.properties <<EOF
+storeFile=../app/release.keystore
+storePassword=$STORE_PASSWORD
+keyAlias=$KEY_ALIAS
+keyPassword=$KEY_PASSWORD
+EOF
+            echo "Release signing configured."
+          else
+            echo "KEYSTORE_BASE64 not set — using debug signing (dev/test only)."
+          fi
       - name: Flutter build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number=$(git rev-list --count HEAD)
       - name: Flutter build AAB
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --build-number=$(git rev-list --count HEAD)
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
