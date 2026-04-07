@@ -217,8 +217,8 @@ class _LogEntryTile extends StatelessWidget {
           children: [
             // Level badge
             Container(
-              width: 20,
-              height: 20,
+              width: AppSpacing.levelBadgeSize,
+              height: AppSpacing.levelBadgeSize,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.15),

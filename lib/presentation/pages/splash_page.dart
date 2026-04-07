@@ -71,15 +71,15 @@ class _SplashPageState extends State<SplashPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 96,
-                height: 96,
+                width: AppSpacing.splashIconContainer,
+                height: AppSpacing.splashIconContainer,
                 decoration: BoxDecoration(
                   color: colorScheme.onPrimary,
                   borderRadius: AppRadius.xlBorder,
                 ),
                 child: Icon(
                   Icons.web_asset,
-                  size: 48,
+                  size: AppSpacing.splashIconSize,
                   color: colorScheme.primary,
                 ),
               ),

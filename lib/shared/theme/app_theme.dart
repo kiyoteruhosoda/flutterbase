@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_radius.dart';
+import 'app_spacing.dart';
 import 'app_text_styles.dart';
 
 /// デジタル庁デザインシステム準拠のアプリテーマ
@@ -166,10 +167,10 @@ class AppTheme {
             ? AppColors.sumi700
             : AppColors.interactivePrimaryDisabled,
         disabledForegroundColor: AppColors.textDisabled,
-        minimumSize: const Size(0, AppSpacingConst.minTapTarget),
+        minimumSize: const Size(0, AppSpacing.minTapTarget),
         padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 12,
+          horizontal: AppSpacing.xl,
+          vertical: AppSpacing.md,
         ),
         shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.smBorder,
@@ -192,10 +193,10 @@ class AppTheme {
               ? AppColors.darkInteractivePrimary
               : AppColors.interactivePrimary,
         ),
-        minimumSize: const Size(0, AppSpacingConst.minTapTarget),
+        minimumSize: const Size(0, AppSpacing.minTapTarget),
         padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 12,
+          horizontal: AppSpacing.xl,
+          vertical: AppSpacing.md,
         ),
         shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.smBorder,
@@ -212,10 +213,10 @@ class AppTheme {
         foregroundColor: isDark
             ? AppColors.darkInteractivePrimary
             : AppColors.interactivePrimary,
-        minimumSize: const Size(0, AppSpacingConst.minTapTarget),
+        minimumSize: const Size(0, AppSpacing.minTapTarget),
         padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
         textStyle: AppTextStyles.labelLarge,
       ),
@@ -281,8 +282,8 @@ class AppTheme {
             : AppColors.textPlaceholder,
       ),
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
       ),
     );
   }
@@ -375,8 +376,3 @@ class AppTheme {
   }
 }
 
-// Internal const alias to avoid circular imports in themes
-class AppSpacingConst {
-  AppSpacingConst._();
-  static const double minTapTarget = 48.0;
-}
