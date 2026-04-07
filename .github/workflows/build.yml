@@ -88,12 +88,12 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
-            cat > android/key.properties <<EOF
-storeFile=../app/release.keystore
-storePassword=$STORE_PASSWORD
-keyAlias=$KEY_ALIAS
-keyPassword=$KEY_PASSWORD
-EOF
+            {
+              echo "storeFile=../app/release.keystore"
+              echo "storePassword=$STORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > android/key.properties
             echo "Release signing configured."
           else
             echo "KEYSTORE_BASE64 not set — using debug signing (dev/test only)."
