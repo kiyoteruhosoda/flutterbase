@@ -329,7 +329,21 @@ class AppTheme {
     return NavigationBarThemeData(
       backgroundColor:
           isDark ? AppColors.darkBgBase : AppColors.bgBase,
-      indicatorColor: isDark ? AppColors.blue1000 : AppColors.blue100,
+      indicatorColor: Colors.transparent,
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return IconThemeData(
+            color: isDark
+                ? AppColors.darkInteractivePrimary
+                : AppColors.interactivePrimary,
+          );
+        }
+        return IconThemeData(
+          color: isDark
+              ? AppColors.darkTextDescription
+              : AppColors.textDescription,
+        );
+      }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return AppTextStyles.labelSmall.copyWith(
