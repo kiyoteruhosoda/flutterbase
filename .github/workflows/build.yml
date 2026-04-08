@@ -18,6 +18,18 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Validate required secrets
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.FUNC_URL }}" ]        && MISSING="$MISSING FUNC_URL"
+          [ -z "${{ secrets.FUNC_STOP_URL }}" ]   && MISSING="$MISSING FUNC_STOP_URL"
+          [ -z "${{ secrets.FUNC_STATUS_URL }}" ] && MISSING="$MISSING FUNC_STATUS_URL"
+          if [ -n "$MISSING" ]; then
+            echo "ERROR: The following required secrets are not set:$MISSING"
+            exit 1
+          fi
+          echo "All required secrets are present."
+
       - name: Stop any existing ACI Runner
         run: |
           echo "Stopping any previously running ACI runner..."
@@ -31,7 +43,7 @@ jobs:
             RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
               "${{ secrets.FUNC_URL }}" \
               -H "Content-Type: application/json" \
-              -d "{\"github_repo\": \"${{ github.repository }}\"}")
+              -d "{\"github_repo\": \"${{ github.repository }}\"}" || true)
 
             HTTP_CODE=$(echo "$RESPONSE" | tail -1)
             BODY=$(echo "$RESPONSE" | head -1)
@@ -62,7 +74,7 @@ jobs:
 
           for i in $(seq 1 20); do
             echo "--- Attempt $i ---"
-            RESULT=$(curl -s "$STATUS_URL")
+            RESULT=$(curl -s "$STATUS_URL" || true)
             STATUS=$(echo $RESULT | jq -r '.status')
             LOGS=$(echo $RESULT | jq -r '.logs')
 
@@ -152,7 +164,7 @@ jobs:
       - name: Stop ACI
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "${{ secrets.FUNC_STOP_URL }}")
+            "${{ secrets.FUNC_STOP_URL }}" || true)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -1)
