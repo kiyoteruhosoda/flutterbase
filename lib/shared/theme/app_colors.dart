@@ -84,6 +84,20 @@ class AppColors {
   static const Color sumi800 = Color(0xFF333333);
   static const Color sumi900 = Color(0xFF1A1A1A);
 
+  // ─── Semantic: Brand ───────────────────────────────────────────────
+  /// アプリケーションのテーマカラー（ブランドカラー）
+  /// 全体のプライマリアクセントとして使用し、LicensePage や About の
+  /// アプリアイコン背景などアプリ全体で一貫した識別色として機能する。
+  static const Color brand = blue800;
+  static const Color brandContainer = blue100;
+  static const Color onBrand = white;
+  static const Color onBrandContainer = blue1300;
+
+  static const Color darkBrand = blue400;
+  static const Color darkBrandContainer = blue1000;
+  static const Color darkOnBrand = sumi900;
+  static const Color darkOnBrandContainer = blue200;
+
   // ─── Semantic: Light Theme ─────────────────────────────────────────
   // Background
   static const Color bgBase = white;
@@ -99,8 +113,8 @@ class AppColors {
   static const Color textLink = blue900;
   static const Color textLinkVisited = Color(0xFF6B21A8); // purple
 
-  // Interactive / Primary
-  static const Color interactivePrimary = blue800;
+  // Interactive / Primary (derived from brand)
+  static const Color interactivePrimary = brand;
   static const Color interactivePrimaryHover = blue900;
   static const Color interactivePrimaryPressed = blue1000;
   static const Color interactivePrimaryDisabled = sumi200;
@@ -131,7 +145,7 @@ class AppColors {
   static const Color darkTextPlaceholder = sumi500;
   static const Color darkTextDisabled = sumi600;
 
-  static const Color darkInteractivePrimary = blue400;
+  static const Color darkInteractivePrimary = darkBrand;
   static const Color darkInteractivePrimaryHover = blue300;
   static const Color darkInteractivePrimaryPressed = blue200;
 

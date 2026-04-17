@@ -115,7 +115,7 @@ class _MainPageState extends State<MainPage> {
                 icon: Icons.description_outlined,
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).pushNamed('/licenses');
+                  openAppLicensePage(context);
                 },
               ),
               if (debugEnabled) ...[
@@ -310,45 +310,54 @@ class _SettingsContent extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
-        // ── Developer section ────────────────────────────────────────
-        AppSectionHeader(title: AppStrings.settingsDeveloper),
-        const SizedBox(height: AppSpacing.sm),
+        // ── Developer section (only visible while debug is on) ───────
         ListenableBuilder(
           listenable: debugViewModel,
-          builder: (context, _) => AppCard(
-            child: Column(
+          builder: (context, _) {
+            if (!debugViewModel.debugEnabled) {
+              return const SizedBox.shrink();
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SwitchListTile(
-                  value: debugViewModel.debugEnabled,
-                  onChanged: debugViewModel.setDebugEnabled,
-                  secondary: Icon(
-                    Icons.bug_report_outlined,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  title: Text(
-                    AppStrings.settingsDebugMode,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  subtitle: Text(
-                    AppStrings.settingsDebugModeSubtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.componentPadding,
-                    vertical: AppSpacing.xs,
+                const SizedBox(height: AppSpacing.lg),
+                AppSectionHeader(title: AppStrings.settingsDeveloper),
+                const SizedBox(height: AppSpacing.sm),
+                AppCard(
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        value: debugViewModel.debugEnabled,
+                        onChanged: debugViewModel.setDebugEnabled,
+                        secondary: Icon(
+                          Icons.bug_report_outlined,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(
+                          AppStrings.settingsDebugMode,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        subtitle: Text(
+                          AppStrings.settingsDebugModeSubtitle,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.componentPadding,
+                          vertical: AppSpacing.xs,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      _LogLevelTile(
+                        currentLevel: debugViewModel.logLevel,
+                        onChanged: debugViewModel.setLogLevel,
+                      ),
+                    ],
                   ),
                 ),
-                if (debugViewModel.debugEnabled) ...[
-                  const Divider(height: 1),
-                  _LogLevelTile(
-                    currentLevel: debugViewModel.logLevel,
-                    onChanged: debugViewModel.setLogLevel,
-                  ),
-                ],
               ],
-            ),
-          ),
+            );
+          },
         ),
         const SizedBox(height: AppSpacing.lg),
         AppListCard(
@@ -360,7 +369,7 @@ class _SettingsContent extends StatelessWidget {
         AppListCard(
           title: AppStrings.settingsLicenses,
           leading: const Icon(Icons.description_outlined),
-          onTap: () => Navigator.of(context).pushNamed('/licenses'),
+          onTap: () => openAppLicensePage(context),
         ),
         ListenableBuilder(
           listenable: debugViewModel,

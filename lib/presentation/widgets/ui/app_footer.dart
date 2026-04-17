@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/presentation/widgets/ui/app_license_launcher.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
@@ -69,7 +70,7 @@ class AppDefaultFooter extends StatelessWidget {
         ),
         AppFooterLink(
           label: AppStrings.footerLicenses,
-          onTap: () => Navigator.of(context).pushNamed('/licenses'),
+          onTap: () => openAppLicensePage(context),
         ),
       ],
     );
