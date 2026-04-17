@@ -64,14 +64,11 @@ class AppStrings {
   static const String aboutGitCommit = 'Git Commit';
   static const String aboutFlutterVersion = 'Flutter Version';
   static const String aboutDartVersion = 'Dart Version';
-  static const String aboutDesignSystem = 'Design System';
   static const String aboutDesignSystemValue = 'DADS v2.10.3';
   static const String aboutPlatform = 'Platform';
   static const String aboutPlatformValue = 'Android / iOS';
-  static const String aboutDesignSystemSectionTitle = 'Design System';
-  static const String aboutDesignSystemBody =
-      'This app is built following the Design System\nprovided by the Digital Agency of Japan (DADS).';
-  static const String aboutDesignSystemLink = 'Official Design System Website';
+  static const String aboutDebugUnlocked = 'Debug mode enabled';
+  static const String aboutDebugAlreadyOn = 'Debug mode is already on';
 
   // ─── Debug page ───────────────────────────────────────────────────────
   static const String debugTitle = 'Debug Info';

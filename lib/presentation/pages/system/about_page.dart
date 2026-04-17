@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
+import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
@@ -14,7 +15,10 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
+  static const int _debugUnlockTapCount = 7;
+
   late final AboutViewModel _viewModel;
+  int _versionTapCount = 0;
 
   @override
   void initState() {
@@ -31,6 +35,22 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   void _onViewModelChange() => setState(() {});
+
+  Future<void> _onVersionTapped() async {
+    final debugVm = sl<DebugSettingsViewModel>();
+    if (debugVm.debugEnabled) {
+      _versionTapCount = 0;
+      return;
+    }
+    _versionTapCount++;
+    if (_versionTapCount < _debugUnlockTapCount) return;
+    _versionTapCount = 0;
+    await debugVm.setDebugEnabled(true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.aboutDebugUnlocked)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +107,11 @@ class _AboutPageState extends State<AboutPage> {
         AppCard(
           child: Column(
             children: [
-              _InfoRow(label: AppStrings.aboutVersion, value: info.version),
+              _VersionInfoRow(
+                label: AppStrings.aboutVersion,
+                value: info.version,
+                onTap: _onVersionTapped,
+              ),
               const Divider(height: AppSpacing.xl),
               _InfoRow(label: AppStrings.aboutBuildNumber, value: info.buildNumber),
               const Divider(height: AppSpacing.xl),
@@ -98,36 +122,8 @@ class _AboutPageState extends State<AboutPage> {
               _InfoRow(label: AppStrings.aboutDartVersion, value: info.dartVersion),
               const Divider(height: AppSpacing.xl),
               _InfoRow(
-                label: AppStrings.aboutDesignSystem,
-                value: AppStrings.aboutDesignSystemValue,
-              ),
-              const Divider(height: AppSpacing.xl),
-              _InfoRow(
                 label: AppStrings.aboutPlatform,
                 value: AppStrings.aboutPlatformValue,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppStrings.aboutDesignSystemSectionTitle,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                AppStrings.aboutDesignSystemBody,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              TextButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.open_in_new, size: AppSpacing.iconSm),
-                label: const Text(AppStrings.aboutDesignSystemLink),
               ),
             ],
           ),
@@ -155,6 +151,28 @@ class _InfoRow extends StatelessWidget {
         ),
         Text(value, style: Theme.of(context).textTheme.bodyMedium),
       ],
+    );
+  }
+}
+
+/// Version row with a secret 7-tap gesture that re-enables debug mode.
+class _VersionInfoRow extends StatelessWidget {
+  const _VersionInfoRow({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: _InfoRow(label: label, value: value),
     );
   }
 }

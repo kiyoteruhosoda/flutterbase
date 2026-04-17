@@ -4,7 +4,6 @@ import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/pages/splash_page.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
 import 'package:flutterbase/presentation/pages/system/debug_page.dart';
-import 'package:flutterbase/presentation/pages/system/licenses_page.dart';
 import 'package:flutterbase/presentation/pages/system/logs_page.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
@@ -16,7 +15,6 @@ class AppRouter {
   static const String splash = '/';
   static const String main = '/main';
   static const String about = '/about';
-  static const String licenses = '/licenses';
   static const String debug = '/debug';
   static const String logs = '/logs';
 
@@ -33,10 +31,6 @@ class AppRouter {
         ),
       about => MaterialPageRoute<void>(
           builder: (_) => const AboutPage(),
-          settings: settings,
-        ),
-      licenses => MaterialPageRoute<void>(
-          builder: (_) => const LicensesPage(),
           settings: settings,
         ),
       debug => MaterialPageRoute<void>(
