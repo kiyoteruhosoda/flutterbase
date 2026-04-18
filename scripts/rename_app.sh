@@ -91,7 +91,21 @@ $SED -i.bak \
 
 # ─── 4. Move Kotlin source tree ──────────────────────────────────────────
 mkdir -p "$(dirname "$NEW_KOTLIN_DIR")"
-git mv "$OLD_KOTLIN_DIR" "$NEW_KOTLIN_DIR"
+# Guard against moving a directory into itself, which occurs when the new
+# package is a child of the old one (e.g. com.example.app ->
+# com.example.app.sub).  In that case git mv fails because Git cannot move
+# a directory inside itself; stage the move via a temporary path instead.
+if [[ "$NEW_KOTLIN_DIR" == "$OLD_KOTLIN_DIR/"* ]]; then
+    TEMP_KOTLIN_DIR="$(mktemp -d)"
+    cp -r "$OLD_KOTLIN_DIR/." "$TEMP_KOTLIN_DIR/"
+    git rm -r --quiet "$OLD_KOTLIN_DIR"
+    mkdir -p "$NEW_KOTLIN_DIR"
+    cp -r "$TEMP_KOTLIN_DIR/." "$NEW_KOTLIN_DIR/"
+    git add "$NEW_KOTLIN_DIR"
+    rm -rf "$TEMP_KOTLIN_DIR"
+else
+    git mv "$OLD_KOTLIN_DIR" "$NEW_KOTLIN_DIR"
+fi
 
 # ─── 5. Rewrite MainActivity.kt package line ─────────────────────────────
 MAIN_ACTIVITY="$NEW_KOTLIN_DIR/MainActivity.kt"
@@ -99,8 +113,11 @@ MAIN_ACTIVITY="$NEW_KOTLIN_DIR/MainActivity.kt"
 $SED -i.bak "1s|^package $OLD_ANDROID_PKG$|package $NEW_ANDROID_PKG|" "$MAIN_ACTIVITY"
 
 # ─── 6. Clean up .bak files ──────────────────────────────────────────────
-find pubspec.yaml lib test integration_test android/app/build.gradle \
-    "$NEW_KOTLIN_DIR" \
+# Delete the known single-file backups directly (passing a plain file path
+# as the root of `find` does not match -name '*.bak' against that file).
+rm -f pubspec.yaml.bak android/app/build.gradle.bak
+# Delete backups produced for Dart sources and the moved Kotlin file.
+find lib test integration_test "$NEW_KOTLIN_DIR" \
     -name '*.bak' -type f -delete 2>/dev/null || true
 
 # ─── 7. Sanity check ─────────────────────────────────────────────────────
