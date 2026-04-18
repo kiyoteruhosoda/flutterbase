@@ -245,8 +245,9 @@ release signing (§9c).
 
 ## 9c. Android APK / AAB output filenames
 
-`android/app/build.gradle` renames build outputs per-app.  Resolution
-order for the base name is:
+After every `flutter build apk` / `flutter build appbundle`,
+`android/app/build.gradle` writes a **per-app named copy** alongside
+Gradle's default output.  Base-name resolution:
 
 1. Gradle property `app.archivesBaseName` (set in
    `android/gradle.properties` or passed via `-P`).
@@ -254,12 +255,21 @@ order for the base name is:
    `coolapp`.  `rename_app.sh` rewrites `applicationId`, so forks get a
    per-app name automatically without further edits.
 
-Produced artifacts:
+Why copies and not renames? Flutter's CLI post-build step hard-codes
+the default filenames (`app-release.aab`, `app-release.apk`).  Renaming
+the originals via `base.archivesName` or
+`applicationVariants.outputFileName` breaks `flutter build` with
+"Gradle build failed to produce an .aab file."  Leaving the defaults in
+place keeps Flutter CLI happy, and the named copy lives next to it.
 
-| Artifact | Path |
+Produced artifacts (both files exist after every build):
+
+| Kind | Path |
 |---|---|
-| APK | `build/app/outputs/flutter-apk/<base>-<versionName>-<buildType>.apk` |
-| AAB | `build/app/outputs/bundle/<buildType>/<base>-<versionName>.aab` |
+| Default APK (used by Flutter CLI) | `build/app/outputs/flutter-apk/app-<buildType>.apk` |
+| Per-app APK copy | `build/app/outputs/flutter-apk/<base>-<versionName>-<buildType>.apk` |
+| Default AAB (used by Flutter CLI) | `build/app/outputs/bundle/<buildType>/app-<buildType>.aab` |
+| Per-app AAB copy | `build/app/outputs/bundle/<buildType>/<base>-<versionName>-<buildType>.aab` |
 
 To override the base name explicitly, add to `android/gradle.properties`:
 
@@ -267,9 +277,9 @@ To override the base name explicitly, add to `android/gradle.properties`:
 app.archivesBaseName=my_cool_app
 ```
 
-CI artifact-upload paths (`.github/workflows/build.yml`) use globs
-(`*.apk`, `*.aab`) rather than hardcoded names, so they track the
-rename automatically.
+For CI uploads, point `actions/upload-artifact` at the per-app glob
+(e.g. `build/app/outputs/bundle/release/${APP_NAME}-*.aab`) so the
+downloaded artifact already carries the per-app filename.
 
 ## 10. Explicitly out of scope
 

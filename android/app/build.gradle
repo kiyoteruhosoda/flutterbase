@@ -89,25 +89,66 @@ android {
         versionName = flutterVersionName
     }
 
+    // Pin NDK to the highest version any plugin depends on (currently
+    // integration_test → 26.3.11579264).  NDK is backward-compatible, so
+    // newer is always safe; leaving Gradle's default triggers a warning
+    // and can fail on strict CI.
+    ndkVersion = "26.3.11579264"
+
     buildTypes {
         release {
             signingConfig = hasKeystore ? signingConfigs.release : signingConfigs.debug
         }
     }
+}
 
-    // Per-app APK filename.
-    //   build/app/outputs/flutter-apk/<base>-<versionName>-<buildType>.apk
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            output.outputFileName =
-                "${appArchivesBase}-${variant.versionName}-${variant.buildType.name}.apk"
+// Per-app renamed COPIES of Gradle's default outputs.
+//
+// We deliberately do not rename the originals via base.archivesName or
+// applicationVariants.outputFileName: Flutter's CLI post-build step hard-
+// codes the default filenames (app-<buildType>.aab, app-<buildType>.apk)
+// and fails with "Gradle build failed to produce an .aab file" if they
+// are missing.  Leaving the defaults in place keeps `flutter build ...`
+// working; the named copy lives alongside for humans and CI.
+//
+//   build/app/outputs/flutter-apk/<base>-<versionName>-<buildType>.apk
+//   build/app/outputs/bundle/<buildType>/<base>-<versionName>-<buildType>.aab
+project.afterEvaluate {
+    android.applicationVariants.all { variant ->
+        def variantName   = variant.name                    // e.g. "release"
+        def variantCap    = variantName.capitalize()        // e.g. "Release"
+        def perAppBase    = "${appArchivesBase}-${variant.versionName}-${variantName}"
+
+        // APK copy — runs after the assemble task has produced app-<type>.apk.
+        def assembleTask = tasks.findByName("assemble${variantCap}")
+        if (assembleTask != null) {
+            assembleTask.doLast {
+                variant.outputs.each { output ->
+                    def src = output.outputFile
+                    if (src?.exists()) {
+                        def dst = new File(src.parentFile, "${perAppBase}.apk")
+                        dst.bytes = src.bytes
+                        logger.lifecycle("Per-app APK: ${dst}")
+                    }
+                }
+            }
+        }
+
+        // AAB copy — runs after the bundle task has produced app-<type>.aab.
+        def bundleTask = tasks.findByName("bundle${variantCap}")
+        if (bundleTask != null) {
+            bundleTask.doLast {
+                def bundleDir = file("${buildDir}/outputs/bundle/${variantName}")
+                def src = new File(bundleDir, "app-${variantName}.aab")
+                if (src.exists()) {
+                    def dst = new File(bundleDir, "${perAppBase}.aab")
+                    dst.bytes = src.bytes
+                    logger.lifecycle("Per-app AAB: ${dst}")
+                }
+            }
         }
     }
 }
-
-// Per-app AAB base filename.
-//   build/app/outputs/bundle/<buildType>/<base>-<versionName>.aab
-base.archivesName = "${appArchivesBase}-${flutterVersionName}"
 
 flutter {
     source = "../.."
