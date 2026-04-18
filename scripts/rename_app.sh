@@ -20,6 +20,9 @@
 #   - README.md
 #   - assets/icon/app_icon.png + app_icon_foreground.png
 #   - flutter_launcher_icons: adaptive_icon_background colour in pubspec.yaml
+#   - android/app/src/main/res/values/colors.xml (ic_launcher_background)
+#   - android/app/debug.keystore (run scripts/generate_debug_keystore.sh once)
+#   - android/gradle.properties (optional: app.archivesBaseName override)
 #
 # Assumptions:
 #   - GNU sed (on macOS install via `brew install gnu-sed` then call as `gsed`
@@ -62,7 +65,8 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 
 OLD_DART_NAME="$(awk '/^name:/ {print $2; exit}' pubspec.yaml)"
-OLD_ANDROID_PKG="$(awk -F'"' '/^[[:space:]]*namespace/ {print $2; exit}' android/app/build.gradle)"
+# Matches: def appNamespace = "com.example.flutterbase"
+OLD_ANDROID_PKG="$(awk -F'"' '/^def appNamespace/ {print $2; exit}' android/app/build.gradle)"
 
 [[ -n "$OLD_DART_NAME"   ]] || die "could not read current Dart package name from pubspec.yaml"
 [[ -n "$OLD_ANDROID_PKG" ]] || die "could not read current Android namespace from android/app/build.gradle"
@@ -83,10 +87,13 @@ $SED -i.bak "1s|^name: $OLD_DART_NAME$|name: $NEW_DART_NAME|" pubspec.yaml
 find lib test integration_test -type f -name '*.dart' -print0 \
     | xargs -0 $SED -i.bak "s|package:${OLD_DART_NAME}/|package:${NEW_DART_NAME}/|g"
 
-# ─── 3. android/app/build.gradle: namespace + applicationId ──────────────
+# ─── 3. android/app/build.gradle: appNamespace + appApplicationId ────────
+# Rewrites the two string constants at the top of the file; namespace and
+# applicationId inside the android { } block reference these via Groovy
+# variables, so they update transitively.
 $SED -i.bak \
-    -e "s|namespace = \"$OLD_ANDROID_PKG\"|namespace = \"$NEW_ANDROID_PKG\"|" \
-    -e "s|applicationId = \"$OLD_ANDROID_PKG\"|applicationId = \"$NEW_ANDROID_PKG\"|" \
+    -e "s|^def appNamespace     = \"$OLD_ANDROID_PKG\"|def appNamespace     = \"$NEW_ANDROID_PKG\"|" \
+    -e "s|^def appApplicationId = \"$OLD_ANDROID_PKG\"|def appApplicationId = \"$NEW_ANDROID_PKG\"|" \
     android/app/build.gradle
 
 # ─── 4. Move Kotlin source tree ──────────────────────────────────────────
@@ -150,7 +157,20 @@ next steps (manual):
        - android:label
   4. replace assets/icon/app_icon.png and app_icon_foreground.png,
      then run:  dart run flutter_launcher_icons
-  5. update README.md line 1
-  6. run: flutter clean && flutter pub get && dart analyze && flutter test
+     remember to update the brand colour in
+     android/app/src/main/res/values/colors.xml (ic_launcher_background)
+     to match pubspec.yaml > flutter_launcher_icons.adaptive_icon_background
+  5. (once per fork) pin a shared debug keystore so every machine signs
+     debug builds with the same key — required to avoid
+     INSTALL_FAILED_UPDATE_INCOMPATIBLE when switching APKs between
+     dev machines or CI:
+       bash scripts/generate_debug_keystore.sh
+       git add android/app/debug.keystore
+  6. (optional) override APK/AAB base filename by adding
+       app.archivesBaseName=<name>
+     to android/gradle.properties.  Default is the last segment of
+     applicationId, which rename_app.sh has just rewritten.
+  7. update README.md line 1
+  8. run: flutter clean && flutter pub get && dart analyze && flutter test
 
 MSG

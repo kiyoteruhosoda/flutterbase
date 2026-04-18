@@ -128,17 +128,32 @@ Workflow:
    `flutter_launcher_icons.adaptive_icon_background` to your brand hex
    colour (e.g. `"#264AF4"`). This is the colour that shows behind your
    foreground art when the OS masks the icon into a circle/squircle/etc.
-3. Run the generator:
+3. Update the matching value in
+   `android/app/src/main/res/values/colors.xml`
+   (`<color name="ic_launcher_background">…</color>`). This same colour
+   is reused by the Android 12+ splash screen
+   (`values-v31/styles.xml`, attribute
+   `android:windowSplashScreenBackground`) and by the adaptive-icon
+   background layer, so both native surfaces match the Flutter brand
+   colour. Without this, Android 12+ launchers and the cold-start splash
+   render the icon on a white plate.
+4. Run the generator:
 
    ```bash
    dart run flutter_launcher_icons
    ```
 
-4. Review the output under
+5. Review the output under
    `android/app/src/main/res/mipmap-*/ic_launcher.png` and
    `mipmap-anydpi-v26/ic_launcher.xml`. Commit the regenerated files —
    they are checked in intentionally so devs don't need to run the
    generator on every clone.
+
+For Android 13+ "themed icons", the generator also writes a monochrome
+layer driven by `flutter_launcher_icons.adaptive_icon_monochrome` in
+`pubspec.yaml`. It defaults to the foreground PNG, which works for most
+logos; supply a dedicated black-on-transparent silhouette if yours
+doesn't theme well.
 
 Generation is a **fork-time** (and icon-change-time) action, not a
 per-build action. Do not wire it into CI.
@@ -204,6 +219,57 @@ to support iOS:
 bundle ID from `Info.plist`, which is the platform's source of truth.
 
 ---
+
+## 9b. Android signing — shared debug keystore
+
+Debug builds are signed with `android/app/debug.keystore` if it exists;
+otherwise the Android SDK falls back to `~/.android/debug.keystore`, which
+is **per-machine**.  That fallback causes
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE` when a device has an APK from one
+machine (or CI runner) installed and you push a build from a different
+machine — Android refuses to replace an APK whose signature differs from
+the new one.
+
+One-time setup per fork:
+
+```bash
+bash scripts/generate_debug_keystore.sh
+git add android/app/debug.keystore
+git commit -m "chore(android): pin shared debug keystore"
+```
+
+The password (`android`) and alias (`androiddebugkey`) are Android SDK
+defaults and are **not secrets** — a debug keystore only signs debug
+APKs, which are never distributed.  Do not reuse these values for
+release signing (§9c).
+
+## 9c. Android APK / AAB output filenames
+
+`android/app/build.gradle` renames build outputs per-app.  Resolution
+order for the base name is:
+
+1. Gradle property `app.archivesBaseName` (set in
+   `android/gradle.properties` or passed via `-P`).
+2. Last segment of `applicationId` — e.g. `com.mycompany.coolapp` →
+   `coolapp`.  `rename_app.sh` rewrites `applicationId`, so forks get a
+   per-app name automatically without further edits.
+
+Produced artifacts:
+
+| Artifact | Path |
+|---|---|
+| APK | `build/app/outputs/flutter-apk/<base>-<versionName>-<buildType>.apk` |
+| AAB | `build/app/outputs/bundle/<buildType>/<base>-<versionName>.aab` |
+
+To override the base name explicitly, add to `android/gradle.properties`:
+
+```properties
+app.archivesBaseName=my_cool_app
+```
+
+CI artifact-upload paths (`.github/workflows/build.yml`) use globs
+(`*.apk`, `*.aab`) rather than hardcoded names, so they track the
+rename automatically.
 
 ## 10. Explicitly out of scope
 

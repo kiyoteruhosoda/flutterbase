@@ -33,8 +33,24 @@ if (keystorePropertiesFile.exists()) {
 }
 def hasKeystore = keystoreProperties.getProperty("storeFile") != null
 
+// Project-local debug keystore — checked into the repo so every dev and CI
+// runner signs debug builds with the same key.  Without this, each machine
+// generates its own ~/.android/debug.keystore, and switching APKs between
+// machines triggers INSTALL_FAILED_UPDATE_INCOMPATIBLE on install (the
+// previously installed APK's signature differs from the new one).
+// See docs/CUSTOMISATION.md §9b.
+def sharedDebugKeystore = rootProject.file("app/debug.keystore")
+
+// Single source of truth for namespace + applicationId + the APK/AAB
+// base filename.  `scripts/rename_app.sh` rewrites the two string
+// constants below, and the archives base name derives from them.
+def appNamespace     = "com.example.flutterbase"
+def appApplicationId = "com.example.flutterbase"
+def appArchivesBase  = (project.findProperty("app.archivesBaseName")
+    ?: appApplicationId.tokenize('.').last())
+
 android {
-    namespace = "com.example.flutterbase"
+    namespace = appNamespace
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
@@ -47,6 +63,14 @@ android {
     }
 
     signingConfigs {
+        if (sharedDebugKeystore.exists()) {
+            debug {
+                keyAlias      "androiddebugkey"
+                keyPassword   "android"
+                storeFile     sharedDebugKeystore
+                storePassword "android"
+            }
+        }
         if (hasKeystore) {
             release {
                 keyAlias     keystoreProperties["keyAlias"]
@@ -58,7 +82,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.flutterbase"
+        applicationId = appApplicationId
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
@@ -70,7 +94,20 @@ android {
             signingConfig = hasKeystore ? signingConfigs.release : signingConfigs.debug
         }
     }
+
+    // Per-app APK filename.
+    //   build/app/outputs/flutter-apk/<base>-<versionName>-<buildType>.apk
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            output.outputFileName =
+                "${appArchivesBase}-${variant.versionName}-${variant.buildType.name}.apk"
+        }
+    }
 }
+
+// Per-app AAB base filename.
+//   build/app/outputs/bundle/<buildType>/<base>-<versionName>.aab
+base.archivesName = "${appArchivesBase}-${flutterVersionName}"
 
 flutter {
     source = "../.."
