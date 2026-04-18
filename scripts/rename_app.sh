@@ -97,12 +97,18 @@ mkdir -p "$(dirname "$NEW_KOTLIN_DIR")"
 # a directory inside itself; stage the move via a temporary path instead.
 if [[ "$NEW_KOTLIN_DIR" == "$OLD_KOTLIN_DIR/"* ]]; then
     TEMP_KOTLIN_DIR="$(mktemp -d)"
+    # Ensure the temp dir is removed on any exit (normal, error, or signal).
+    # Note: this two-step approach (copy → git rm → git add) loses per-file
+    # Git rename history for the affected Kotlin files; this is an inherent
+    # trade-off when git mv cannot move a directory into a subdirectory of itself.
+    trap 'rm -rf "$TEMP_KOTLIN_DIR"' EXIT ERR
     cp -r "$OLD_KOTLIN_DIR/." "$TEMP_KOTLIN_DIR/"
     git rm -r --quiet "$OLD_KOTLIN_DIR"
     mkdir -p "$NEW_KOTLIN_DIR"
     cp -r "$TEMP_KOTLIN_DIR/." "$NEW_KOTLIN_DIR/"
     git add "$NEW_KOTLIN_DIR"
     rm -rf "$TEMP_KOTLIN_DIR"
+    trap - EXIT ERR
 else
     git mv "$OLD_KOTLIN_DIR" "$NEW_KOTLIN_DIR"
 fi
