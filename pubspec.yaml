@@ -53,11 +53,13 @@ dev_dependencies:
   riverpod_generator: ^2.4.3
   mockito: ^5.4.4
   sqflite_common_ffi: ^2.3.3
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/icon/
   fonts:
     - family: NotoSansJP
       fonts:
@@ -65,3 +67,19 @@ flutter:
           weight: 400
         - asset: assets/fonts/NotoSansJP-Bold.ttf
           weight: 700
+
+# Launcher-icon generation.
+# Regenerate after editing by running:
+#   dart run flutter_launcher_icons
+# The generated PNGs under android/app/src/main/res/mipmap-*/ and
+# mipmap-anydpi-v26/ic_launcher.xml should be committed.
+flutter_launcher_icons:
+  android: "ic_launcher"
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#264AF4"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  min_sdk_android: 21
+  # ios section intentionally omitted — no ios/ directory yet.
+  # When iOS is added, re-enable with:
+  #   ios: true
+  #   remove_alpha_ios: true

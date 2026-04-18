@@ -1,12 +1,10 @@
 /// Centralised English string resources.
 /// All user-visible strings must come from this class — never hardcoded inline.
+///
+/// App identity values (name, tagline, descriptions) live in [AppConfig] —
+/// they are configuration, not localised copy.
 class AppStrings {
   AppStrings._();
-
-  // ─── App ──────────────────────────────────────────────────────────────
-  static const String appName = 'FlutterBase';
-  static const String appDescription =
-      'Flutter base app following the DADS design system';
 
   // ─── Navigation ───────────────────────────────────────────────────────
   static const String navHome = 'Home';
@@ -14,7 +12,6 @@ class AppStrings {
   static const String navSettings = 'Settings';
 
   // ─── Drawer ───────────────────────────────────────────────────────────
-  static const String drawerSubtitle = 'DADS Design System';
   static const String drawerClose = 'Close';
   static const String drawerAbout = 'About';
   static const String drawerLicenses = 'Licenses';
@@ -23,8 +20,6 @@ class AppStrings {
 
   // ─── Home tab ─────────────────────────────────────────────────────────
   static const String homeWelcomeTitle = 'Welcome';
-  static const String homeWelcomeSubtitle = 'DADS Design System App';
-  static const String homeCardTitle = 'DADS Design System';
   static const String homeCardBody =
       'This app is built following the Digital Agency Design System (DADS). '
       'It provides a consistent UI based on color tokens, typography, and spacing.';
@@ -64,7 +59,6 @@ class AppStrings {
   static const String aboutGitCommit = 'Git Commit';
   static const String aboutFlutterVersion = 'Flutter Version';
   static const String aboutDartVersion = 'Dart Version';
-  static const String aboutDesignSystemValue = 'DADS v2.10.3';
   static const String aboutPlatform = 'Platform';
   static const String aboutPlatformValue = 'Android / iOS';
   static const String aboutDebugUnlocked = 'Debug mode enabled';
@@ -142,9 +136,6 @@ class AppStrings {
   static const String licensesTitle = 'Licenses';
   static const String licensesDetails =
       'Please refer to the package license file for details.';
-
-  // ─── Splash screen ───────────────────────────────────────────────────
-  static const String splashSubtitle = 'DADS Design System';
 
   // ─── Common ──────────────────────────────────────────────────────────
   static const String commonRetry = 'Retry';

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_config.dart';
 import 'app_colors.dart';
 import 'app_radius.dart';
 import 'app_spacing.dart';
@@ -20,7 +21,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
-      fontFamily: 'NotoSansJP',
+      fontFamily: AppConfig.fontFamily,
       textTheme: _buildTextTheme(isDark: isDark),
       appBarTheme: _buildAppBarTheme(isDark: isDark),
       elevatedButtonTheme: _buildElevatedButtonTheme(isDark: isDark),

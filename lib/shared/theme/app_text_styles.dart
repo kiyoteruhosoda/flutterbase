@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
+
 /// Typography tokens — font size, weight, and spacing only.
 /// Colors are intentionally omitted so widgets inherit the correct
 /// light/dark color from the ambient theme's DefaultTextStyle.
 class AppTextStyles {
   AppTextStyles._();
 
-  static const String _fontFamily = 'NotoSansJP';
+  static const String _fontFamily = AppConfig.fontFamily;
 
   // ─── Display ───────────────────────────────────────────────────────
   static const TextStyle displayLarge = TextStyle(

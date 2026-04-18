@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutterbase/shared/config/app_config.dart';
 import 'package:flutterbase/shared/theme/app_theme.dart';
 import 'package:flutterbase/shared/theme/app_colors.dart';
 
@@ -20,8 +21,11 @@ void main() {
       expect(theme.useMaterial3, isTrue);
     });
 
-    test('font family is NotoSansJP', () {
-      expect(theme.textTheme.bodyMedium!.fontFamily, equals('NotoSansJP'));
+    test('font family matches AppConfig.fontFamily', () {
+      expect(
+        theme.textTheme.bodyMedium!.fontFamily,
+        equals(AppConfig.fontFamily),
+      );
     });
 
     test('text theme body colors are dark (for light mode)', () {

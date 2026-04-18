@@ -3,6 +3,7 @@ import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
+import 'package:flutterbase/shared/config/app_config.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/logging/log_level.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
@@ -48,7 +49,7 @@ class _MainPageState extends State<MainPage> {
       },
       child: Scaffold(
       appBar: AppMainHeader(
-        title: AppStrings.appName,
+        title: AppConfig.appName,
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
@@ -69,8 +70,8 @@ class _MainPageState extends State<MainPage> {
         builder: (context, _) {
           final debugEnabled = sl<DebugSettingsViewModel>().debugEnabled;
           return AppDrawer(
-            appName: AppStrings.appName,
-            headerSubtitle: AppStrings.drawerSubtitle,
+            appName: AppConfig.appName,
+            headerSubtitle: AppConfig.appTagline,
             items: [
               AppDrawerItem(
                 label: AppStrings.navHome,
@@ -181,7 +182,7 @@ class _HomeContent extends StatelessWidget {
       children: [
         AppSectionHeader(
           title: AppStrings.homeWelcomeTitle,
-          subtitle: AppStrings.homeWelcomeSubtitle,
+          subtitle: AppConfig.homeSubtitle,
         ),
         const SizedBox(height: AppSpacing.lg),
         AppCard(
@@ -189,7 +190,7 @@ class _HomeContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                AppStrings.homeCardTitle,
+                AppConfig.homeCardTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: AppSpacing.sm),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/config/app_config.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Animated splash screen shown once at startup.
@@ -85,14 +85,14 @@ class _SplashPageState extends State<SplashPage>
               ),
               const SizedBox(height: AppSpacing.xl),
               Text(
-                AppStrings.appName,
+                AppConfig.appName,
                 style: AppTextStyles.headlineLarge.copyWith(
                   color: colorScheme.onPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                AppStrings.splashSubtitle,
+                AppConfig.appTagline,
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: colorScheme.onPrimary.withValues(alpha: 0.8),
                 ),
