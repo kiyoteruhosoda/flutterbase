@@ -111,8 +111,15 @@ android {
 // are missing.  Leaving the defaults in place keeps `flutter build ...`
 // working; the named copy lives alongside for humans and CI.
 //
-//   build/app/outputs/flutter-apk/<base>-<versionName>-<buildType>.apk
-//   build/app/outputs/bundle/<buildType>/<base>-<versionName>-<buildType>.aab
+// APK lives in two directories:
+//   build/app/outputs/apk/<buildType>/        (AGP's raw output)
+//   build/app/outputs/flutter-apk/            (Flutter CLI copies here
+//                                              AFTER Gradle exits)
+// AAB lives in one:
+//   build/app/outputs/bundle/<buildType>/
+//
+// We drop a per-app copy into every one of those directories so CI
+// uploaders can pick it up regardless of which path they watch.
 project.afterEvaluate {
     android.applicationVariants.all { variant ->
         def variantName   = variant.name                    // e.g. "release"
@@ -126,9 +133,18 @@ project.afterEvaluate {
                 variant.outputs.each { output ->
                     def src = output.outputFile
                     if (src?.exists()) {
-                        def dst = new File(src.parentFile, "${perAppBase}.apk")
-                        dst.bytes = src.bytes
-                        logger.lifecycle("Per-app APK: ${dst}")
+                        // 1. Next to the AGP output.
+                        new File(src.parentFile, "${perAppBase}.apk").bytes = src.bytes
+
+                        // 2. Next to Flutter's post-build copy.  Flutter
+                        //    creates flutter-apk/ after Gradle exits, so we
+                        //    create it here; Flutter's later `cp app-release.apk`
+                        //    into the same dir doesn't disturb our file.
+                        def flutterApkDir = file("${buildDir}/outputs/flutter-apk")
+                        flutterApkDir.mkdirs()
+                        def flutterDst = new File(flutterApkDir, "${perAppBase}.apk")
+                        flutterDst.bytes = src.bytes
+                        logger.lifecycle("Per-app APK: ${flutterDst}")
                     }
                 }
             }
