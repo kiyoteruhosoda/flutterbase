@@ -4,7 +4,7 @@ import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/pages/splash_page.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/config/app_config.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
 import 'package:flutterbase/shared/theme/app_theme.dart';
 
@@ -51,7 +51,7 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
       listenable: themeViewModel,
       builder: (context, _) {
         return MaterialApp(
-          title: AppStrings.appName,
+          title: AppConfig.appName,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,

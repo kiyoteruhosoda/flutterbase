@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
+import 'package:flutterbase/shared/config/app_config.dart';
 import 'package:flutterbase/shared/l10n/app_strings.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
@@ -165,14 +166,14 @@ class _DebugPageState extends State<DebugPage> {
   Widget _buildInfoCard(BuildContext context) {
     final info = _viewModel.appInfo!;
     final entries = <(String, String)>[
-      (AppStrings.debugAppName, AppStrings.appName),
+      (AppStrings.debugAppName, AppConfig.appName),
       (AppStrings.debugVersion, info.version),
       (AppStrings.debugBuildNumber, info.buildNumber),
       (AppStrings.debugGitCommit, info.gitCommitFull),
       (AppStrings.debugFlutterVersion, info.flutterVersion),
       (AppStrings.debugDartVersion, info.dartVersion),
       (AppStrings.debugPlatform, AppStrings.aboutPlatformValue),
-      (AppStrings.debugDesignSystem, AppStrings.aboutDesignSystemValue),
+      (AppStrings.debugDesignSystem, AppConfig.designSystemLabel),
       (AppStrings.debugBuildDate, info.buildDate),
       (AppStrings.debugIsDebugBuild, info.isDebug.toString()),
     ];
@@ -194,7 +195,7 @@ class _DebugPageState extends State<DebugPage> {
     if (_viewModel.appInfo == null) return;
     final info = _viewModel.appInfo!;
     final buffer = StringBuffer()
-      ..writeln('${AppStrings.debugAppName}: ${AppStrings.appName}')
+      ..writeln('${AppStrings.debugAppName}: ${AppConfig.appName}')
       ..writeln('${AppStrings.debugVersion}: ${info.version}')
       ..writeln('${AppStrings.debugBuildNumber}: ${info.buildNumber}')
       ..writeln('${AppStrings.debugGitCommit}: ${info.gitCommitFull}')

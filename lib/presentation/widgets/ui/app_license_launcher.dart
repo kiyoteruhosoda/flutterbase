@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/shared/build_info.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/config/app_config.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Opens the built-in [showLicensePage] with the app's branding applied.
@@ -11,10 +11,10 @@ import 'package:flutterbase/shared/theme/theme.dart';
 void openAppLicensePage(BuildContext context) {
   showLicensePage(
     context: context,
-    applicationName: AppStrings.appName,
+    applicationName: AppConfig.appName,
     applicationVersion: BuildInfo.version,
     applicationIcon: const _AppLicenseIcon(),
-    applicationLegalese: '© ${AppStrings.appName}',
+    applicationLegalese: '© ${AppConfig.appName}',
   );
 }
 
