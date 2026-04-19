@@ -1,7 +1,7 @@
 # Customising the template for a new app
 
 This template is meant to be forked. Values that identify **your** app
-(name, package, colours, fonts, icons) live in a small number of places.
+(name, package, colours, icons) live in a small number of places.
 This guide lists every one of them.
 
 ---
@@ -15,7 +15,7 @@ This guide lists every one of them.
 5. **Swap launcher icons** — drop new PNGs into `assets/icon/`, run `dart run flutter_launcher_icons`  ([§6](#6-launcher-icons))
 6. **Update README.md line 1 + verify** — `flutter clean && flutter pub get && dart analyze && flutter test`  ([§8](#8-readmemd), [§11](#11-verification))
 
-Font swap is optional — see [§7](#7-fonts). iOS setup is out of scope — see [§9](#9-ios--not-yet-configured).
+iOS setup is out of scope — see [§9](#9-ios--not-yet-configured).
 
 ---
 
@@ -31,7 +31,6 @@ per-app identity value that can live in Dart.
 | `appTagline` | Drawer subtitle |
 | `homeSubtitle` | Home "Welcome" subtitle |
 | `homeCardTitle` | Home first card title |
-| `fontFamily` | Applied to `ThemeData.fontFamily` and every `AppTextStyles.*` — **must exactly match the `family:` entry in `pubspec.yaml`'s fonts section**. Drift causes a silent fallback to the system font. |
 | `designSystemLabel` | About page "Design System" row |
 | `designSystemName` | Registered license entry title |
 | `designSystemLicense` | Registered license entry body |
@@ -54,7 +53,6 @@ the auto-generated `lib/shared/build_info.dart` (see
 | 1 | `name:` | Dart package name. `scripts/rename_app.sh` rewrites this. |
 | 2 | `description:` | One-line description shown on pub.dev / `flutter pub`. Edit by hand. |
 | 4 | `version:` | Semver + build number. Bumped by `scripts/bump_version.sh`. |
-| — | `flutter.fonts` | If you change fonts, the `family:` here must match `AppConfig.fontFamily`. |
 | — | `flutter_launcher_icons:` | Adaptive icon config — see [§6](#6-launcher-icons). |
 
 ---
@@ -93,8 +91,8 @@ source tree to the new package directory, and rewrites `MainActivity.kt`'s
 `package` line.
 
 The script deliberately does **not** touch `AppConfig`, the pubspec
-`description`/`version`, the Android manifest label, launcher icons, or
-fonts — those are human judgement calls. The script prints a "next steps"
+`description`/`version`, the Android manifest label, or launcher icons —
+those are human judgement calls. The script prints a "next steps"
 checklist when it finishes.
 
 Requires GNU sed. On macOS, install via `brew install gnu-sed` and invoke
@@ -160,28 +158,7 @@ per-build action. Do not wire it into CI.
 
 ---
 
-## 7. Fonts
-
-Only change fonts if your brand guidelines require it — the default
-NotoSansJP covers full Japanese + Latin coverage and is already bundled.
-
-To swap:
-
-1. Drop the new TTF/OTF files into `assets/fonts/`.
-2. Update `pubspec.yaml`'s `fonts:` block — the `family:` name is what you
-   will reference from Dart, the `asset:` paths point at the new files,
-   and the `weight:` entries must include at least **400** and **700**
-   (`AppTextStyles` uses both).
-3. Set `AppConfig.fontFamily` to the new family name.
-4. `flutter clean && flutter pub get` to force the font bundle to rebuild.
-
-The `family:` in pubspec and `AppConfig.fontFamily` form a silent
-contract — if they disagree, the app falls back to the system font with
-no error.
-
----
-
-## 8. `README.md`
+## 7. `README.md`
 
 Line 1 is `# flutterbase`. Rename to your app's display name. Everything
 below line 1 is template guidance that stays useful for contributors.
@@ -324,7 +301,6 @@ Grep gates to catch identity drift:
 
 ```bash
 grep -rn "'FlutterBase'"       lib/ test/   # should return only AppConfig
-grep -rn "'NotoSansJP'"        lib/ test/   # should return only AppConfig
 grep -rn "'DADS Design System'" lib/ test/  # should return only AppConfig
 ```
 
@@ -341,7 +317,6 @@ One-glance summary of every fork-time surface.
 | App tagline | `lib/shared/config/app_config.dart` | yes | edit `AppConfig.appTagline` |
 | Design-system label | `lib/shared/config/app_config.dart` | yes | edit `AppConfig.designSystemLabel` / `Name` / `Url` / `License` |
 | Brand colour | `lib/shared/theme/app_colors.dart` | yes | edit `AppColors.brand` |
-| Font family | `lib/shared/config/app_config.dart` + `pubspec.yaml` | ⚠ contract | must match in both places |
 | Launcher icon | `assets/icon/*.png` + `flutter_launcher_icons` config | yes | swap PNG, run generator |
 | Dart package name | `pubspec.yaml` + every `package:*/` import | script | `scripts/rename_app.sh` |
 | Android `namespace` | `android/app/build.gradle` | script | `scripts/rename_app.sh` |
