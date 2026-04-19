@@ -29,9 +29,7 @@ class AppSpacing {
   static const double iconXl = 32.0;
 
   // Component sizes
-  static const double splashIconContainer = 96.0;
   static const double aboutIconContainer = 80.0;
-  static const double splashIconSize = 48.0;
   static const double aboutIconSize = 40.0;
   static const double levelBadgeSize = 20.0;
 }
