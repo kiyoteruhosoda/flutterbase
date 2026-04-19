@@ -26,9 +26,9 @@ per-app identity value that can live in Dart.
 
 | Field | Effect |
 |---|---|
-| `appName` | `MaterialApp` title, drawer header, splash, About header, License page header |
+| `appName` | `MaterialApp` title, drawer header, About header, License page header |
 | `appDescription` | About page subtitle |
-| `appTagline` | Drawer subtitle + splash subtitle |
+| `appTagline` | Drawer subtitle |
 | `homeSubtitle` | Home "Welcome" subtitle |
 | `homeCardTitle` | Home first card title |
 | `fontFamily` | Applied to `ThemeData.fontFamily` and every `AppTextStyles.*` — **must exactly match the `family:` entry in `pubspec.yaml`'s fonts section**. Drift causes a silent fallback to the system font. |
@@ -286,9 +286,9 @@ downloaded artifact already carries the per-app filename.
 None of the following are touched by this template, by `rename_app.sh`,
 or by anything in this guide. Set them up per your own deployment needs:
 
-- Native splash screen (`flutter_native_splash`) — the template ships
-  only a Dart-rendered splash, parameterised via `AppConfig.appName` and
-  `AppConfig.appTagline`.
+- Native splash screen (`flutter_native_splash`) — the template relies
+  solely on the Android 12+ system splash (see §6); no Dart-rendered
+  splash is shown.
 - Build flavours / product flavors.
 - Firebase / Crashlytics / Analytics / `google-services.json`.
 - Signing keys, keystore generation, Play Console upload.
@@ -314,8 +314,7 @@ Then do a visual smoke pass:
 
 | Surface | What to check |
 |---|---|
-| Splash | Shows `AppConfig.appName` and `AppConfig.appTagline`. |
-| Drawer header | Same. |
+| Drawer header | Shows `AppConfig.appName` and `AppConfig.appTagline`. |
 | Home tab | "Welcome" title, `AppConfig.homeSubtitle`, first card uses `AppConfig.homeCardTitle`. |
 | About page | Header shows `AppConfig.appName` + `AppConfig.appDescription`, version row matches pubspec. |
 | License page | Opens via "Licenses" menu item, shows the DADS entry with your `designSystemName` / `designSystemLicense` / `designSystemUrl`. |
