@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
 /// DADS-compliant side drawer menu.
@@ -99,7 +99,7 @@ class _DrawerHeader extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: onClose,
-            tooltip: AppStrings.drawerClose,
+            tooltip: AppLocalizations.of(context).drawerClose,
           ),
         ],
       ),

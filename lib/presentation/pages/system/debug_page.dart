@@ -4,7 +4,7 @@ import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/config/app_config.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Debug information page — shows build metadata and diagnostic actions.
@@ -37,14 +37,15 @@ class _DebugPageState extends State<DebugPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppMainHeader(
-        title: AppStrings.debugTitle,
+        title: l10n.debugTitle,
         actions: [
           IconButton(
             icon: const Icon(Icons.copy),
             onPressed: _copyAllToClipboard,
-            tooltip: AppStrings.debugCopyAll,
+            tooltip: l10n.debugCopyAll,
           ),
         ],
       ),
@@ -65,7 +66,7 @@ class _DebugPageState extends State<DebugPage> {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    AppStrings.debugWarning,
+                    l10n.debugWarning,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.statusWarning,
                         ),
@@ -77,12 +78,12 @@ class _DebugPageState extends State<DebugPage> {
           const SizedBox(height: AppSpacing.lg),
 
           // App info card
-          AppSectionHeader(title: AppStrings.debugAppInfoSection),
+          AppSectionHeader(title: l10n.debugAppInfoSection),
           const SizedBox(height: AppSpacing.sm),
           switch (_viewModel.state) {
             DebugState.loading => const AppLoadingView(),
             DebugState.error => AppErrorView(
-                message: _viewModel.appError?.message ?? AppStrings.commonError,
+                message: _viewModel.appError?.message ?? l10n.commonError,
                 onRetry: _viewModel.loadAppInfo,
               ),
             DebugState.loaded => _buildInfoCard(context),
@@ -90,20 +91,20 @@ class _DebugPageState extends State<DebugPage> {
           const SizedBox(height: AppSpacing.lg),
 
           // Theme info card
-          AppSectionHeader(title: AppStrings.debugThemeSection),
+          AppSectionHeader(title: l10n.debugThemeSection),
           const SizedBox(height: AppSpacing.sm),
           AppCard(
             child: Column(
               children: [
                 _DebugInfoRow(
-                  label: AppStrings.debugThemeMode,
+                  label: l10n.debugThemeMode,
                   value: Theme.of(context).brightness == Brightness.dark
-                      ? AppStrings.debugThemeModeDark
-                      : AppStrings.debugThemeModeLight,
+                      ? l10n.debugThemeModeDark
+                      : l10n.debugThemeModeLight,
                 ),
                 const Divider(height: AppSpacing.xl),
                 _DebugInfoRow(
-                  label: AppStrings.debugPrimaryColor,
+                  label: l10n.debugPrimaryColor,
                   value: colorScheme.primary.toHexString(),
                   valueWidget: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -127,7 +128,7 @@ class _DebugPageState extends State<DebugPage> {
                 ),
                 const Divider(height: AppSpacing.xl),
                 _DebugInfoRow(
-                  label: AppStrings.debugSurfaceColor,
+                  label: l10n.debugSurfaceColor,
                   value: colorScheme.surface.toHexString(),
                 ),
               ],
@@ -136,25 +137,25 @@ class _DebugPageState extends State<DebugPage> {
           const SizedBox(height: AppSpacing.lg),
 
           // Actions card
-          AppSectionHeader(title: AppStrings.debugActionsSection),
+          AppSectionHeader(title: l10n.debugActionsSection),
           const SizedBox(height: AppSpacing.sm),
           AppListCard(
-            title: AppStrings.debugClearLogs,
+            title: l10n.debugClearLogs,
             leading: const Icon(Icons.clear_all),
             onTap: () {
               _viewModel.clearLogs();
-              _showSnackBar(AppStrings.debugClearLogsSuccess);
+              _showSnackBar(l10n.debugClearLogsSuccess);
             },
           ),
           const SizedBox(height: AppSpacing.sm),
           AppListCard(
-            title: AppStrings.debugClearCache,
+            title: l10n.debugClearCache,
             leading: const Icon(Icons.cleaning_services_outlined),
-            onTap: () => _showSnackBar(AppStrings.debugClearCacheSuccess),
+            onTap: () => _showSnackBar(l10n.debugClearCacheSuccess),
           ),
           const SizedBox(height: AppSpacing.sm),
           AppListCard(
-            title: AppStrings.debugTestCrash,
+            title: l10n.debugTestCrash,
             leading: Icon(Icons.warning, color: AppColors.statusError),
             onTap: _showCrashConfirmDialog,
           ),
@@ -165,17 +166,18 @@ class _DebugPageState extends State<DebugPage> {
 
   Widget _buildInfoCard(BuildContext context) {
     final info = _viewModel.appInfo!;
+    final l10n = AppLocalizations.of(context);
     final entries = <(String, String)>[
-      (AppStrings.debugAppName, AppConfig.appName),
-      (AppStrings.debugVersion, info.version),
-      (AppStrings.debugBuildNumber, info.buildNumber),
-      (AppStrings.debugGitCommit, info.gitCommitFull),
-      (AppStrings.debugFlutterVersion, info.flutterVersion),
-      (AppStrings.debugDartVersion, info.dartVersion),
-      (AppStrings.debugPlatform, AppStrings.aboutPlatformValue),
-      (AppStrings.debugDesignSystem, AppConfig.designSystemLabel),
-      (AppStrings.debugBuildDate, info.buildDate),
-      (AppStrings.debugIsDebugBuild, info.isDebug.toString()),
+      (l10n.debugAppName, AppConfig.appName),
+      (l10n.debugVersion, info.version),
+      (l10n.debugBuildNumber, info.buildNumber),
+      (l10n.debugGitCommit, info.gitCommitFull),
+      (l10n.debugFlutterVersion, info.flutterVersion),
+      (l10n.debugDartVersion, info.dartVersion),
+      (l10n.debugPlatform, l10n.aboutPlatformValue),
+      (l10n.debugDesignSystem, AppConfig.designSystemLabel),
+      (l10n.debugBuildDate, info.buildDate),
+      (l10n.debugIsDebugBuild, info.isDebug.toString()),
     ];
     return AppCard(
       child: Column(
@@ -194,17 +196,18 @@ class _DebugPageState extends State<DebugPage> {
   void _copyAllToClipboard() {
     if (_viewModel.appInfo == null) return;
     final info = _viewModel.appInfo!;
+    final l10n = AppLocalizations.of(context);
     final buffer = StringBuffer()
-      ..writeln('${AppStrings.debugAppName}: ${AppConfig.appName}')
-      ..writeln('${AppStrings.debugVersion}: ${info.version}')
-      ..writeln('${AppStrings.debugBuildNumber}: ${info.buildNumber}')
-      ..writeln('${AppStrings.debugGitCommit}: ${info.gitCommitFull}')
-      ..writeln('${AppStrings.debugFlutterVersion}: ${info.flutterVersion}')
-      ..writeln('${AppStrings.debugDartVersion}: ${info.dartVersion}')
-      ..writeln('${AppStrings.debugBuildDate}: ${info.buildDate}')
-      ..writeln('${AppStrings.debugIsDebugBuild}: ${info.isDebug}');
+      ..writeln('${l10n.debugAppName}: ${AppConfig.appName}')
+      ..writeln('${l10n.debugVersion}: ${info.version}')
+      ..writeln('${l10n.debugBuildNumber}: ${info.buildNumber}')
+      ..writeln('${l10n.debugGitCommit}: ${info.gitCommitFull}')
+      ..writeln('${l10n.debugFlutterVersion}: ${info.flutterVersion}')
+      ..writeln('${l10n.debugDartVersion}: ${info.dartVersion}')
+      ..writeln('${l10n.debugBuildDate}: ${info.buildDate}')
+      ..writeln('${l10n.debugIsDebugBuild}: ${info.isDebug}');
     Clipboard.setData(ClipboardData(text: buffer.toString()));
-    _showSnackBar(AppStrings.debugCopiedToClipboard);
+    _showSnackBar(l10n.debugCopiedToClipboard);
   }
 
   void _showSnackBar(String message) {
@@ -214,19 +217,20 @@ class _DebugPageState extends State<DebugPage> {
   }
 
   Future<void> _showCrashConfirmDialog() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(AppStrings.debugTestCrashTitle),
-        content: const Text(AppStrings.debugTestCrashBody),
+        title: Text(l10n.debugTestCrashTitle),
+        content: Text(l10n.debugTestCrashBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(AppStrings.debugCancel),
+            child: Text(l10n.debugCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(AppStrings.debugCrash),
+            child: Text(l10n.debugCrash),
           ),
         ],
       ),

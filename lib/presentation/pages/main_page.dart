@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
+import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/config/app_config.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/logging/log_level.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
+import 'package:flutterbase/shared/value_objects/app_language.dart';
 
 /// Main screen with bottom navigation.
 class MainPage extends StatefulWidget {
@@ -19,26 +21,26 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
-  static const List<_TabItem> _tabs = [
-    _TabItem(
-      label: AppStrings.navHome,
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
-    ),
-    _TabItem(
-      label: AppStrings.navSearch,
-      icon: Icons.search_outlined,
-      selectedIcon: Icons.search,
-    ),
-    _TabItem(
-      label: AppStrings.navSettings,
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final tabs = <_TabItem>[
+      _TabItem(
+        label: l10n.navHome,
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home,
+      ),
+      _TabItem(
+        label: l10n.navSearch,
+        icon: Icons.search_outlined,
+        selectedIcon: Icons.search,
+      ),
+      _TabItem(
+        label: l10n.navSettings,
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+      ),
+    ];
     return PopScope(
       // Allow pop only when already on Home tab; otherwise switch to Home.
       canPop: _selectedIndex == 0,
@@ -54,14 +56,14 @@ class _MainPageState extends State<MainPage> {
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
             onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: AppStrings.commonMenu,
+            tooltip: l10n.commonMenu,
           ),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {},
-            tooltip: AppStrings.commonNotifications,
+            tooltip: l10n.commonNotifications,
           ),
         ],
       ),
@@ -74,7 +76,7 @@ class _MainPageState extends State<MainPage> {
             headerSubtitle: AppConfig.appTagline,
             items: [
               AppDrawerItem(
-                label: AppStrings.navHome,
+                label: l10n.navHome,
                 icon: Icons.home_outlined,
                 isSelected: _selectedIndex == 0,
                 onTap: () {
@@ -83,7 +85,7 @@ class _MainPageState extends State<MainPage> {
                 },
               ),
               AppDrawerItem(
-                label: AppStrings.navSearch,
+                label: l10n.navSearch,
                 icon: Icons.search_outlined,
                 isSelected: _selectedIndex == 1,
                 onTap: () {
@@ -92,7 +94,7 @@ class _MainPageState extends State<MainPage> {
                 },
               ),
               AppDrawerItem(
-                label: AppStrings.navSettings,
+                label: l10n.navSettings,
                 icon: Icons.settings_outlined,
                 isSelected: _selectedIndex == 2,
                 onTap: () {
@@ -104,7 +106,7 @@ class _MainPageState extends State<MainPage> {
             ],
             bottomItems: [
               AppDrawerItem(
-                label: AppStrings.drawerAbout,
+                label: l10n.drawerAbout,
                 icon: Icons.info_outline,
                 onTap: () {
                   Navigator.of(context).pop();
@@ -112,7 +114,7 @@ class _MainPageState extends State<MainPage> {
                 },
               ),
               AppDrawerItem(
-                label: AppStrings.drawerLicenses,
+                label: l10n.drawerLicenses,
                 icon: Icons.description_outlined,
                 onTap: () {
                   Navigator.of(context).pop();
@@ -121,7 +123,7 @@ class _MainPageState extends State<MainPage> {
               ),
               if (debugEnabled) ...[
                 AppDrawerItem(
-                  label: AppStrings.drawerLogs,
+                  label: l10n.drawerLogs,
                   icon: Icons.list_alt_outlined,
                   onTap: () {
                     Navigator.of(context).pop();
@@ -129,7 +131,7 @@ class _MainPageState extends State<MainPage> {
                   },
                 ),
                 AppDrawerItem(
-                  label: AppStrings.drawerDebug,
+                  label: l10n.drawerDebug,
                   icon: Icons.bug_report_outlined,
                   onTap: () {
                     Navigator.of(context).pop();
@@ -146,7 +148,7 @@ class _MainPageState extends State<MainPage> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) =>
             setState(() => _selectedIndex = index),
-        destinations: _tabs
+        destinations: tabs
             .map(
               (tab) => NavigationDestination(
                 icon: Icon(tab.icon),
@@ -177,11 +179,12 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
         AppSectionHeader(
-          title: AppStrings.homeWelcomeTitle,
+          title: l10n.homeWelcomeTitle,
           subtitle: AppConfig.homeSubtitle,
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -195,42 +198,42 @@ class _HomeContent extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                AppStrings.homeCardBody,
+                l10n.homeCardBody,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        AppSectionHeader(title: AppStrings.homeComponentsTitle),
+        AppSectionHeader(title: l10n.homeComponentsTitle),
         const SizedBox(height: AppSpacing.lg),
         AppPrimaryButton(
-          label: AppStrings.homePrimaryButton,
+          label: l10n.homePrimaryButton,
           onPressed: () {},
           width: double.infinity,
         ),
         const SizedBox(height: AppSpacing.sm),
         AppSecondaryButton(
-          label: AppStrings.homeSecondaryButton,
+          label: l10n.homeSecondaryButton,
           onPressed: () {},
           width: double.infinity,
         ),
         const SizedBox(height: AppSpacing.lg),
-        const AppTextField(
-          label: AppStrings.homeTextFieldLabel,
-          hint: AppStrings.homeTextFieldHint,
+        AppTextField(
+          label: l10n.homeTextFieldLabel,
+          hint: l10n.homeTextFieldHint,
         ),
         const SizedBox(height: AppSpacing.lg),
         AppListCard(
-          title: AppStrings.homeListCardTitle,
-          subtitle: AppStrings.homeListCardSubtitle,
+          title: l10n.homeListCardTitle,
+          subtitle: l10n.homeListCardSubtitle,
           leading: const Icon(Icons.article_outlined),
           onTap: () {},
         ),
         const SizedBox(height: AppSpacing.sm),
         AppListCard(
-          title: AppStrings.homeListCardItem2,
-          subtitle: AppStrings.homeListCardSubtitle,
+          title: l10n.homeListCardItem2,
+          subtitle: l10n.homeListCardSubtitle,
           leading: const Icon(Icons.article_outlined),
           onTap: () {},
         ),
@@ -244,18 +247,19 @@ class _SearchContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(AppSpacing.pageMargin),
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.pageMargin),
       child: Column(
         children: [
           AppTextField(
-            label: AppStrings.searchFieldLabel,
-            hint: AppStrings.searchFieldHint,
-            prefixIcon: Icon(Icons.search),
+            label: l10n.searchFieldLabel,
+            hint: l10n.searchFieldHint,
+            prefixIcon: const Icon(Icons.search),
           ),
-          SizedBox(height: AppSpacing.xxxl),
+          const SizedBox(height: AppSpacing.xxxl),
           AppEmptyView(
-            message: AppStrings.searchEmptyMessage,
+            message: l10n.searchEmptyMessage,
             icon: Icons.search,
           ),
         ],
@@ -269,15 +273,17 @@ class _SettingsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final themeViewModel = sl<ThemeViewModel>();
+    final languageViewModel = sl<LanguageViewModel>();
     final debugViewModel = sl<DebugSettingsViewModel>();
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
-        AppSectionHeader(title: AppStrings.settingsTitle),
+        AppSectionHeader(title: l10n.settingsTitle),
         const SizedBox(height: AppSpacing.lg),
         // ── Theme switcher ──────────────────────────────────────────
-        AppSectionHeader(title: AppStrings.settingsTheme),
+        AppSectionHeader(title: l10n.settingsTheme),
         const SizedBox(height: AppSpacing.sm),
         ListenableBuilder(
           listenable: themeViewModel,
@@ -285,7 +291,7 @@ class _SettingsContent extends StatelessWidget {
             child: Column(
               children: [
                 _ThemeOptionTile(
-                  label: AppStrings.settingsThemeLight,
+                  label: l10n.settingsThemeLight,
                   icon: Icons.light_mode_outlined,
                   value: ThemeMode.light,
                   groupValue: themeViewModel.themeMode,
@@ -293,7 +299,7 @@ class _SettingsContent extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 _ThemeOptionTile(
-                  label: AppStrings.settingsThemeDark,
+                  label: l10n.settingsThemeDark,
                   icon: Icons.dark_mode_outlined,
                   value: ThemeMode.dark,
                   groupValue: themeViewModel.themeMode,
@@ -301,11 +307,47 @@ class _SettingsContent extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 _ThemeOptionTile(
-                  label: AppStrings.settingsThemeSystem,
+                  label: l10n.settingsThemeSystem,
                   icon: Icons.brightness_auto_outlined,
                   value: ThemeMode.system,
                   groupValue: themeViewModel.themeMode,
                   onChanged: themeViewModel.setThemeMode,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        // ── Language switcher ───────────────────────────────────────
+        AppSectionHeader(title: l10n.settingsLanguage),
+        const SizedBox(height: AppSpacing.sm),
+        ListenableBuilder(
+          listenable: languageViewModel,
+          builder: (context, _) => AppCard(
+            child: Column(
+              children: [
+                _LanguageOptionTile(
+                  label: l10n.settingsLanguageSystem,
+                  icon: Icons.language_outlined,
+                  value: AppLanguage.system,
+                  groupValue: languageViewModel.language,
+                  onChanged: languageViewModel.setLanguage,
+                ),
+                const Divider(height: 1),
+                _LanguageOptionTile(
+                  label: l10n.settingsLanguageEnglish,
+                  icon: Icons.translate_outlined,
+                  value: AppLanguage.english,
+                  groupValue: languageViewModel.language,
+                  onChanged: languageViewModel.setLanguage,
+                ),
+                const Divider(height: 1),
+                _LanguageOptionTile(
+                  label: l10n.settingsLanguageJapanese,
+                  icon: Icons.translate_outlined,
+                  value: AppLanguage.japanese,
+                  groupValue: languageViewModel.language,
+                  onChanged: languageViewModel.setLanguage,
                 ),
               ],
             ),
@@ -322,7 +364,7 @@ class _SettingsContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppSpacing.lg),
-                AppSectionHeader(title: AppStrings.settingsDeveloper),
+                AppSectionHeader(title: l10n.settingsDeveloper),
                 const SizedBox(height: AppSpacing.sm),
                 AppCard(
                   child: Column(
@@ -336,11 +378,11 @@ class _SettingsContent extends StatelessWidget {
                               Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         title: Text(
-                          AppStrings.settingsDebugMode,
+                          l10n.settingsDebugMode,
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                         subtitle: Text(
-                          AppStrings.settingsDebugModeSubtitle,
+                          l10n.settingsDebugModeSubtitle,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -362,13 +404,13 @@ class _SettingsContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppListCard(
-          title: AppStrings.settingsAbout,
+          title: l10n.settingsAbout,
           leading: const Icon(Icons.info_outline),
           onTap: () => Navigator.of(context).pushNamed('/about'),
         ),
         const SizedBox(height: AppSpacing.sm),
         AppListCard(
-          title: AppStrings.settingsLicenses,
+          title: l10n.settingsLicenses,
           leading: const Icon(Icons.description_outlined),
           onTap: () => openAppLicensePage(context),
         ),
@@ -379,13 +421,13 @@ class _SettingsContent extends StatelessWidget {
                   children: [
                     const SizedBox(height: AppSpacing.sm),
                     AppListCard(
-                      title: AppStrings.settingsLogs,
+                      title: l10n.settingsLogs,
                       leading: const Icon(Icons.list_alt_outlined),
                       onTap: () => Navigator.of(context).pushNamed('/logs'),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     AppListCard(
-                      title: AppStrings.settingsDebug,
+                      title: l10n.settingsDebug,
                       leading: const Icon(Icons.bug_report_outlined),
                       onTap: () => Navigator.of(context).pushNamed('/debug'),
                     ),
@@ -444,6 +486,50 @@ class _ThemeOptionTile extends StatelessWidget {
   }
 }
 
+class _LanguageOptionTile extends StatelessWidget {
+  const _LanguageOptionTile({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final AppLanguage value;
+  final AppLanguage groupValue;
+  final ValueChanged<AppLanguage> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = value == groupValue;
+    final colorScheme = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        label,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: selected ? colorScheme.primary : colorScheme.onSurface,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+            ),
+      ),
+      trailing: selected
+          ? Icon(Icons.check_circle, color: colorScheme.primary)
+          : Icon(Icons.radio_button_unchecked,
+              color: colorScheme.onSurfaceVariant),
+      onTap: () => onChanged(value),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.componentPadding,
+        vertical: AppSpacing.xs,
+      ),
+    );
+  }
+}
+
 class _LogLevelTile extends StatelessWidget {
   const _LogLevelTile({
     required this.currentLevel,
@@ -453,24 +539,24 @@ class _LogLevelTile extends StatelessWidget {
   final LogLevel currentLevel;
   final ValueChanged<LogLevel> onChanged;
 
-  static const List<(LogLevel, String)> _levels = [
-    (LogLevel.verbose, AppStrings.logLevelVerbose),
-    (LogLevel.debug, AppStrings.logLevelDebug),
-    (LogLevel.info, AppStrings.logLevelInfo),
-    (LogLevel.warning, AppStrings.logLevelWarning),
-    (LogLevel.error, AppStrings.logLevelError),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
+    final levels = <(LogLevel, String)>[
+      (LogLevel.verbose, l10n.logLevelVerbose),
+      (LogLevel.debug, l10n.logLevelDebug),
+      (LogLevel.info, l10n.logLevelInfo),
+      (LogLevel.warning, l10n.logLevelWarning),
+      (LogLevel.error, l10n.logLevelError),
+    ];
     return ListTile(
       leading: Icon(
         Icons.tune_outlined,
         color: colorScheme.onSurfaceVariant,
       ),
       title: Text(
-        AppStrings.settingsLogLevel,
+        l10n.settingsLogLevel,
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       trailing: DropdownButton<LogLevel>(
@@ -479,7 +565,7 @@ class _LogLevelTile extends StatelessWidget {
         onChanged: (level) {
           if (level != null) onChanged(level);
         },
-        items: _levels
+        items: levels
             .map(
               (entry) => DropdownMenuItem(
                 value: entry.$1,

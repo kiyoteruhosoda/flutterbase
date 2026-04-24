@@ -4,7 +4,7 @@ import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/config/app_config.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
 /// About / version information page.
@@ -49,20 +49,23 @@ class _AboutPageState extends State<AboutPage> {
     await debugVm.setDebugEnabled(true);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(AppStrings.aboutDebugUnlocked)),
+      SnackBar(
+        content: Text(AppLocalizations.of(context).aboutDebugUnlocked),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppMainHeader(title: AppStrings.aboutTitle),
+      appBar: AppMainHeader(title: l10n.aboutTitle),
       body: switch (_viewModel.state) {
         AboutState.loading => const AppLoadingView(),
         AboutState.error => AppErrorView(
-            message: _viewModel.appError?.message ?? AppStrings.commonError,
+            message: _viewModel.appError?.message ?? l10n.commonError,
             onRetry: _viewModel.loadAppInfo,
           ),
         AboutState.loaded => _buildContent(context, colorScheme),
@@ -72,6 +75,7 @@ class _AboutPageState extends State<AboutPage> {
 
   Widget _buildContent(BuildContext context, ColorScheme colorScheme) {
     final info = _viewModel.appInfo!;
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
@@ -109,22 +113,22 @@ class _AboutPageState extends State<AboutPage> {
           child: Column(
             children: [
               _VersionInfoRow(
-                label: AppStrings.aboutVersion,
+                label: l10n.aboutVersion,
                 value: info.version,
                 onTap: _onVersionTapped,
               ),
               const Divider(height: AppSpacing.xl),
-              _InfoRow(label: AppStrings.aboutBuildNumber, value: info.buildNumber),
+              _InfoRow(label: l10n.aboutBuildNumber, value: info.buildNumber),
               const Divider(height: AppSpacing.xl),
-              _InfoRow(label: AppStrings.aboutGitCommit, value: info.gitCommit),
+              _InfoRow(label: l10n.aboutGitCommit, value: info.gitCommit),
               const Divider(height: AppSpacing.xl),
-              _InfoRow(label: AppStrings.aboutFlutterVersion, value: info.flutterVersion),
+              _InfoRow(label: l10n.aboutFlutterVersion, value: info.flutterVersion),
               const Divider(height: AppSpacing.xl),
-              _InfoRow(label: AppStrings.aboutDartVersion, value: info.dartVersion),
+              _InfoRow(label: l10n.aboutDartVersion, value: info.dartVersion),
               const Divider(height: AppSpacing.xl),
               _InfoRow(
-                label: AppStrings.aboutPlatform,
-                value: AppStrings.aboutPlatformValue,
+                label: l10n.aboutPlatform,
+                value: l10n.aboutPlatformValue,
               ),
             ],
           ),
