@@ -1,5 +1,4 @@
 # Azure DevOps CI/CD Pipeline for Flutter
-# デジタル庁デザインシステム準拠 FlutterBase
 
 trigger:
   branches:
