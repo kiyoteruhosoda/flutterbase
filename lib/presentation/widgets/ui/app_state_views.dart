@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 import 'app_primary_button.dart';
 
@@ -36,12 +36,14 @@ class AppErrorView extends StatelessWidget {
     super.key,
     required this.message,
     this.onRetry,
-    this.retryLabel = AppStrings.commonRetry,
+    this.retryLabel,
   });
 
   final String message;
   final VoidCallback? onRetry;
-  final String retryLabel;
+
+  /// Custom retry button label. Defaults to the localised "Retry" string.
+  final String? retryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +66,10 @@ class AppErrorView extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              AppPrimaryButton(label: retryLabel, onPressed: onRetry),
+              AppPrimaryButton(
+                label: retryLabel ?? AppLocalizations.of(context).commonRetry,
+                onPressed: onRetry,
+              ),
             ],
           ],
         ),

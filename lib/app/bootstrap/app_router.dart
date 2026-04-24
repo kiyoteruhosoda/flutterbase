@@ -4,7 +4,7 @@ import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
 import 'package:flutterbase/presentation/pages/system/debug_page.dart';
 import 'package:flutterbase/presentation/pages/system/logs_page.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
 
 /// Named route definitions.
@@ -48,9 +48,10 @@ class _NotFoundPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.commonPageNotFound)),
-      body: const Center(child: Text(AppStrings.commonNotFound)),
+      appBar: AppBar(title: Text(l10n.commonPageNotFound)),
+      body: Center(child: Text(l10n.commonNotFound)),
     );
   }
 }

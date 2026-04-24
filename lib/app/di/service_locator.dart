@@ -5,18 +5,23 @@ import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.d
 import 'package:flutterbase/application/usecases/debug/get_debug_settings_usecase.dart';
 import 'package:flutterbase/application/usecases/debug/set_debug_mode_usecase.dart';
 import 'package:flutterbase/application/usecases/debug/set_log_level_usecase.dart';
+import 'package:flutterbase/application/usecases/language/get_language_preference_usecase.dart';
+import 'package:flutterbase/application/usecases/language/set_language_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
+import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
 import 'package:flutterbase/infrastructure/logging/persistent_app_logger.dart';
 import 'package:flutterbase/infrastructure/repositories/package_info_app_info_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_debug_settings_repository.dart';
+import 'package:flutterbase/infrastructure/repositories/shared_preferences_language_preference_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_theme_preference_repository.dart';
 import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
+import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
 
@@ -48,6 +53,10 @@ Future<void> setupServiceLocator() async {
     SharedPreferencesThemePreferenceRepository(prefs),
   );
 
+  sl.registerSingleton<LanguagePreferenceRepository>(
+    SharedPreferencesLanguagePreferenceRepository(prefs),
+  );
+
   sl.registerSingleton<AppInfoRepository>(
     const PackageInfoAppInfoRepository(),
   );
@@ -59,6 +68,12 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerFactory<SetThemePreferenceUseCase>(
     () => SetThemePreferenceUseCase(sl<ThemePreferenceRepository>()),
+  );
+  sl.registerFactory<GetLanguagePreferenceUseCase>(
+    () => GetLanguagePreferenceUseCase(sl<LanguagePreferenceRepository>()),
+  );
+  sl.registerFactory<SetLanguagePreferenceUseCase>(
+    () => SetLanguagePreferenceUseCase(sl<LanguagePreferenceRepository>()),
   );
   sl.registerFactory<GetAppInfoUseCase>(
     () => GetAppInfoUseCase(sl<AppInfoRepository>()),
@@ -79,6 +94,12 @@ Future<void> setupServiceLocator() async {
     ThemeViewModel(
       sl<GetThemePreferenceUseCase>(),
       sl<SetThemePreferenceUseCase>(),
+    ),
+  );
+  sl.registerSingleton<LanguageViewModel>(
+    LanguageViewModel(
+      sl<GetLanguagePreferenceUseCase>(),
+      sl<SetLanguagePreferenceUseCase>(),
     ),
   );
   sl.registerSingleton<DebugSettingsViewModel>(

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutterbase/app/bootstrap/app_router.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
+import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:flutterbase/shared/config/app_config.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
 import 'package:flutterbase/shared/theme/app_theme.dart';
 
@@ -40,8 +43,9 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final themeViewModel = sl<ThemeViewModel>();
+    final languageViewModel = sl<LanguageViewModel>();
     return ListenableBuilder(
-      listenable: themeViewModel,
+      listenable: Listenable.merge([themeViewModel, languageViewModel]),
       builder: (context, _) {
         return MaterialApp(
           title: AppConfig.appName,
@@ -49,6 +53,14 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeViewModel.themeMode,
+          locale: languageViewModel.locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           onGenerateRoute: AppRouter.onGenerateRoute,
           home: const MainPage(),
         );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
-import 'package:flutterbase/shared/l10n/app_strings.dart';
+import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
 import 'package:flutterbase/shared/theme/theme.dart';
 
@@ -21,19 +21,20 @@ class _LogsPageState extends State<LogsPage> {
   @override
   Widget build(BuildContext context) {
     final entries = _logger.entriesForLevel(_filter).reversed.toList();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppMainHeader(
-        title: AppStrings.logsTitle,
+        title: l10n.logsTitle,
         actions: [
           IconButton(
             icon: const Icon(Icons.download_outlined),
-            tooltip: AppStrings.logsDownload,
+            tooltip: l10n.logsDownload,
             onPressed: _exportLogs,
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            tooltip: AppStrings.logsClear,
+            tooltip: l10n.logsClear,
             onPressed: _confirmClear,
           ),
         ],
@@ -47,8 +48,8 @@ class _LogsPageState extends State<LogsPage> {
           const Divider(height: 1),
           Expanded(
             child: entries.isEmpty
-                ? const AppEmptyView(
-                    message: AppStrings.logsEmpty,
+                ? AppEmptyView(
+                    message: l10n.logsEmpty,
                     icon: Icons.list_alt_outlined,
                   )
                 : ListView.separated(
@@ -69,25 +70,27 @@ class _LogsPageState extends State<LogsPage> {
   Future<void> _exportLogs() async {
     final path = await _logger.exportLogs();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final msg =
-        path != null ? AppStrings.logsDownloadSuccess : AppStrings.logsDownloadError;
+        path != null ? l10n.logsDownloadSuccess : l10n.logsDownloadError;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _confirmClear() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.logsClearConfirmTitle),
-        content: const Text(AppStrings.logsClearConfirmBody),
+        title: Text(l10n.logsClearConfirmTitle),
+        content: Text(l10n.logsClearConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(AppStrings.logsCancel),
+            child: Text(l10n.logsCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(AppStrings.logsConfirm),
+            child: Text(l10n.logsConfirm),
           ),
         ],
       ),
@@ -97,7 +100,7 @@ class _LogsPageState extends State<LogsPage> {
       if (mounted) {
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.logsClearSuccess)),
+          SnackBar(content: Text(l10n.logsClearSuccess)),
         );
       }
     }
@@ -112,17 +115,17 @@ class _FilterBar extends StatelessWidget {
   final LogLevel? selected;
   final ValueChanged<LogLevel?> onChanged;
 
-  static const _options = <(String, LogLevel?)>[
-    (AppStrings.logsAll, null),
-    (AppStrings.logsVerbose, LogLevel.verbose),
-    (AppStrings.logsDebug, LogLevel.debug),
-    (AppStrings.logsInfo, LogLevel.info),
-    (AppStrings.logsWarning, LogLevel.warning),
-    (AppStrings.logsError, LogLevel.error),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final options = <(String, LogLevel?)>[
+      (l10n.logsAll, null),
+      (l10n.logsVerbose, LogLevel.verbose),
+      (l10n.logsDebug, LogLevel.debug),
+      (l10n.logsInfo, LogLevel.info),
+      (l10n.logsWarning, LogLevel.warning),
+      (l10n.logsError, LogLevel.error),
+    ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
@@ -130,7 +133,7 @@ class _FilterBar extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       child: Row(
-        children: _options
+        children: options
             .map(
               (opt) => Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
@@ -204,7 +207,9 @@ class _LogEntryTile extends StatelessWidget {
       onLongPress: () {
         Clipboard.setData(ClipboardData(text: entry.toLogLine()));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.logsCopied)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).logsCopied),
+          ),
         );
       },
       child: Padding(
