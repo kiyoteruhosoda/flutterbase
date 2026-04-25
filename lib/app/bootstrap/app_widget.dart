@@ -5,7 +5,6 @@ import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
-import 'package:flutterbase/shared/config/app_config.dart';
 import 'package:flutterbase/shared/l10n/app_localizations.dart';
 import 'package:flutterbase/shared/logging/app_logger.dart';
 import 'package:flutterbase/shared/theme/app_theme.dart';
@@ -48,7 +47,7 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
       listenable: Listenable.merge([themeViewModel, languageViewModel]),
       builder: (context, _) {
         return MaterialApp(
-          title: AppConfig.appName,
+          onGenerateTitle: (context) => AppLocalizations.of(context).appName,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,

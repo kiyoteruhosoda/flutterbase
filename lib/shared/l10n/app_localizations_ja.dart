@@ -6,6 +6,8 @@ class AppLocalizationsJa extends AppLocalizations {
 
   // ─── Navigation ───────────────────────────────────────────────────────
   @override
+  String get appName => 'フラッターベース';
+  @override
   String get navHome => 'ホーム';
   @override
   String get navSearch => '検索';
