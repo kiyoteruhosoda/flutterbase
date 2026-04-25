@@ -2,7 +2,7 @@ name: Flutter Build
 
 on:
   workflow_run:
-    workflows: ["Auto Version Bump"]
+    workflows: ["Version Bump"]
     types:
       - completed
 
@@ -120,6 +120,23 @@ jobs:
         run: flutter pub get
       - name: Generate build info
         run: bash scripts/generate_build_info.sh
+      - name: Validate release signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          MISSING=""
+          [ -z "$KEYSTORE_BASE64" ] && MISSING="$MISSING KEYSTORE_BASE64"
+          [ -z "$KEY_ALIAS" ] && MISSING="$MISSING KEY_ALIAS"
+          [ -z "$KEY_PASSWORD" ] && MISSING="$MISSING KEY_PASSWORD"
+          [ -z "$STORE_PASSWORD" ] && MISSING="$MISSING STORE_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "ERROR: Release signing secrets are missing:$MISSING"
+            exit 1
+          fi
+          echo "All release signing secrets are present."
       - name: Setup release signing
         env:
           KEYSTORE_BASE64:  ${{ secrets.KEYSTORE_BASE64 }}
@@ -127,18 +144,18 @@ jobs:
           KEY_PASSWORD:     ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD:   ${{ secrets.STORE_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
-            {
-              echo "storeFile=../app/release.keystore"
-              echo "storePassword=$STORE_PASSWORD"
-              echo "keyAlias=$KEY_ALIAS"
-              echo "keyPassword=$KEY_PASSWORD"
-            } > android/key.properties
-            echo "Release signing configured."
-          else
-            echo "KEYSTORE_BASE64 not set — using debug signing (dev/test only)."
-          fi
+          set -euo pipefail
+          umask 077
+
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          {
+            echo "storeFile=../app/release.keystore"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+
+          echo "Release signing configured from GitHub Secrets."
       - name: Flutter build APK
         run: flutter build apk --release --build-number=$(git rev-list --count HEAD)
       - name: Flutter build AAB
@@ -162,6 +179,10 @@ jobs:
             build/app/outputs/bundle/release/*-release.aab
             !build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
+      - name: Cleanup signing files
+        if: always()
+        run: |
+          rm -f android/app/release.keystore android/key.properties
 
   stop-runner:
     needs: build
