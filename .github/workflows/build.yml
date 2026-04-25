@@ -2,7 +2,7 @@ name: Flutter Build
 
 on:
   workflow_run:
-    workflows: ["Auto Version Bump"]
+    workflows: ["Version Bump"]
     types:
       - completed
 
