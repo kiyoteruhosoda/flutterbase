@@ -12,8 +12,8 @@ import 'package:flutterbase/shared/l10n/app_localizations_ja.dart';
 /// Text(l10n.navHome);
 /// ```
 ///
-/// App identity values (name, tagline) live in `AppConfig` — they are
-/// configuration, not localised copy.
+/// App identity values that appear in UI (for example app name) are also
+/// modelled here so locale changes are reflected consistently.
 abstract class AppLocalizations {
   const AppLocalizations();
 
@@ -35,6 +35,7 @@ abstract class AppLocalizations {
   }
 
   // ─── Navigation ───────────────────────────────────────────────────────
+  String get appName;
   String get navHome;
   String get navSearch;
   String get navSettings;

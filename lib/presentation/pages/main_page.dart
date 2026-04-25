@@ -50,114 +50,114 @@ class _MainPageState extends State<MainPage> {
         }
       },
       child: Scaffold(
-      appBar: AppMainHeader(
-        title: AppConfig.appName,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: l10n.commonMenu,
+        appBar: AppMainHeader(
+          title: l10n.appName,
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              tooltip: l10n.commonMenu,
+            ),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {},
+              tooltip: l10n.commonNotifications,
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-            tooltip: l10n.commonNotifications,
-          ),
-        ],
-      ),
-      drawer: ListenableBuilder(
-        listenable: sl<DebugSettingsViewModel>(),
-        builder: (context, _) {
-          final debugEnabled = sl<DebugSettingsViewModel>().debugEnabled;
-          return AppDrawer(
-            appName: AppConfig.appName,
-            headerSubtitle: AppConfig.appTagline,
-            items: [
-              AppDrawerItem(
-                label: l10n.navHome,
-                icon: Icons.home_outlined,
-                isSelected: _selectedIndex == 0,
-                onTap: () {
-                  setState(() => _selectedIndex = 0);
-                  Navigator.of(context).pop();
-                },
-              ),
-              AppDrawerItem(
-                label: l10n.navSearch,
-                icon: Icons.search_outlined,
-                isSelected: _selectedIndex == 1,
-                onTap: () {
-                  setState(() => _selectedIndex = 1);
-                  Navigator.of(context).pop();
-                },
-              ),
-              AppDrawerItem(
-                label: l10n.navSettings,
-                icon: Icons.settings_outlined,
-                isSelected: _selectedIndex == 2,
-                onTap: () {
-                  setState(() => _selectedIndex = 2);
-                  Navigator.of(context).pop();
-                },
-              ),
-              const AppDrawerItem.divider(),
-            ],
-            bottomItems: [
-              AppDrawerItem(
-                label: l10n.drawerAbout,
-                icon: Icons.info_outline,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushNamed('/about');
-                },
-              ),
-              AppDrawerItem(
-                label: l10n.drawerLicenses,
-                icon: Icons.description_outlined,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  openAppLicensePage(context);
-                },
-              ),
-              if (debugEnabled) ...[
+        drawer: ListenableBuilder(
+          listenable: sl<DebugSettingsViewModel>(),
+          builder: (context, _) {
+            final debugEnabled = sl<DebugSettingsViewModel>().debugEnabled;
+            return AppDrawer(
+              appName: l10n.appName,
+              headerSubtitle: AppConfig.appTagline,
+              items: [
                 AppDrawerItem(
-                  label: l10n.drawerLogs,
-                  icon: Icons.list_alt_outlined,
+                  label: l10n.navHome,
+                  icon: Icons.home_outlined,
+                  isSelected: _selectedIndex == 0,
                   onTap: () {
+                    setState(() => _selectedIndex = 0);
                     Navigator.of(context).pop();
-                    Navigator.of(context).pushNamed('/logs');
                   },
                 ),
                 AppDrawerItem(
-                  label: l10n.drawerDebug,
-                  icon: Icons.bug_report_outlined,
+                  label: l10n.navSearch,
+                  icon: Icons.search_outlined,
+                  isSelected: _selectedIndex == 1,
                   onTap: () {
+                    setState(() => _selectedIndex = 1);
                     Navigator.of(context).pop();
-                    Navigator.of(context).pushNamed('/debug');
                   },
                 ),
+                AppDrawerItem(
+                  label: l10n.navSettings,
+                  icon: Icons.settings_outlined,
+                  isSelected: _selectedIndex == 2,
+                  onTap: () {
+                    setState(() => _selectedIndex = 2);
+                    Navigator.of(context).pop();
+                  },
+                ),
+                const AppDrawerItem.divider(),
               ],
-            ],
-          );
-        },
-      ),
-      body: _buildTabContent(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
-        destinations: tabs
-            .map(
-              (tab) => NavigationDestination(
-                icon: Icon(tab.icon),
-                selectedIcon: Icon(tab.selectedIcon),
-                label: tab.label,
-              ),
-            )
-            .toList(),
-      ),
+              bottomItems: [
+                AppDrawerItem(
+                  label: l10n.drawerAbout,
+                  icon: Icons.info_outline,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pushNamed('/about');
+                  },
+                ),
+                AppDrawerItem(
+                  label: l10n.drawerLicenses,
+                  icon: Icons.description_outlined,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    openAppLicensePage(context);
+                  },
+                ),
+                if (debugEnabled) ...[
+                  AppDrawerItem(
+                    label: l10n.drawerLogs,
+                    icon: Icons.list_alt_outlined,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed('/logs');
+                    },
+                  ),
+                  AppDrawerItem(
+                    label: l10n.drawerDebug,
+                    icon: Icons.bug_report_outlined,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed('/debug');
+                    },
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+        body: _buildTabContent(),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) =>
+              setState(() => _selectedIndex = index),
+          destinations: tabs
+              .map(
+                (tab) => NavigationDestination(
+                  icon: Icon(tab.icon),
+                  selectedIcon: Icon(tab.selectedIcon),
+                  label: tab.label,
+                ),
+              )
+              .toList(),
+        ),
       ),
     );
   }

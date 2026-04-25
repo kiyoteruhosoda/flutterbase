@@ -6,6 +6,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   // ─── Navigation ───────────────────────────────────────────────────────
   @override
+  String get appName => 'FlutterBase';
+  @override
   String get navHome => 'Home';
   @override
   String get navSearch => 'Search';
