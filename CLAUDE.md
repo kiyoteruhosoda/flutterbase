@@ -17,6 +17,8 @@
 4. Compose 等で必要コンポーネントをまとめて起動できるようにする。
 5. Build、配布物作成、起動、reset、migration をできるだけスクリプト化する。
 6. 起動時・重要処理・失敗時は、後から追跡できるログを必ず出す。
+7. i18n を前提に、ユーザー向け文言は翻訳キーで管理する。
+8. 時刻は内部では常に UTC で扱い、UI 表示時にユーザーの所属地域・タイムゾーンへ変換する。
 
 ## ドキュメント運用
 
@@ -50,5 +52,6 @@
 - `.claude/skills/configuration.md`: 設定追加・上書き
 - `.claude/skills/operations.md`: Build / 配布 / 起動 / reset / migration
 - `.claude/skills/logging.md`: ログ設計・追加
+- `.claude/skills/i18n-time.md`: 国際化・時刻設計
 - `.claude/skills/write-tests.md`: テスト追加
 - `.claude/skills/create-pr.md`: PR 作成
