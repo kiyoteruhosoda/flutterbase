@@ -2,6 +2,89 @@
 
 この文書は、デプロイ・リセット・マイグレーションなど、運用時に発生しやすい事象の一次切り分け手順をまとめます。
 
+## 品質ゲート
+
+すべての検査は 1 コマンドで走ります。CI (`.github/workflows/quality.yml`) が
+実行するのも同じスクリプトなので、ローカルで通れば CI でも通ります。
+
+```bash
+./scripts/ci.sh                 # 全検査
+./scripts/ci.sh --fast          # APK ビルドを飛ばす（開発中はこれで十分）
+./scripts/ci.sh --keep-going    # 途中で止めず、最後に失敗一覧を出す
+./scripts/ci.sh --help
+```
+
+実行される検査は次の順です。いずれかが失敗すると非ゼロ終了します。
+
+| # | 検査 | コマンド |
+|---|---|---|
+| 1 | 依存解決 | `flutter pub get` |
+| 2 | コード生成（使用時のみ） | `dart run build_runner build --delete-conflicting-outputs` |
+| 3 | 生成物のコミット漏れ | `git diff --exit-code` |
+| 4 | 整形 | `dart format --output=none --set-exit-if-changed .` |
+| 5 | 静的解析 | `flutter analyze --fatal-infos --fatal-warnings` |
+| 6 | アーキテクチャ規約 | `dart run tool/check_architecture.dart` |
+| 7 | 依存関係規約 | `dart run tool/check_dependencies.dart` |
+| 8 | テスト | `flutter test --coverage` |
+| 9 | カバレッジ下限 | `dart run tool/check_coverage.dart` |
+| 10 | ビルド | `flutter build apk --debug` |
+
+2 と 3 は、`build.yaml` があるか `lib/` に `part '*.g.dart'` /
+`part '*.freezed.dart'` があるときだけ走ります。現状このテンプレートは
+コード生成を使っていないため自動的にスキップされます。
+
+### 個別に走らせる
+
+```bash
+dart run tool/check_architecture.dart --verbose   # レイヤー違反の詳細
+dart run tool/check_dependencies.dart --verbose   # pubspec と import の突き合わせ
+flutter test --coverage
+dart run tool/check_coverage.dart --verbose       # 下限割れ時に低い順で列挙
+```
+
+`tool/check_architecture.dart` は `--root` / `--package` を受け取ります。
+テスト用フィクスチャに対して走らせるためのもので、通常は不要です。
+
+### 検査ツール自体のテスト
+
+`test/tool/` が各ルールについて「違反入りのフィクスチャで非ゼロ終了すること」を
+確認します。時間がかかるので、開発中に飛ばしたい場合は次を使います。
+
+```bash
+flutter test --exclude-tags tool
+```
+
+### よくある失敗と対処
+
+| 症状 | 原因 | 対処 |
+|---|---|---|
+| `banned-import` | Domain / Application が Flutter や I/O package を import した | そのコードを `lib/infrastructure/` へ移し、Application にポートを切る |
+| `layer-direction` | 依存方向が外向きになった | `docs/ARCHITECTURE.md` の表を参照。Presentation から合成ルートを引いていないか確認 |
+| `concrete-adapter-dependency` | 具象アダプターを直接参照した | Domain のインターフェースに差し替える。束ねてよいのは `lib/app/` だけ |
+| `unused-dependency` | 使っていない runtime 依存がある | 削除するか、意図的なら `pubspec.yaml` の `dependency_policy.reserved` に記載 |
+| `stale-reservation` | reserved の記載が実態と合っていない | 使い始めた package は reserved から外す |
+| カバレッジ下限割れ | テスト不足 | `--verbose` で低い順に出るので上から潰す |
+| `every library under lib/ is imported by this file` が落ちる | `lib/` にファイルを足したが `test/coverage_surface_test.dart` に import していない | 失敗メッセージのとおり import を追加 |
+
+## Android ツールチェイン
+
+`android/` は Flutter 3.44 系に合わせて次で固定しています。
+
+| 項目 | バージョン | 定義場所 |
+|---|---|---|
+| Gradle | 8.14.3 | `android/gradle/wrapper/gradle-wrapper.properties` |
+| Android Gradle Plugin | 8.11.1 | `android/settings.gradle` |
+| Kotlin | 2.2.20 | `android/settings.gradle` |
+| JDK | 17 | `android/app/build.gradle` (`compileOptions`) |
+
+Flutter は AGP 9 / Gradle 9 系もサポートしますが、AGP 9 は新 DSL のみを
+読むため、Groovy の `build.gradle` をそのまま使うなら 8 系に留めるのが安全です。
+上げる場合は `android.newDsl` と `build.gradle` の書き換えをセットで行ってください。
+
+Gradle のバージョンが低いと `flutter build` は
+`Your project's Gradle version ... is lower than Flutter's minimum supported version`
+で失敗します。Flutter を上げたらこの表も合わせて更新してください。
+
 ## デプロイ時の確認観点
 
 デプロイは次の境界ごとに分けて確認します。

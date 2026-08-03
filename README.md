@@ -237,6 +237,29 @@ Domain は UI、DB、HTTP、JSON、フレームワークの詳細に依存しな
 
 時刻、乱数、UUID、外部サービスは直接呼ばず、差し替え可能な interface を通します。これにより、テスト時に固定実装や fake を注入できます。
 
+カバレッジの下限は Domain 90% / Application 85% / 全体 80% です。共通のテストダブルは `test/support/` にあります。詳細は `.claude/skills/write-tests.md` を参照してください。
+
+## Quality Gate
+
+規約は文章だけでは守られないので、CI が機械的に検査します。ローカルでも CI でも同じスクリプトが走ります。
+
+```bash
+./scripts/ci.sh          # 全検査
+./scripts/ci.sh --fast   # APK ビルドを飛ばす（開発中はこれで十分）
+```
+
+検査の内訳と失敗時の対処は `docs/OPERATIONS.md`、規約そのものは `docs/ARCHITECTURE.md` にあります。
+
+主なものだけ挙げると:
+
+* `dart format` と `flutter analyze --fatal-infos --fatal-warnings`（info も失敗扱い）
+* レイヤー依存方向、レイヤーごとの禁止 import / 禁止型、Domain での `DateTime.now()` / `print` / `debugPrint`、Domain 型の `ChangeNotifier` 継承と public setter — `tool/check_architecture.dart` が Analyzer の AST で検査します（文字列検索ではありません）
+* `pubspec.yaml` と実際の import の突き合わせ — `tool/check_dependencies.dart`
+* カバレッジ下限 — `tool/check_coverage.dart`
+* `flutter build apk --debug`
+
+検査ツール自体も `test/tool/` でテストしています。各ルールについて、違反を含むフィクスチャで非ゼロ終了することを確認しているので、「あるのに効いていない検査」にはなりません。
+
 ## Naming and Anti-patterns
 
 名前は、実装都合ではなくドメイン語彙を優先します。
