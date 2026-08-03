@@ -11,18 +11,13 @@ import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
-import 'package:flutterbase/infrastructure/logging/persistent_app_logger.dart';
-import 'package:flutterbase/infrastructure/repositories/package_info_app_info_repository.dart';
-import 'package:flutterbase/infrastructure/repositories/shared_preferences_debug_settings_repository.dart';
-import 'package:flutterbase/infrastructure/repositories/shared_preferences_language_preference_repository.dart';
-import 'package:flutterbase/infrastructure/repositories/shared_preferences_theme_preference_repository.dart';
+import 'package:flutterbase/infrastructure/infrastructure_module.dart';
 import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Composition root.
 ///
@@ -34,32 +29,27 @@ final GetIt sl = GetIt.instance;
 
 /// Wires up all dependencies. Call once at app startup before `runApp`.
 Future<void> setupServiceLocator() async {
-  // ─── Infrastructure singletons ───────────────────────────────────────
+  // ─── Infrastructure adapters ─────────────────────────────────────────
+  // The module hands back Domain interfaces and Application ports only, so
+  // no storage technology is named here.
 
-  final prefs = await SharedPreferences.getInstance();
-  sl.registerSingleton<SharedPreferences>(prefs);
+  final infrastructure = await InfrastructureModule.create();
 
-  // ─── Debug settings repository (needed before logger init) ──────────
-  final debugSettingsRepo = SharedPreferencesDebugSettingsRepository(prefs);
-  sl.registerSingleton<DebugSettingsRepository>(debugSettingsRepo);
+  sl
+    ..registerSingleton<AppLogger>(infrastructure.appLogger)
+    ..registerSingleton<DebugSettingsRepository>(infrastructure.debugSettings)
+    ..registerSingleton<ThemePreferenceRepository>(
+      infrastructure.themePreference,
+    )
+    ..registerSingleton<LanguagePreferenceRepository>(
+      infrastructure.languagePreference,
+    )
+    ..registerSingleton<AppInfoRepository>(infrastructure.appInfo);
 
-  // Logging — restore saved level so filtering is correct from first log
-  final logger = PersistentAppLogger();
-  await logger.init(savedLevel: debugSettingsRepo.getMinLogLevel());
-  sl.registerSingleton<AppLogger>(logger);
-  logger.info('[DI] Logger ready (minLevel: ${logger.minLevel.name})');
-
-  // ─── Repository bindings ─────────────────────────────────────────────
-
-  sl.registerSingleton<ThemePreferenceRepository>(
-    SharedPreferencesThemePreferenceRepository(prefs),
+  sl<AppLogger>().info(
+    '[DI] Infrastructure ready '
+    '(minLogLevel: ${infrastructure.appLogger.minLevel.name})',
   );
-
-  sl.registerSingleton<LanguagePreferenceRepository>(
-    SharedPreferencesLanguagePreferenceRepository(prefs),
-  );
-
-  sl.registerSingleton<AppInfoRepository>(const PackageInfoAppInfoRepository());
 
   // ─── Use cases ───────────────────────────────────────────────────────
 
