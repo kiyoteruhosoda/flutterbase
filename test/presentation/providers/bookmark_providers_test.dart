@@ -141,6 +141,29 @@ void main() {
       expect(state, isA<AsyncError<List<Bookmark>>>());
       expect((state as AsyncError<List<Bookmark>>).error, isA<AppError>());
     });
+
+    test('a successful write reports true', () async {
+      final container = buildContainer();
+      await container.read(bookmarkListProvider.future);
+      final notifier = container.read(bookmarkListProvider.notifier);
+
+      expect(await notifier.add(draft()), isTrue);
+      final stored = repository.stored.single;
+      expect(await notifier.remove(stored.id), isTrue);
+    });
+
+    test(
+      'a failed write reports false, so callers cannot claim success',
+      () async {
+        final container = buildContainer();
+        await container.read(bookmarkListProvider.future);
+        final notifier = container.read(bookmarkListProvider.notifier);
+        repository.failure = const InfrastructureError('disk gone');
+
+        expect(await notifier.add(draft()), isFalse);
+        expect(await notifier.remove(BookmarkId(1)), isFalse);
+      },
+    );
   });
 
   group('bookmarkProvider', () {

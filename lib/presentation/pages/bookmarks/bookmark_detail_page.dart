@@ -159,7 +159,18 @@ class _Details extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final removed = l10n.bookmarksRemoved;
-    await ref.read(bookmarkListProvider.notifier).remove(bookmark.id);
+    final failed = l10n.commonError;
+
+    final deleted = await ref
+        .read(bookmarkListProvider.notifier)
+        .remove(bookmark.id);
+    if (!deleted) {
+      // Nothing was written, so stay on the bookmark that still exists
+      // rather than reporting a deletion and navigating away from it.
+      messenger.showSnackBar(SnackBar(content: Text(failed)));
+      return;
+    }
+
     messenger.showSnackBar(SnackBar(content: Text(removed)));
     if (navigator.canPop()) navigator.pop();
   }

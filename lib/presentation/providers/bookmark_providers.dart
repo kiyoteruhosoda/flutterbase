@@ -75,31 +75,41 @@ class BookmarkListNotifier extends AsyncNotifier<List<Bookmark>> {
 
   /// Stores [draft], then refreshes the list.
   ///
-  /// A rejected draft surfaces as an [AsyncError] on this provider, which the
-  /// screen renders as an error state.
-  Future<void> add(BookmarkDraft draft) async {
+  /// Returns false when the write failed. A rejected draft also surfaces as
+  /// an [AsyncError] on this provider, so the list renders its error state —
+  /// but the caller has to know too, or it would report success over a write
+  /// that never happened.
+  Future<bool> add(BookmarkDraft draft) {
     final add = ref.read(addBookmarkUseCaseProvider);
-    await _mutate(() => add.execute(draft));
+    return _mutate(() => add.execute(draft));
   }
 
   /// Deletes the bookmark [id], then refreshes the list.
-  Future<void> remove(BookmarkId id) async {
+  ///
+  /// Returns false when the delete failed.
+  Future<bool> remove(BookmarkId id) {
     final remove = ref.read(removeBookmarkUseCaseProvider);
-    await _mutate(() => remove.execute(id));
+    return _mutate(() => remove.execute(id));
   }
 
-  /// Runs a write, then re-reads the list and drops the cached details.
+  /// Runs a write, re-reads the list, and drops the cached details.
   ///
   /// Invalidating [bookmarkProvider] here — rather than having the detail
   /// provider watch this one — keeps the dependency one-directional: the
   /// screen that changed something tells the caches about it.
-  Future<void> _mutate(Future<void> Function() write) async {
+  ///
+  /// Returns whether the write succeeded. [AsyncValue.guard] turns the
+  /// failure into provider state rather than an exception, which is what the
+  /// list screen wants; without also reporting it back, every caller would
+  /// carry on as if the write had landed.
+  Future<bool> _mutate(Future<void> Function() write) async {
     state = const AsyncValue<List<Bookmark>>.loading();
     state = await AsyncValue.guard(() async {
       await write();
       return ref.read(listBookmarksUseCaseProvider).execute();
     });
     ref.invalidate(bookmarkProvider);
+    return !state.hasError;
   }
 
   /// Re-reads the list, e.g. after a pull-to-refresh.

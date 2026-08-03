@@ -136,6 +136,25 @@ void main() {
       expect(scope.bookmarkRepository.added, isEmpty);
     });
 
+    testWidgets('does not claim a save when storage rejects the write', (
+      tester,
+    ) async {
+      final repository = FakeBookmarkRepository();
+      final scope = TestScope(bookmarkRepository: repository);
+      await pumpInScope(tester, const BookmarksPage(), scope: scope);
+
+      await openForm(tester);
+      await fillForm(tester, title: 'Dart', url: 'https://dart.dev');
+      repository.failure = const InfrastructureError('storage unavailable');
+      await tester.tap(find.text(l10n.bookmarksSave));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.bookmarksSaved), findsNothing);
+      // The list itself reports what went wrong instead.
+      expect(find.byType(AppErrorView), findsOneWidget);
+      expect(find.text('storage unavailable'), findsOneWidget);
+    });
+
     testWidgets('cancelling stores nothing', (tester) async {
       final scope = await pumpInScope(tester, const BookmarksPage());
 

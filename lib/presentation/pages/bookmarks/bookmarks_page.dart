@@ -58,7 +58,11 @@ class BookmarksPage extends ConsumerWidget {
     if (draft == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final saved = AppLocalizations.of(context).bookmarksSaved;
-    await ref.read(bookmarkListProvider.notifier).add(draft);
+    final stored = await ref.read(bookmarkListProvider.notifier).add(draft);
+    // On failure the list itself has already flipped to its error state,
+    // which names what went wrong — so say nothing rather than claim a save
+    // that did not happen.
+    if (!stored) return;
     messenger.showSnackBar(SnackBar(content: Text(saved)));
   }
 

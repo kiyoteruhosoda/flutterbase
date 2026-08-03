@@ -184,5 +184,42 @@ void main() {
       // and re-resolves to its not-found state.
       expect(find.textContaining(l10n.bookmarkNotFound), findsOneWidget);
     });
+
+    testWidgets('a failed delete reports the failure and keeps the bookmark', (
+      tester,
+    ) async {
+      final scope = scopeWith(<Bookmark>[testBookmark(id: 7)]);
+      await pumpInScope(
+        tester,
+        BookmarkDetailPage(id: BookmarkId(7)),
+        scope: scope,
+      );
+
+      await tester.tap(find.text(l10n.bookmarkRemove));
+      await tester.pumpAndSettle();
+      scope.bookmarkRepository.failure = const InfrastructureError(
+        'storage unavailable',
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(l10n.bookmarkRemove),
+        ),
+      );
+      // Pumped by hand rather than settled: `pumpAndSettle` runs the fake
+      // clock past the SnackBar's auto-dismiss, so the message is gone before
+      // it can be asserted on.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
+
+      expect(find.text(l10n.bookmarksRemoved), findsNothing);
+      expect(find.text(l10n.commonError), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(scope.bookmarkRepository.stored, hasLength(1));
+      // The screen ends up on the storage error rather than pretending the
+      // bookmark is gone.
+      expect(find.text('storage unavailable'), findsOneWidget);
+    });
   });
 }

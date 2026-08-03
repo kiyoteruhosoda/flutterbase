@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutterbase/domain/entities/bookmark.dart';
 import 'package:flutterbase/shared/app_config.dart';
 
 /// Guards the half of the deep-link contract that lives outside Dart.
@@ -24,6 +25,24 @@ void main() {
       // Without this the intent filters still launch the app, but it always
       // starts at "/" and the link's path is lost.
       expect(manifest, contains('android:name="flutter_deeplinking_enabled"'));
+    });
+
+    test('declares the deep-link opt-in inside <activity>', () {
+      // FlutterActivity.getMetaData() reads ActivityInfo.metaData, so the
+      // same <meta-data> under <application> is never read — and nothing
+      // reports the mistake. The app just always opens at "/".
+      final activity = RegExp(
+        r'<activity\b.*?</activity>',
+        dotAll: true,
+      ).firstMatch(manifest);
+      expect(activity, isNotNull, reason: 'no <activity> element found');
+      expect(
+        activity!.group(0),
+        contains('android:name="flutter_deeplinking_enabled"'),
+        reason:
+            'flutter_deeplinking_enabled must sit inside <activity>; under '
+            '<application> it is silently ignored.',
+      );
     });
 
     test('declares an autoVerify filter for the configured host', () {
@@ -56,6 +75,27 @@ void main() {
 
     test('the activity stays exported, or no link can reach it', () {
       expect(manifest, contains('android:exported="true"'));
+    });
+
+    test('every scheme a bookmark may use is visible to canLaunchUrl', () {
+      // The <queries> block gates package visibility on API 30+. A scheme
+      // the domain accepts but that is missing here makes canLaunchUrl
+      // report an openable URL as unopenable.
+      final queries = RegExp(
+        r'<queries>.*?</queries>',
+        dotAll: true,
+      ).firstMatch(manifest);
+      expect(queries, isNotNull, reason: 'no <queries> element found');
+
+      for (final scheme in allowedBookmarkSchemes) {
+        expect(
+          queries!.group(0),
+          contains('android:scheme="$scheme"'),
+          reason:
+              '"$scheme" is in allowedBookmarkSchemes, so <queries> has to '
+              'declare it too.',
+        );
+      }
     });
   });
 
