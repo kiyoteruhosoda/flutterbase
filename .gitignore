@@ -12,6 +12,11 @@ build/
 coverage/
 *.dill
 
+# Distribution bundle written by scripts/build.sh — build output, and the
+# artifacts in it are large. Its contents are described by the manifest it
+# carries, not by this repository.
+dist/
+
 # Machine-local SDK paths.
 android/local.properties
 android/.gradle/

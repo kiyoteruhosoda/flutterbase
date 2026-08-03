@@ -129,6 +129,15 @@ Domain は UI、DB、HTTP、JSON、フレームワークの詳細に依存しな
 * migration が必要な場合は、方針に従って明示または自動で実行される
 * 重要な運用コマンドは `docs/OPERATIONS.md` に集約される
 
+配布物のビルドは 2 本のスクリプトが担います。
+
+```bash
+./scripts/build.sh              # APK + AAB と manifest を dist/ へ
+./build-remote-container.sh     # 配布先ホストで: dev コンテナへビルドを委ねて取り込む
+```
+
+`scripts/build.sh` は Flutter がある場所ならどこでも同じように動きます（開発機・CI・dev コンテナ）。`scripts/build-remote-container.sh` は、git も Flutter も置けないホスト（NAS 等）へ手置きして使うブートストラップで、同一ホスト上の dev コンテナへ `git pull` とビルドを委ねます。手順と設定は `docs/OPERATIONS.md`、経緯は `docs/adr/0003-build-in-dev-container.md` にあります。
+
 手順が増えてきたら、README にすべてを書くのではなく、`docs/OPERATIONS.md` と `.claude/skills/operations.md` に分けます。
 
 ### 6. ログは起動時を最重要にする
