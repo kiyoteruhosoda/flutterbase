@@ -488,16 +488,23 @@ class _RuleVisitor extends RecursiveAstVisitor<void> {
       }
     }
 
-    // Rule: Domain must not write to a console.
-    if (layer == Layer.domain &&
-        target == null &&
-        _domainBannedCalls.contains(node.methodName.name)) {
-      _add(
-        node.offset,
-        'domain-console-output',
-        'Domain must not call ${node.methodName.name}(). Report through a '
-            'return value or an Application-level port.',
-      );
+    if (target == null) {
+      // An unresolved AST cannot tell `File('x')` from a function call, so a
+      // constructor invoked without `new` arrives here rather than at
+      // visitInstanceCreationExpression.
+      _checkInfrastructureOnlyType(node.methodName.name, node.offset);
+      _checkConcreteDependency(node.methodName.name, node.offset);
+
+      // Rule: Domain must not write to a console.
+      if (layer == Layer.domain &&
+          _domainBannedCalls.contains(node.methodName.name)) {
+        _add(
+          node.offset,
+          'domain-console-output',
+          'Domain must not call ${node.methodName.name}(). Report through a '
+              'return value or an Application-level port.',
+        );
+      }
     }
     super.visitMethodInvocation(node);
   }
