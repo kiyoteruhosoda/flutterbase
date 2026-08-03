@@ -3,10 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
+import 'package:flutterbase/domain/value_objects/app_theme_mode.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
-import 'package:flutterbase/shared/value_objects/app_theme_mode.dart';
 
-// ─── Fake repository ──────────────────────────────────────────────────────────
+import '../../support/recording_app_logger.dart';
+
+// ─── Fake repository ─────────────────────────────────────────────────────
 
 class _FakeThemePreferenceRepository implements ThemePreferenceRepository {
   _FakeThemePreferenceRepository([this._mode = AppThemeMode.light]);
@@ -26,6 +28,7 @@ ThemeViewModel _makeViewModel([AppThemeMode initial = AppThemeMode.light]) {
   return ThemeViewModel(
     GetThemePreferenceUseCase(repo),
     SetThemePreferenceUseCase(repo),
+    RecordingAppLogger(),
   );
 }
 
@@ -56,6 +59,7 @@ void main() {
       final vm = ThemeViewModel(
         GetThemePreferenceUseCase(repo),
         SetThemePreferenceUseCase(repo),
+        RecordingAppLogger(),
       );
       await vm.setThemeMode(ThemeMode.dark);
       expect(repo.get(), equals(AppThemeMode.dark));
@@ -102,6 +106,7 @@ void main() {
       final vm = ThemeViewModel(
         GetThemePreferenceUseCase(repo),
         SetThemePreferenceUseCase(repo),
+        RecordingAppLogger(),
       );
       await vm.setThemeMode(ThemeMode.system);
 
@@ -109,6 +114,7 @@ void main() {
       final vm2 = ThemeViewModel(
         GetThemePreferenceUseCase(repo),
         SetThemePreferenceUseCase(repo),
+        RecordingAppLogger(),
       );
       expect(vm2.themeMode, equals(ThemeMode.system));
     });

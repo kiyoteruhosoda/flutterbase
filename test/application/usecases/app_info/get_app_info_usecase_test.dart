@@ -1,22 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutterbase/application/dto/app_info_dto.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/domain/entities/app_info.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 
-// ─── Fake repository ──────────────────────────────────────────────────────────
+// ─── Fake repository ─────────────────────────────────────────────────────
 
 class _FakeAppInfoRepository implements AppInfoRepository {
   const _FakeAppInfoRepository(this._dto);
-  final AppInfoDto _dto;
+  final AppInfo _dto;
 
   @override
-  Future<AppInfoDto> getAppInfo() async => _dto;
+  Future<AppInfo> getAppInfo() async => _dto;
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 void main() {
-  const fakeDto = AppInfoDto(
+  const fakeDto = AppInfo(
     version: '1.2.3',
     buildNumber: '42',
     gitCommit: 'abc1234',
@@ -28,8 +28,8 @@ void main() {
   );
 
   group('GetAppInfoUseCase', () {
-    test('returns AppInfoDto from repository', () async {
-      final useCase = GetAppInfoUseCase(const _FakeAppInfoRepository(fakeDto));
+    test('returns AppInfo from repository', () async {
+      const useCase = GetAppInfoUseCase(_FakeAppInfoRepository(fakeDto));
       final result = await useCase.execute();
       expect(result.version, equals('1.2.3'));
       expect(result.buildNumber, equals('42'));
@@ -42,12 +42,12 @@ void main() {
     test('propagates repository exceptions', () async {
       final repo = _ThrowingAppInfoRepository();
       final useCase = GetAppInfoUseCase(repo);
-      expect(() => useCase.execute(), throwsException);
+      expect(useCase.execute, throwsException);
     });
   });
 }
 
 class _ThrowingAppInfoRepository implements AppInfoRepository {
   @override
-  Future<AppInfoDto> getAppInfo() => throw Exception('platform unavailable');
+  Future<AppInfo> getAppInfo() => throw Exception('platform unavailable');
 }

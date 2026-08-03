@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutterbase/application/dto/app_info_dto.dart';
+import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
-import 'package:flutterbase/shared/errors/app_error.dart';
-import 'package:flutterbase/shared/logging/app_logger.dart';
+import 'package:flutterbase/domain/entities/app_info.dart';
+import 'package:flutterbase/domain/errors/app_error.dart';
 
 /// UI state for the Debug page.
 enum DebugState { loading, loaded, error }
 
-/// ViewModel for [DebugPage].
+/// ViewModel for `DebugPage`.
 ///
 /// Loads app info via [GetAppInfoUseCase] and exposes log management
 /// operations through [AppLogger]. Contains no business logic.
@@ -18,11 +18,11 @@ class DebugViewModel extends ChangeNotifier {
   final AppLogger _logger;
 
   DebugState _state = DebugState.loading;
-  AppInfoDto? _appInfo;
+  AppInfo? _appInfo;
   AppError? _error;
 
   DebugState get state => _state;
-  AppInfoDto? get appInfo => _appInfo;
+  AppInfo? get appInfo => _appInfo;
   AppError? get appError => _error;
 
   Future<void> loadAppInfo() async {
@@ -35,10 +35,18 @@ class DebugViewModel extends ChangeNotifier {
       _appInfo = await _getAppInfo.execute();
       _state = DebugState.loaded;
       _logger.debug('[DebugViewModel] loadAppInfo success');
-    } catch (e, st) {
-      _error = UnexpectedError('Failed to load debug info', cause: e, stackTrace: st);
+    } on Exception catch (e, st) {
+      _error = UnexpectedError(
+        'Failed to load debug info',
+        cause: e,
+        stackTrace: st,
+      );
       _state = DebugState.error;
-      _logger.error('[DebugViewModel] loadAppInfo failed', error: e, stackTrace: st);
+      _logger.error(
+        '[DebugViewModel] loadAppInfo failed',
+        error: e,
+        stackTrace: st,
+      );
     } finally {
       notifyListeners();
     }

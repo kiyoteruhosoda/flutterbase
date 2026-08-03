@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 
 /// DADS-compliant AppBar.
 class AppMainHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -63,23 +63,14 @@ class AppSectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
                 if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
           if (action != null && actionLabel != null)
-            TextButton(
-              onPressed: action,
-              child: Text(actionLabel!),
-            ),
+            TextButton(onPressed: action, child: Text(actionLabel!)),
         ],
       ),
     );

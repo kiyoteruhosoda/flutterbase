@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 
 /// DADS-compliant side drawer menu.
 class AppDrawer extends StatelessWidget {
@@ -82,16 +82,13 @@ class _DrawerHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  appName,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text(appName, style: Theme.of(context).textTheme.titleLarge),
                 if (subtitle != null)
                   Text(
                     subtitle!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
               ],
             ),
@@ -134,18 +131,13 @@ class _DrawerItemTile extends StatelessWidget {
       title: Text(
         item.label,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: item.isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurface,
-              fontWeight:
-                  item.isSelected ? FontWeight.w700 : FontWeight.w400,
-            ),
+          color: item.isSelected ? colorScheme.primary : colorScheme.onSurface,
+          fontWeight: item.isSelected ? FontWeight.w700 : FontWeight.w400,
+        ),
       ),
       selected: item.isSelected,
       selectedTileColor: colorScheme.primaryContainer,
-      shape: const RoundedRectangleBorder(
-        borderRadius: AppRadius.smBorder,
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.smBorder),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.pageMargin,
         vertical: AppSpacing.xs,
@@ -167,11 +159,11 @@ class AppDrawerItem {
 
   /// Factory for separator items.
   const AppDrawerItem.divider()
-      : label = '',
-        icon = null,
-        onTap = null,
-        isSelected = false,
-        isDivider = true;
+    : label = '',
+      icon = null,
+      onTap = null,
+      isSelected = false,
+      isDivider = true;
 
   final String label;
   final IconData? icon;

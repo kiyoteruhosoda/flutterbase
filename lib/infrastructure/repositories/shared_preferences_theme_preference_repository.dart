@@ -1,6 +1,6 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
-import 'package:flutterbase/shared/value_objects/app_theme_mode.dart';
+import 'package:flutterbase/domain/value_objects/app_theme_mode.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Stores the theme preference in [SharedPreferences].
 final class SharedPreferencesThemePreferenceRepository

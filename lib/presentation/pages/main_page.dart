@@ -1,14 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutterbase/app/di/service_locator.dart';
-import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
+import 'package:flutterbase/domain/value_objects/app_language.dart';
+import 'package:flutterbase/domain/value_objects/log_level.dart';
+import 'package:flutterbase/presentation/app_scope.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
-import 'package:flutterbase/shared/config/app_config.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/logging/log_level.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
-import 'package:flutterbase/shared/value_objects/app_language.dart';
+import 'package:flutterbase/shared/app_config.dart';
 
 /// Main screen with bottom navigation.
 class MainPage extends StatefulWidget {
@@ -68,9 +67,11 @@ class _MainPageState extends State<MainPage> {
           ],
         ),
         drawer: ListenableBuilder(
-          listenable: sl<DebugSettingsViewModel>(),
+          listenable: AppScope.of(context).debugSettingsViewModel,
           builder: (context, _) {
-            final debugEnabled = sl<DebugSettingsViewModel>().debugEnabled;
+            final debugEnabled = AppScope.of(
+              context,
+            ).debugSettingsViewModel.debugEnabled;
             return AppDrawer(
               appName: l10n.appName,
               headerSubtitle: AppConfig.appTagline,
@@ -110,7 +111,7 @@ class _MainPageState extends State<MainPage> {
                   icon: Icons.info_outline,
                   onTap: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).pushNamed('/about');
+                    unawaited(Navigator.of(context).pushNamed<void>('/about'));
                   },
                 ),
                 AppDrawerItem(
@@ -127,7 +128,7 @@ class _MainPageState extends State<MainPage> {
                     icon: Icons.list_alt_outlined,
                     onTap: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pushNamed('/logs');
+                      unawaited(Navigator.of(context).pushNamed<void>('/logs'));
                     },
                   ),
                   AppDrawerItem(
@@ -135,7 +136,9 @@ class _MainPageState extends State<MainPage> {
                     icon: Icons.bug_report_outlined,
                     onTap: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pushNamed('/debug');
+                      unawaited(
+                        Navigator.of(context).pushNamed<void>('/debug'),
+                      );
                     },
                   ),
                 ],
@@ -258,10 +261,7 @@ class _SearchContent extends StatelessWidget {
             prefixIcon: const Icon(Icons.search),
           ),
           const SizedBox(height: AppSpacing.xxxl),
-          AppEmptyView(
-            message: l10n.searchEmptyMessage,
-            icon: Icons.search,
-          ),
+          AppEmptyView(message: l10n.searchEmptyMessage, icon: Icons.search),
         ],
       ),
     );
@@ -274,9 +274,10 @@ class _SettingsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final themeViewModel = sl<ThemeViewModel>();
-    final languageViewModel = sl<LanguageViewModel>();
-    final debugViewModel = sl<DebugSettingsViewModel>();
+    final scope = AppScope.of(context);
+    final themeViewModel = scope.themeViewModel;
+    final languageViewModel = scope.languageViewModel;
+    final debugViewModel = scope.debugSettingsViewModel;
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
@@ -374,8 +375,7 @@ class _SettingsContent extends StatelessWidget {
                         onChanged: debugViewModel.setDebugEnabled,
                         secondary: Icon(
                           Icons.bug_report_outlined,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         title: Text(
                           l10n.settingsDebugMode,
@@ -406,7 +406,8 @@ class _SettingsContent extends StatelessWidget {
         AppListCard(
           title: l10n.settingsAbout,
           leading: const Icon(Icons.info_outline),
-          onTap: () => Navigator.of(context).pushNamed('/about'),
+          onTap: () =>
+              unawaited(Navigator.of(context).pushNamed<void>('/about')),
         ),
         const SizedBox(height: AppSpacing.sm),
         AppListCard(
@@ -423,13 +424,17 @@ class _SettingsContent extends StatelessWidget {
                     AppListCard(
                       title: l10n.settingsLogs,
                       leading: const Icon(Icons.list_alt_outlined),
-                      onTap: () => Navigator.of(context).pushNamed('/logs'),
+                      onTap: () => unawaited(
+                        Navigator.of(context).pushNamed<void>('/logs'),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     AppListCard(
                       title: l10n.settingsDebug,
                       leading: const Icon(Icons.bug_report_outlined),
-                      onTap: () => Navigator.of(context).pushNamed('/debug'),
+                      onTap: () => unawaited(
+                        Navigator.of(context).pushNamed<void>('/debug'),
+                      ),
                     ),
                   ],
                 )
@@ -467,16 +472,16 @@ class _ThemeOptionTile extends StatelessWidget {
       title: Text(
         label,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color:
-                  selected ? colorScheme.primary : colorScheme.onSurface,
-              fontWeight:
-                  selected ? FontWeight.w700 : FontWeight.w400,
-            ),
+          color: selected ? colorScheme.primary : colorScheme.onSurface,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+        ),
       ),
       trailing: selected
           ? Icon(Icons.check_circle, color: colorScheme.primary)
-          : Icon(Icons.radio_button_unchecked,
-              color: colorScheme.onSurfaceVariant),
+          : Icon(
+              Icons.radio_button_unchecked,
+              color: colorScheme.onSurfaceVariant,
+            ),
       onTap: () => onChanged(value),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.componentPadding,
@@ -513,14 +518,16 @@ class _LanguageOptionTile extends StatelessWidget {
       title: Text(
         label,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: selected ? colorScheme.primary : colorScheme.onSurface,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-            ),
+          color: selected ? colorScheme.primary : colorScheme.onSurface,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+        ),
       ),
       trailing: selected
           ? Icon(Icons.check_circle, color: colorScheme.primary)
-          : Icon(Icons.radio_button_unchecked,
-              color: colorScheme.onSurfaceVariant),
+          : Icon(
+              Icons.radio_button_unchecked,
+              color: colorScheme.onSurfaceVariant,
+            ),
       onTap: () => onChanged(value),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.componentPadding,
@@ -531,10 +538,7 @@ class _LanguageOptionTile extends StatelessWidget {
 }
 
 class _LogLevelTile extends StatelessWidget {
-  const _LogLevelTile({
-    required this.currentLevel,
-    required this.onChanged,
-  });
+  const _LogLevelTile({required this.currentLevel, required this.onChanged});
 
   final LogLevel currentLevel;
   final ValueChanged<LogLevel> onChanged;
@@ -551,10 +555,7 @@ class _LogLevelTile extends StatelessWidget {
       (LogLevel.error, l10n.logLevelError),
     ];
     return ListTile(
-      leading: Icon(
-        Icons.tune_outlined,
-        color: colorScheme.onSurfaceVariant,
-      ),
+      leading: Icon(Icons.tune_outlined, color: colorScheme.onSurfaceVariant),
       title: Text(
         l10n.settingsLogLevel,
         style: Theme.of(context).textTheme.bodyLarge,
@@ -567,10 +568,8 @@ class _LogLevelTile extends StatelessWidget {
         },
         items: levels
             .map(
-              (entry) => DropdownMenuItem(
-                value: entry.$1,
-                child: Text(entry.$2),
-              ),
+              (entry) =>
+                  DropdownMenuItem(value: entry.$1, child: Text(entry.$2)),
             )
             .toList(),
       ),

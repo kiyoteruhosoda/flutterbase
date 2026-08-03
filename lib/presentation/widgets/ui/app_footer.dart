@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_license_launcher.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Footer bar shown at the bottom of the main screen.
 /// Contains navigation links only — version info is on the About page.
 class AppMainFooter extends StatelessWidget {
-  const AppMainFooter({
-    super.key,
-    this.links,
-  });
+  const AppMainFooter({super.key, this.links});
 
   final List<AppFooterLink>? links;
 
@@ -36,9 +33,9 @@ class AppMainFooter extends StatelessWidget {
                     child: Text(
                       link.label,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.primary,
-                            decoration: TextDecoration.underline,
-                          ),
+                        color: colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
                 )

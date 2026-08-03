@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutterbase/domain/value_objects/app_language.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_language_preference_repository.dart';
-import 'package:flutterbase/shared/value_objects/app_language.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -46,8 +46,11 @@ void main() {
       for (final lang in AppLanguage.values) {
         await repo.save(lang);
         final repo2 = SharedPreferencesLanguagePreferenceRepository(prefs);
-        expect(repo2.get(), equals(lang),
-            reason: 'language=$lang failed round-trip');
+        expect(
+          repo2.get(),
+          equals(lang),
+          reason: 'language=$lang failed round-trip',
+        );
       }
     });
   });

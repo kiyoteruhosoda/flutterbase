@@ -90,10 +90,11 @@ android {
     }
 
     // Pin NDK to the highest version any plugin depends on (currently
-    // integration_test → 26.3.11579264).  NDK is backward-compatible, so
-    // newer is always safe; leaving Gradle's default triggers a warning
-    // and can fail on strict CI.
-    ndkVersion = "26.3.11579264"
+    // integration_test and jni → 28.2.13676358).  NDK is backward-compatible,
+    // so newer is always safe; leaving Gradle's default triggers a warning
+    // and can fail on strict CI.  `flutter build` names the version it wants
+    // in its output whenever a plugin moves past this one.
+    ndkVersion = "28.2.13676358"
 
     buildTypes {
         release {

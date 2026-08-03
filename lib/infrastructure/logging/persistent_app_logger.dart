@@ -1,11 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutterbase/application/ports/app_logger.dart';
+import 'package:flutterbase/domain/entities/log_entry.dart';
+import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutterbase/shared/logging/app_logger.dart';
-import 'package:flutterbase/shared/logging/log_entry.dart';
-import 'package:flutterbase/shared/logging/log_level.dart';
 
 /// [AppLogger] implementation that writes to the console and to rotating
 /// log files under `<documents>/logs/`.
@@ -35,8 +36,6 @@ final class PersistentAppLogger implements AppLogger {
   File? _currentFile;
   LogLevel _minLevel = LogLevel.debug;
 
-  // ── Initialisation ────────────────────────────────────────────────────
-
   // ── AppLogger: min level ──────────────────────────────────────────────
 
   @override
@@ -53,7 +52,7 @@ final class PersistentAppLogger implements AppLogger {
     if (savedLevel != null) _minLevel = savedLevel;
     try {
       await _openNewLogFile();
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('[PersistentAppLogger] Could not open log file: $e');
     }
   }
@@ -84,9 +83,8 @@ final class PersistentAppLogger implements AppLogger {
   List<LogEntry> get entries => List.unmodifiable(_buffer);
 
   @override
-  List<LogEntry> entriesForLevel(LogLevel? level) => level == null
-      ? entries
-      : entries.where((e) => e.level == level).toList();
+  List<LogEntry> entriesForLevel(LogLevel? level) =>
+      level == null ? entries : entries.where((e) => e.level == level).toList();
 
   @override
   void clearBuffer() => _buffer.clear();
@@ -103,24 +101,25 @@ final class PersistentAppLogger implements AppLogger {
       await sink.flush();
       await sink.close();
       return file.path;
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('[PersistentAppLogger] Export failed: $e');
       return null;
     }
   }
 
   @override
-  Future<List<File>> logFiles() async {
+  Future<List<String>> logFilePaths() async {
     try {
       final dir = await _logsDirectory();
       return dir
           .listSync()
           .whereType<File>()
-          .where((f) => f.path.endsWith('.log'))
+          .map((f) => f.path)
+          .where((path) => path.endsWith('.log'))
           .toList()
-        ..sort((a, b) => b.path.compareTo(a.path));
-    } catch (_) {
-      return [];
+        ..sort((a, b) => b.compareTo(a));
+    } on Exception {
+      return <String>[];
     }
   }
 
@@ -162,14 +161,25 @@ final class PersistentAppLogger implements AppLogger {
   }
 
   void _writeToFile(LogEntry entry) {
-    if (_fileSink == null) return;
+    final sink = _fileSink;
+    final file = _currentFile;
+    if (sink == null) return;
     try {
-      _fileSink!.writeln(entry.toLogLine());
-      _currentFile?.length().then((size) {
-        if (size >= maxFileSizeBytes) _openNewLogFile();
-      });
-    } catch (_) {
-      // Swallow file write errors — console logging continues.
+      sink.writeln(entry.toLogLine());
+      if (file != null) unawaited(_rotateIfOversized(file));
+    } on Exception {
+      // Swallowed on purpose: a logging failure must never take down the
+      // caller. Console output continues regardless.
+    }
+  }
+
+  /// Starts a new log file once [file] has grown past [maxFileSizeBytes].
+  Future<void> _rotateIfOversized(File file) async {
+    try {
+      if (await file.length() < maxFileSizeBytes) return;
+      await _openNewLogFile();
+    } on Exception catch (e) {
+      debugPrint('[PersistentAppLogger] Rotation failed: $e');
     }
   }
 
@@ -183,12 +193,13 @@ final class PersistentAppLogger implements AppLogger {
   }
 
   Future<void> _pruneOldFiles(Directory dir) async {
-    final files = dir
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.log'))
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    final files =
+        dir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.log'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
     while (files.length > maxFiles) {
       await files.removeAt(0).delete();
     }
@@ -212,7 +223,7 @@ final class PersistentAppLogger implements AppLogger {
   }
 }
 
-// ─── Logger internals ─────────────────────────────────────────────────────────
+// ─── Logger internals ────────────────────────────────────────────────────
 
 class _PassThroughFilter extends LogFilter {
   @override

@@ -1,6 +1,6 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
-import 'package:flutterbase/shared/logging/log_level.dart';
+import 'package:flutterbase/domain/value_objects/log_level.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// [DebugSettingsRepository] backed by [SharedPreferences].
 final class SharedPreferencesDebugSettingsRepository

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
-import 'app_primary_button.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
+import 'package:flutterbase/presentation/widgets/ui/app_primary_button.dart';
 
 /// Loading state indicator.
 class AppLoadingView extends StatelessWidget {
@@ -19,10 +19,7 @@ class AppLoadingView extends StatelessWidget {
           ),
           if (message != null) ...[
             const SizedBox(height: AppSpacing.lg),
-            Text(
-              message!,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(message!, style: Theme.of(context).textTheme.bodyMedium),
           ],
         ],
       ),
@@ -110,8 +107,8 @@ class AppEmptyView extends StatelessWidget {
             Text(
               message,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             if (action != null && actionLabel != null) ...[

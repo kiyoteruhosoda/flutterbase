@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
+import 'package:flutterbase/shared/app_config.dart';
 import 'package:flutterbase/shared/build_info.dart';
-import 'package:flutterbase/shared/config/app_config.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Opens the built-in [showLicensePage] with the app's branding applied.
 ///
@@ -28,7 +28,7 @@ class _AppLicenseIcon extends StatelessWidget {
       child: Container(
         width: AppSpacing.aboutIconContainer,
         height: AppSpacing.aboutIconContainer,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.brandContainer,
           borderRadius: AppRadius.xlBorder,
         ),
