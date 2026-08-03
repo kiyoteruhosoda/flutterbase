@@ -102,17 +102,26 @@ flutter test --exclude-tags tool
 
 ### 署名
 
-`android/key.properties` があれば release 鍵で、無ければ debug 鍵で署名されます
-（`android/app/build.gradle` のフォールバック）。debug 鍵になった場合は警告を出し、
-`manifest.env` の `signing` にも `debug-keystore` と記録します。**社外へ配る
-ビルドでは必ず `signing=release-keystore` を確認してください。**
-鍵の用意は `docs/CUSTOMISATION.md` にあります。
+`android/key.properties` に `storeFile` があれば release 鍵で、無ければ debug 鍵で
+署名されます（`android/app/build.gradle` のフォールバック）。判定はファイルの有無
+ではなく `storeFile` の有無で行います。`build.gradle` がそう判定するためで、
+中身が空・書きかけの `key.properties` があっても debug 鍵になります。
+
+debug 鍵になった場合は警告を出し、`manifest.env` の `signing` にも
+`debug-keystore` と記録します。**社外へ配るビルドでは必ず
+`signing=release-keystore` を確認してください。** 鍵の用意は
+`docs/CUSTOMISATION.md` にあります。
 
 ### 生成物とワーキングツリー
 
 `lib/shared/build_info.dart` は生成物ですがコミット対象です。ビルドで書き換わった
 ままだとビルドホストの次の `git pull --ff-only` が失敗するため、`build.sh` は
-ビルド前と同じ内容へ戻してから終了します（失敗時も戻します）。
+ビルド前の内容へ戻してから終了します（失敗時も戻します）。開発機で未コミットの
+変更を持っている場合も、その内容が戻ります。
+
+`BUILD_NUMBER` を指定した場合、その値は `BuildInfo.buildNumber` にも渡ります。
+アプリの About 画面が表示する build number と、成果物の versionCode・
+`manifest.env` が食い違わないようにするためです。
 
 ## git も Flutter も無いホストでビルドする
 
@@ -127,14 +136,19 @@ NAS やファイルサーバーのように、git も Flutter SDK も置けな�
 ./build-remote-container.sh aab
 ```
 
-実行される 4 ステップ:
+実行される 5 ステップ:
 
 | 順 | ステップ | 内容 |
 |---|---|---|
 | 1 | SYNC | dev コンテナ内で `git pull --ff-only` |
 | 2 | BUILD | dev コンテナ内で `scripts/build.sh <target>` |
-| 3 | PICK | 出来上がった `dist/` を配布ディレクトリへ取り込む |
+| 3 | PICK | 出来上がった `dist/` を配布ディレクトリ内の一時ディレクトリへ取り込む |
 | 4 | VERIFY | `manifest.sha256` で取り込んだ配布物を照合する |
+| 5 | PUBLISH | 照合できた配布物を入れ替える（旧版はここで消える） |
+
+取り込みを一時ディレクトリで行うのは、**照合が通るまで前回の配布物を残す**ためです。
+コピーが途中で失敗しても、壊れたビルドが届いても、ダウンロードできるのは
+前回の正常なビルドのままです。
 
 SYNC の直後に、dev コンテナ内の `build-remote-container.sh` と自分自身を
 byte 単位で比較し、異なれば最新版へ差し替えて同じ引数で再実行します

@@ -8,11 +8,16 @@
 # Android SDK. The dist/ it produces is then picked up through the host-
 # visible workspace path into the directory builds are handed out from.
 #
-# Four steps, one command:
-#   SYNC   … git pull inside the dev container (latest source)
-#   BUILD  … scripts/build.sh inside the dev container (produces dist/)
-#   PICK   … copy the finished dist/ into the artifact directory
-#   VERIFY … check the copied artifacts against manifest.sha256
+# Five steps, one command:
+#   SYNC    … git pull inside the dev container (latest source)
+#   BUILD   … scripts/build.sh inside the dev container (produces dist/)
+#   PICK    … copy the finished dist/ into a staging directory
+#   VERIFY  … check the staged copy against manifest.sha256
+#   PUBLISH … swap the verified build in, replacing the previous one
+#
+# The previous build stays downloadable until VERIFY passes: a copy that
+# fails halfway, or a damaged build, leaves it in place rather than taking
+# it out.
 #
 # Self-update: this script is a hand-placed bootstrap and is not part of
 # dist/, so git pull never updates it. After SYNC it is compared byte for
@@ -219,20 +224,36 @@ docker exec -u "$dev_user" ${docker_env[@]+"${docker_env[@]}"} "$dev_container" 
   ./scripts/build.sh '$target'
 " || die "the build inside the dev container failed."
 
-# ─── PICK (bring the finished dist/ over) ──────────────────────────────────
+# ─── PICK (bring the finished dist/ over, into a staging directory) ────────
+# The copy lands beside the published artifacts rather than on top of them.
+# A copy that fails halfway, or a build that turns out to be damaged, must
+# not take out the previous build: until VERIFY passes, what people download
+# is still the last one that was known good.
 log "PICK   $dist_dir → $artifact_dir"
 [[ -d "$dist_dir" ]] || die "dist not found: $dist_dir (check build.sh's output directory or APP_DIST_DIR)."
 [[ -f "$dist_dir/manifest.sha256" ]] || die "no manifest.sha256 in $dist_dir — that directory is not a build.sh output."
-# Previous artifacts go first: the incoming dist/ holds exactly what was just
-# built, and an older APK left beside it is indistinguishable from the real
-# one. What remains is always what manifest.sha256 lists.
-rm -f "$artifact_dir"/*.apk "$artifact_dir"/*.aab
-cp -a "$dist_dir/." "$artifact_dir/"
+staging="$(mktemp -d "$artifact_dir/.incoming.XXXXXX")" \
+  || die "could not create a staging directory in $artifact_dir (check write permission)."
+discard_staging() { [[ -n "${staging:-}" ]] && rm -rf "$staging"; }
+trap discard_staging EXIT
+cp -a "$dist_dir/." "$staging/" || die "copying the build out of $dist_dir failed."
 
 # ─── VERIFY (the copy is what was built) ───────────────────────────────────
 log "VERIFY checksums against manifest.sha256 ..."
-(cd "$artifact_dir" && sha256sum -c manifest.sha256) \
-  || die "checksum mismatch — the copied artifacts differ from the ones built."
+(cd "$staging" && sha256sum -c manifest.sha256) \
+  || die "checksum mismatch — the copied build differs from the one that was built (the published artifacts are untouched)."
+
+# ─── PUBLISH (swap the verified build in) ──────────────────────────────────
+# Previous artifacts go first: the incoming build holds exactly what was just
+# built, and an older APK left beside it is indistinguishable from the real
+# one. What remains is always what manifest.sha256 lists. Renames within the
+# same directory keep the window in which neither build is complete down to
+# a few filesystem operations.
+log "PUBLISH swapping the verified build into $artifact_dir ..."
+rm -f "$artifact_dir"/*.apk "$artifact_dir"/*.aab
+for _staged in "$staging"/*; do
+  mv -f "$_staged" "$artifact_dir/" || die "could not publish $(basename "$_staged") into $artifact_dir."
+done
 
 log "END    channel=$channel target=$target (done)"
 log "       artifacts in $artifact_dir:"

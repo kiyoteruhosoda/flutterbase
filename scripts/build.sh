@@ -86,7 +86,17 @@ if [[ -z "$archives_base" ]]; then
   archives_base="${application_id##*.}"
 fi
 
-if [[ "$variant" == release && -f android/key.properties ]]; then
+# android/app/build.gradle decides on the storeFile property, not on the file
+# existing: an empty or half-filled key.properties leaves `hasKeystore` false
+# and the release build is signed with the debug key, without failing. Read
+# the same property here, so the manifest cannot claim a release signature
+# the build did not use.
+keystore_store_file=''
+if [[ -f android/key.properties ]]; then
+  keystore_store_file="$(sed -n 's/^[[:space:]]*storeFile[[:space:]]*[=:][[:space:]]*//p' android/key.properties | head -1 | tr -d '[:space:]')"
+fi
+
+if [[ "$variant" == release && -n "$keystore_store_file" ]]; then
   signing="release-keystore"
 else
   signing="debug-keystore"
@@ -102,40 +112,60 @@ log "  output      : $out_dir"
 log "═══════════════════════════════════════════════"
 
 if [[ "$variant" == release && "$signing" == debug-keystore ]]; then
-  log "WARNING  android/key.properties is missing, so this release build is signed"
-  log "         with the debug keystore. Usable for internal testing only."
+  if [[ -f android/key.properties ]]; then
+    log "WARNING  android/key.properties has no storeFile, so Gradle signs this release"
+  else
+    log "WARNING  android/key.properties is missing, so Gradle signs this release"
+  fi
+  log "         build with the debug keystore. Usable for internal testing only."
 fi
 
 # ─── Build ─────────────────────────────────────────────────────────────────
 # lib/shared/build_info.dart is generated but committed, so a build would
 # otherwise leave the working tree dirty and break the next `git pull
-# --ff-only` on a build host. Put it back exactly as it was, including when
-# the build fails.
+# --ff-only` on a build host. Keep a copy of whatever is there — committed
+# content or a developer's uncommitted edits, both of which the generator
+# below overwrites — and put it back on the way out, including when the
+# build fails.
 build_info=lib/shared/build_info.dart
-restore_build_info=0
+build_info_backup=''
 restore_generated_build_info() {
-  [[ "$restore_build_info" == 1 ]] || return 0
-  git checkout -- "$build_info" 2>/dev/null || true
+  [[ -n "$build_info_backup" && -f "$build_info_backup" ]] || return 0
+  mv -f "$build_info_backup" "$build_info"
+  build_info_backup=''
 }
-if git ls-files --error-unmatch "$build_info" >/dev/null 2>&1 \
-  && [[ -z "$(git status --porcelain -- "$build_info")" ]]; then
-  restore_build_info=1
+if [[ -f "$build_info" ]]; then
+  build_info_backup="$(mktemp)"
+  cp -p "$build_info" "$build_info_backup"
   trap restore_generated_build_info EXIT
 fi
+
+# build/ is not cleaned between runs, so the paths this build is about to
+# write are removed first. Otherwise an artifact left there by an earlier
+# build of the same version could be picked up below and published under
+# this build's manifest.
+clear_artifact_paths() {
+  local dir="$1" ext="$2"
+  rm -f "$dir/${archives_base}-${version}-${variant}.${ext}" "$dir/app-${variant}.${ext}"
+}
 
 log "resolving dependencies ..."
 flutter pub get
 
+# The generator gets the same build number that Gradle and the manifest use,
+# so the About screen cannot disagree with the artifact's versionCode.
 log "generating build info ..."
-bash scripts/generate_build_info.sh >/dev/null
+BUILD_NUMBER="$build_number" bash scripts/generate_build_info.sh >/dev/null
 
 if [[ "$targets" == all || "$targets" == apk ]]; then
   log "building APK ($variant) ..."
+  clear_artifact_paths build/app/outputs/flutter-apk apk
   flutter build apk "--$variant" --build-number="$build_number"
 fi
 
 if [[ "$targets" == all || "$targets" == aab ]]; then
   log "building AAB ($variant) ..."
+  clear_artifact_paths "build/app/outputs/bundle/${variant}" aab
   flutter build appbundle "--$variant" --build-number="$build_number"
 fi
 
