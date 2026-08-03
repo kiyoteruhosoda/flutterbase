@@ -25,6 +25,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerDebug => 'Debug Info';
   @override
   String get drawerLogs => 'Logs';
+  @override
+  String get drawerBookmarks => 'Bookmarks';
+  @override
+  String get drawerDeepLink => 'Deep Links';
 
   // ─── Home tab ─────────────────────────────────────────────────────────
   @override
@@ -86,6 +90,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDebug => 'Debug Info';
   @override
   String get settingsLogs => 'Logs';
+  @override
+  String get settingsBookmarks => 'Bookmarks';
+  @override
+  String get settingsDeepLink => 'Deep Links';
 
   // ─── Footer ───────────────────────────────────────────────────────────
   @override
@@ -237,6 +245,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logLevelWarning => 'Warning';
   @override
   String get logLevelError => 'Error';
+
+  // ─── Bookmarks (sample feature) ──────────────────────────────────────
+  @override
+  String get bookmarksTitle => 'Bookmarks';
+  @override
+  String get bookmarksEmpty => 'No bookmarks yet';
+  @override
+  String get bookmarksEmptyHint =>
+      'Saved links are stored in SQLite on this device.';
+  @override
+  String get bookmarksAdd => 'Add bookmark';
+  @override
+  String get bookmarksAddTitle => 'New bookmark';
+  @override
+  String get bookmarksTitleLabel => 'Title';
+  @override
+  String get bookmarksTitleHint => 'Flutter documentation';
+  @override
+  String get bookmarksUrlLabel => 'URL';
+  @override
+  String get bookmarksUrlHint => 'https://docs.flutter.dev';
+  @override
+  String get bookmarksSave => 'Save';
+  @override
+  String get bookmarksCancel => 'Cancel';
+  @override
+  String get bookmarksInvalidInput => 'Enter a title and an http/https URL.';
+  @override
+  String get bookmarksSaved => 'Bookmark saved';
+  @override
+  String get bookmarksRemoved => 'Bookmark removed';
+  @override
+  String get bookmarkDetailTitle => 'Bookmark';
+  @override
+  String get bookmarkNotFound => 'Bookmark not found';
+  @override
+  String get bookmarkNotFoundHint =>
+      'It may have been deleted, or the link points at another device.';
+  @override
+  String get bookmarkOpen => 'Open link';
+  @override
+  String get bookmarkOpenFailed => 'No app can open this link';
+  @override
+  String get bookmarkRemove => 'Delete';
+  @override
+  String get bookmarkRemoveConfirmTitle => 'Delete bookmark';
+  @override
+  String get bookmarkRemoveConfirmBody =>
+      'Remove this bookmark from this device?';
+  @override
+  String get bookmarkUrlLabel => 'URL';
+  @override
+  String get bookmarkCreatedAtLabel => 'Saved at';
+  @override
+  String get bookmarkDeepLinkLabel => 'Deep link';
+
+  // ─── Deep links (App Links) ──────────────────────────────────────────
+  @override
+  String get deepLinkTitle => 'Deep Links';
+  @override
+  String get deepLinkIntro =>
+      'Android App Links open a verified https URL straight in this app. '
+      'The router matches the link path against the same routes the in-app '
+      'navigation uses.';
+  @override
+  String get deepLinkOpenedWith => 'Opened with';
+  @override
+  String get deepLinkNoParameters => 'No query parameters';
+  @override
+  String get deepLinkParameters => 'Query parameters';
+  @override
+  String get deepLinkVerifiedSection => 'Verified App Link';
+  @override
+  String get deepLinkCustomSchemeSection => 'Custom scheme (unverified)';
+  @override
+  String get deepLinkTrySection => 'Try it';
+  @override
+  String get deepLinkTryHint =>
+      'Run this with the app installed to open it from outside.';
+  @override
+  String get deepLinkCopy => 'Copy';
+  @override
+  String get deepLinkCopied => 'Copied to clipboard';
 
   // ─── Licenses page ───────────────────────────────────────────────────
   @override

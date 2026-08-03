@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/application/usecases/bookmark/add_bookmark_usecase.dart';
+import 'package:flutterbase/application/usecases/bookmark/get_bookmark_usecase.dart';
+import 'package:flutterbase/application/usecases/bookmark/list_bookmarks_usecase.dart';
+import 'package:flutterbase/application/usecases/bookmark/open_bookmark_usecase.dart';
+import 'package:flutterbase/application/usecases/bookmark/remove_bookmark_usecase.dart';
 import 'package:flutterbase/application/usecases/debug/get_debug_settings_usecase.dart';
 import 'package:flutterbase/application/usecases/debug/set_debug_mode_usecase.dart';
 import 'package:flutterbase/application/usecases/debug/set_log_level_usecase.dart';
@@ -11,27 +18,33 @@ import 'package:flutterbase/application/usecases/theme/get_theme_preference_usec
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/presentation/app_scope.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/navigation/app_routes.dart';
+import 'package:flutterbase/presentation/providers/app_providers.dart';
+import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
 import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
+import 'package:go_router/go_router.dart';
 
 import 'fakes.dart';
 import 'recording_app_logger.dart';
 
 /// A fully wired Presentation dependency set, built from in-memory fakes.
 ///
-/// Mirrors what `app/di/service_locator.dart` assembles at runtime, so a
-/// widget test exercises the same ViewModel wiring the app ships — without
-/// any platform channel.
+/// Mirrors what `app/di/service_locator.dart` and
+/// `app/di/provider_overrides.dart` assemble at runtime, so a widget test
+/// exercises the same wiring the app ships — without any platform channel.
 class TestScope {
   TestScope({
     FakeThemePreferenceRepository? themeRepository,
     FakeLanguagePreferenceRepository? languageRepository,
     FakeDebugSettingsRepository? debugSettingsRepository,
     FakeAppInfoRepository? appInfoRepository,
+    FakeBookmarkRepository? bookmarkRepository,
+    RecordingExternalLinkLauncher? linkLauncher,
     RecordingAppLogger? logger,
   }) : themeRepository = themeRepository ?? FakeThemePreferenceRepository(),
        languageRepository =
@@ -39,6 +52,8 @@ class TestScope {
        debugSettingsRepository =
            debugSettingsRepository ?? FakeDebugSettingsRepository(),
        appInfoRepository = appInfoRepository ?? FakeAppInfoRepository(),
+       bookmarkRepository = bookmarkRepository ?? FakeBookmarkRepository(),
+       linkLauncher = linkLauncher ?? RecordingExternalLinkLauncher(),
        logger = logger ?? RecordingAppLogger() {
     themeViewModel = ThemeViewModel(
       GetThemePreferenceUseCase(this.themeRepository),
@@ -62,6 +77,8 @@ class TestScope {
   final FakeLanguagePreferenceRepository languageRepository;
   final FakeDebugSettingsRepository debugSettingsRepository;
   final FakeAppInfoRepository appInfoRepository;
+  final FakeBookmarkRepository bookmarkRepository;
+  final RecordingExternalLinkLauncher linkLauncher;
   final RecordingAppLogger logger;
 
   late final ThemeViewModel themeViewModel;
@@ -71,6 +88,16 @@ class TestScope {
   /// Number of times a per-screen ViewModel has been requested.
   int aboutViewModelsCreated = 0;
   int debugViewModelsCreated = 0;
+
+  /// The router [wrap] installed, available once [wrap] has been called.
+  late final GoRouter router;
+
+  /// Locations the router resolved, oldest first — the harness equivalent of
+  /// watching the navigation stack.
+  final List<String> visitedLocations = <String>[];
+
+  /// Where the router currently is.
+  String get location => router.state.uri.toString();
 
   AboutViewModel createAboutViewModel() {
     aboutViewModelsCreated++;
@@ -82,42 +109,110 @@ class TestScope {
     return DebugViewModel(GetAppInfoUseCase(appInfoRepository), logger);
   }
 
-  /// Wraps [child] in the same scope, theme, and localisations the real app
-  /// installs, so a widget under test sees production conditions.
+  /// The Riverpod overrides the composition root installs, with fakes in
+  /// place of the real adapters.
+  List<Override> providerOverrides() {
+    return <Override>[
+      appLoggerProvider.overrideWithValue(logger),
+      listBookmarksUseCaseProvider.overrideWithValue(
+        ListBookmarksUseCase(bookmarkRepository),
+      ),
+      getBookmarkUseCaseProvider.overrideWithValue(
+        GetBookmarkUseCase(bookmarkRepository),
+      ),
+      addBookmarkUseCaseProvider.overrideWithValue(
+        AddBookmarkUseCase(bookmarkRepository, logger),
+      ),
+      removeBookmarkUseCaseProvider.overrideWithValue(
+        RemoveBookmarkUseCase(bookmarkRepository, logger),
+      ),
+      openBookmarkUseCaseProvider.overrideWithValue(
+        OpenBookmarkUseCase(linkLauncher, logger),
+      ),
+    ];
+  }
+
+  /// Wraps [child] in the same scope, theme, localisations, and router the
+  /// real app installs, so a widget under test sees production conditions.
+  ///
+  /// [child] is mounted at `/`; every other location in
+  /// [AppRoutes] resolves to a labelled placeholder, so a test asserts that
+  /// navigation happened — via [location] or [visitedLocations] — rather than
+  /// rebuilding the destination screen.
   Widget wrap(
     Widget child, {
     Locale? locale,
     List<NavigatorObserver>? observers,
   }) {
-    return AppScope(
-      logger: logger,
-      themeViewModel: themeViewModel,
-      languageViewModel: languageViewModel,
-      debugSettingsViewModel: debugSettingsViewModel,
-      createAboutViewModel: createAboutViewModel,
-      createDebugViewModel: createDebugViewModel,
-      child: MaterialApp(
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: themeViewModel.themeMode,
-        locale: locale,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        navigatorObservers: observers ?? const <NavigatorObserver>[],
-        // Named routes resolve to a labelled placeholder: tests assert that
-        // navigation happened, not what the destination screen looks like.
-        onGenerateRoute: (settings) => MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) =>
-              Scaffold(body: Center(child: Text('route:${settings.name}'))),
+    return wrapRouter(
+      _buildRouter(child, observers: observers),
+      locale: locale,
+    );
+  }
+
+  /// The same scope, theme, localisations, and provider overrides as [wrap],
+  /// driven by [config] instead of the placeholder route table.
+  ///
+  /// For tests that exercise the app's real router — a deep link resolving to
+  /// a real screen, for instance.
+  Widget wrapRouter(GoRouter config, {Locale? locale}) {
+    router = config;
+    return ProviderScope(
+      overrides: providerOverrides(),
+      child: AppScope(
+        logger: logger,
+        themeViewModel: themeViewModel,
+        languageViewModel: languageViewModel,
+        debugSettingsViewModel: debugSettingsViewModel,
+        createAboutViewModel: createAboutViewModel,
+        createDebugViewModel: createDebugViewModel,
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeViewModel.themeMode,
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          routerConfig: config,
         ),
-        home: child,
       ),
+    );
+  }
+
+  GoRouter _buildRouter(Widget home, {List<NavigatorObserver>? observers}) {
+    Widget placeholder(BuildContext context, GoRouterState state) =>
+        Scaffold(body: Center(child: Text('route:${state.uri}')));
+
+    return GoRouter(
+      initialLocation: AppRoutes.main,
+      observers: observers,
+      redirect: (context, state) {
+        visitedLocations.add(state.uri.toString());
+        return null;
+      },
+      errorBuilder: placeholder,
+      routes: <RouteBase>[
+        GoRoute(
+          path: AppRoutes.main,
+          builder: (context, state) => home,
+          routes: <RouteBase>[
+            GoRoute(path: 'about', builder: placeholder),
+            GoRoute(path: 'debug', builder: placeholder),
+            GoRoute(path: 'logs', builder: placeholder),
+            GoRoute(path: 'link', builder: placeholder),
+            GoRoute(
+              path: 'bookmarks',
+              builder: placeholder,
+              routes: <RouteBase>[GoRoute(path: ':id', builder: placeholder)],
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -5,19 +5,23 @@ import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/presentation/app_scope.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
-import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
 import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
 import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
+import 'package:go_router/go_router.dart';
 
 /// Root widget.
 ///
 /// Resolves the wired objects from the service locator once and publishes
 /// them to the widget tree via [AppScope], so no Presentation file has to
 /// import the composition root itself.
+///
+/// Uses `MaterialApp.router`: the Router API is what lets the platform push a
+/// location into a running app, which is what makes an incoming App Link an
+/// ordinary navigation instead of a special case.
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
 
@@ -31,6 +35,10 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
   late final LanguageViewModel _languageViewModel;
   late final DebugSettingsViewModel _debugSettingsViewModel;
 
+  /// Built once: a router recreated on every rebuild would drop the
+  /// navigation stack, including the screen a deep link just opened.
+  late final GoRouter _router;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +46,7 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
     _themeViewModel = sl<ThemeViewModel>();
     _languageViewModel = sl<LanguageViewModel>();
     _debugSettingsViewModel = sl<DebugSettingsViewModel>();
+    _router = AppRouter.create(logger: _logger);
     WidgetsBinding.instance.addObserver(this);
     _logger.info('[App] AppWidget initialised');
   }
@@ -45,6 +54,7 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _router.dispose();
     super.dispose();
   }
 
@@ -65,7 +75,7 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
       child: ListenableBuilder(
         listenable: Listenable.merge([_themeViewModel, _languageViewModel]),
         builder: (context, _) {
-          return MaterialApp(
+          return MaterialApp.router(
             onGenerateTitle: (context) => AppLocalizations.of(context).appName,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
@@ -79,8 +89,7 @@ class _AppWidgetState extends State<AppWidget> with WidgetsBindingObserver {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            onGenerateRoute: AppRouter.onGenerateRoute,
-            home: const MainPage(),
+            routerConfig: _router,
           );
         },
       ),

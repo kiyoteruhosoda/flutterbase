@@ -70,7 +70,7 @@ presentation  infrastructure
 |---|---|
 | `layer-direction` | 上表に反する package import |
 | `layer-placement` | どのレイヤーにも属さない `lib/**.dart` |
-| `banned-import` | Domain / Application からの Flutter・`dart:io`・`dart:ui` import、Infrastructure 以外からの dio・http・sqflite・shared_preferences・path_provider・package_info_plus などの import |
+| `banned-import` | Domain / Application からの Flutter・`dart:io`・`dart:ui` import、Infrastructure 以外からの dio・http・sqflite・shared_preferences・path_provider・package_info_plus・url_launcher などの import |
 | `infrastructure-only-type` | Infrastructure 以外での `File` / `Directory` / `HttpClient` / `Dio` / `MethodChannel` / `SharedPreferences` / `Database` などの使用（型注釈・コンストラクタ呼び出し・static アクセス） |
 | `concrete-adapter-dependency` | Infrastructure と合成ルート以外での具象アダプター（Repository 実装など）への参照 |
 | `domain-clock` | Domain での `DateTime.now()` |
@@ -89,15 +89,55 @@ presentation  infrastructure
 
 ### `dependency_policy.reserved` について
 
-本リポジトリはテンプレートなので、生成後のアプリが使う前提の package
-（`go_router`・`flutter_riverpod`・`sqflite` など）を最初から宣言しています。
-これらは `pubspec.yaml` 末尾の `dependency_policy.reserved` に列挙してあり、
-「未使用だが意図的」であることを明示しています。
-ここに無い未使用 package は CI で落ちます。
+`pubspec.yaml` 末尾の `dependency_policy.reserved` は、「宣言済みだが `lib/` から
+未使用」であることを意図的に宣言するためのリストです。ここに無い未使用 package は
+CI で落ちます。
 
-package を実際に使い始めたら、reserved から削除してください（使用中の package が
-reserved に残っていても CI が落ちます）。テンプレートを軽くしたい場合は、
-reserved の記載と `dependencies` の両方から削除してください。
+**現在このリストは空です。** 宣言しているランタイム依存はすべて `lib/` から
+使われています（`docs/adr/0002-starter-stack.md`）。実装より先に依存を宣言したい
+場合だけ、ここに追加してください。使い始めたら削除します（使用中の package が
+reserved に残っていても CI が落ちます）。
+
+## 初期スタックの置き場所
+
+採用している package と、このアーキテクチャ上の担当レイヤーです。
+判断の経緯は `docs/adr/0002-starter-stack.md` にあります。
+
+| package | レイヤー | 置き場所 |
+|---|---|---|
+| `go_router` | 合成ルート | `lib/app/bootstrap/app_router.dart`。画面は `presentation/navigation/app_routes.dart` の定数だけを参照する |
+| `flutter_riverpod` | Presentation | `lib/presentation/providers/`。実体の注入は `lib/app/di/provider_overrides.dart` |
+| `get_it` | 合成ルート | `lib/app/di/service_locator.dart` のみ |
+| `sqflite` | Infrastructure | `lib/infrastructure/database/`・`lib/infrastructure/repositories/` |
+| `path` | Infrastructure | DB ファイルパスの組み立て。純粋な文字列処理なのでレイヤー制限は掛けていない |
+| `url_launcher` | Infrastructure | `lib/infrastructure/links/`。`ExternalLinkLauncher` ポートの背後 |
+| `shared_preferences` / `path_provider` / `package_info_plus` | Infrastructure | 既存のアダプター群 |
+
+`equatable` と `riverpod_annotation`（および `riverpod_generator`）は
+採用していません。値の等価性は手書きの `==` / `hashCode`、Riverpod の
+provider は手書きで書きます。
+
+### Riverpod と `AppScope` の使い分け
+
+どちらも役割は同じです。**合成ルートが実体を注入し、Presentation は契約だけを見る。**
+
+- `AppScope`（`InheritedWidget`）— 既存の `ChangeNotifier` ViewModel 用。
+- Riverpod — ブックマーク機能などの新しいコード用。
+  provider は Presentation に宣言し、本体は `UnimplementedError` を投げます。
+  `lib/app/di/provider_overrides.dart` が `overrideWithValue` で実体を差すので、
+  注入漏れは起動時に必ず失敗します（黙って null にはなりません）。
+
+どちらの場合も、Presentation から `lib/app/` を import することはできません。
+
+## ルーティングとディープリンク
+
+ルート定義は `lib/app/bootstrap/app_router.dart`（合成ルート）、
+パス定数は `lib/presentation/navigation/app_routes.dart`（Presentation）です。
+画面は後者だけを見ます。
+
+公開する URL のパスとアプリ内ルートのパスは同一です。Android は受け取った
+App Link の *パス*を Flutter に渡し、go_router がそれを通常の遷移と同じ
+経路で解決します。設定手順は `docs/DEEP_LINKS.md`。
 
 ## パッケージ分割について
 
@@ -152,5 +192,6 @@ import を足してください（足し忘れるとテストが落ち、追加�
 ## 参照
 
 - 操作手順・コマンド: `docs/OPERATIONS.md`
+- ディープリンク（App Links）の設定: `docs/DEEP_LINKS.md`
 - 設計判断の記録: `docs/adr/`
 - 完了した変更の要約: `docs/CHANGELOG.md`

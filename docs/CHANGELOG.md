@@ -3,6 +3,44 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-08-03 — 初期スタックの確定と App Links 対応
+
+判断の経緯は `docs/adr/0002-starter-stack.md`。
+
+### 追加
+
+- ブックマーク機能（サンプル）— `go_router` / `flutter_riverpod` / `sqflite` /
+  `path` / `url_launcher` を 4 層すべてに通す題材。一覧・詳細・追加・削除・
+  外部リンク起動。
+  - Domain: `Bookmark` / `BookmarkDraft` / `BookmarkId` / `BookmarkRepository`
+  - Application: 5 つのユースケースと `ExternalLinkLauncher` ポート
+  - Infrastructure: `AppDatabase`（スキーマ + マイグレーション）、
+    `SqfliteBookmarkRepository`、`UrlLauncherExternalLinkLauncher`
+  - Presentation: `BookmarksPage` / `BookmarkDetailPage` と
+    `presentation/providers/` の Riverpod provider
+- Android App Links の基礎 — `autoVerify` 付き intent filter、カスタムスキーム、
+  `flutter_deeplinking_enabled`、`assetlinks.json` の雛形、診断画面（`/link`）。
+  手順は `docs/DEEP_LINKS.md`。
+- `lib/presentation/navigation/app_routes.dart` — 公開 URL とアプリ内ルートの
+  唯一の定義元。
+- `lib/app/di/provider_overrides.dart` — サービスロケータと Riverpod の橋渡し。
+
+### 変更
+
+- ルーティングを `Navigator.onGenerateRoute` から `go_router` に移行
+  （`MaterialApp.router`）。これによりプラットフォームから届くリンクが
+  通常の遷移と同じ経路で解決される。
+- `minSdk` を 36 に統一。`flutter_launcher_icons.min_sdk_android` が 21 のまま
+  食い違っていたのを解消。
+- `url_launcher` を `tool/check_architecture.dart` の Infrastructure 限定
+  package に追加。
+- 起動時に SQLite を開くようになった（`InfrastructureModule.create`）。
+- `dependency_policy.reserved` が空になった（宣言済み依存はすべて使用中）。
+
+### 削除
+
+- `equatable`、`riverpod_annotation`、`riverpod_generator`。
+
 ## 2026-08-03 — CI 品質ゲートの導入とツールチェイン更新
 
 ### 追加

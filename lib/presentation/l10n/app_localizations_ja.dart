@@ -25,6 +25,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get drawerDebug => 'デバッグ情報';
   @override
   String get drawerLogs => 'ログ';
+  @override
+  String get drawerBookmarks => 'ブックマーク';
+  @override
+  String get drawerDeepLink => 'ディープリンク';
 
   // ─── Home tab ─────────────────────────────────────────────────────────
   @override
@@ -85,6 +89,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDebug => 'デバッグ情報';
   @override
   String get settingsLogs => 'ログ';
+  @override
+  String get settingsBookmarks => 'ブックマーク';
+  @override
+  String get settingsDeepLink => 'ディープリンク';
 
   // ─── Footer ───────────────────────────────────────────────────────────
   @override
@@ -235,6 +243,84 @@ class AppLocalizationsJa extends AppLocalizations {
   String get logLevelWarning => 'Warning';
   @override
   String get logLevelError => 'Error';
+
+  // ─── Bookmarks (sample feature) ──────────────────────────────────────
+  @override
+  String get bookmarksTitle => 'ブックマーク';
+  @override
+  String get bookmarksEmpty => 'ブックマークがありません';
+  @override
+  String get bookmarksEmptyHint => '保存したリンクは端末内の SQLite に保存されます。';
+  @override
+  String get bookmarksAdd => 'ブックマークを追加';
+  @override
+  String get bookmarksAddTitle => '新しいブックマーク';
+  @override
+  String get bookmarksTitleLabel => 'タイトル';
+  @override
+  String get bookmarksTitleHint => 'Flutter ドキュメント';
+  @override
+  String get bookmarksUrlLabel => 'URL';
+  @override
+  String get bookmarksUrlHint => 'https://docs.flutter.dev';
+  @override
+  String get bookmarksSave => '保存';
+  @override
+  String get bookmarksCancel => 'キャンセル';
+  @override
+  String get bookmarksInvalidInput => 'タイトルと http/https の URL を入力してください。';
+  @override
+  String get bookmarksSaved => 'ブックマークを保存しました';
+  @override
+  String get bookmarksRemoved => 'ブックマークを削除しました';
+  @override
+  String get bookmarkDetailTitle => 'ブックマーク';
+  @override
+  String get bookmarkNotFound => 'ブックマークが見つかりません';
+  @override
+  String get bookmarkNotFoundHint => '削除されたか、別の端末のリンクを開いた可能性があります。';
+  @override
+  String get bookmarkOpen => 'リンクを開く';
+  @override
+  String get bookmarkOpenFailed => 'このリンクを開けるアプリがありません';
+  @override
+  String get bookmarkRemove => '削除';
+  @override
+  String get bookmarkRemoveConfirmTitle => 'ブックマークの削除';
+  @override
+  String get bookmarkRemoveConfirmBody => 'このブックマークを端末から削除しますか？';
+  @override
+  String get bookmarkUrlLabel => 'URL';
+  @override
+  String get bookmarkCreatedAtLabel => '保存日時';
+  @override
+  String get bookmarkDeepLinkLabel => 'ディープリンク';
+
+  // ─── Deep links (App Links) ──────────────────────────────────────────
+  @override
+  String get deepLinkTitle => 'ディープリンク';
+  @override
+  String get deepLinkIntro =>
+      'Android の App Links は、検証済みの https URL を直接このアプリで開きます。'
+      'ルーターはリンクのパスを、アプリ内遷移と同じルート定義に照合します。';
+  @override
+  String get deepLinkOpenedWith => '起動時の URL';
+  @override
+  String get deepLinkNoParameters => 'クエリパラメータはありません';
+  @override
+  String get deepLinkParameters => 'クエリパラメータ';
+  @override
+  String get deepLinkVerifiedSection => '検証済み App Link';
+  @override
+  String get deepLinkCustomSchemeSection => 'カスタムスキーム（未検証）';
+  @override
+  String get deepLinkTrySection => '動作確認';
+  @override
+  String get deepLinkTryHint => 'アプリをインストールした状態で実行すると、外部から起動できます。';
+  @override
+  String get deepLinkCopy => 'コピー';
+  @override
+  String get deepLinkCopied => 'クリップボードにコピーしました';
 
   // ─── Licenses page ───────────────────────────────────────────────────
   @override

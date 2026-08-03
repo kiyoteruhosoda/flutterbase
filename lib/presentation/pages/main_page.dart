@@ -5,9 +5,11 @@ import 'package:flutterbase/domain/value_objects/app_language.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/presentation/app_scope.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/navigation/app_routes.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/app_config.dart';
+import 'package:go_router/go_router.dart';
 
 /// Main screen with bottom navigation.
 class MainPage extends StatefulWidget {
@@ -107,12 +109,19 @@ class _MainPageState extends State<MainPage> {
               ],
               bottomItems: [
                 AppDrawerItem(
+                  label: l10n.drawerBookmarks,
+                  icon: Icons.bookmark_outline,
+                  onTap: () => _leaveDrawerFor(context, AppRoutes.bookmarks),
+                ),
+                AppDrawerItem(
+                  label: l10n.drawerDeepLink,
+                  icon: Icons.link_outlined,
+                  onTap: () => _leaveDrawerFor(context, AppRoutes.deepLink),
+                ),
+                AppDrawerItem(
                   label: l10n.drawerAbout,
                   icon: Icons.info_outline,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    unawaited(Navigator.of(context).pushNamed<void>('/about'));
-                  },
+                  onTap: () => _leaveDrawerFor(context, AppRoutes.about),
                 ),
                 AppDrawerItem(
                   label: l10n.drawerLicenses,
@@ -126,20 +135,12 @@ class _MainPageState extends State<MainPage> {
                   AppDrawerItem(
                     label: l10n.drawerLogs,
                     icon: Icons.list_alt_outlined,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      unawaited(Navigator.of(context).pushNamed<void>('/logs'));
-                    },
+                    onTap: () => _leaveDrawerFor(context, AppRoutes.logs),
                   ),
                   AppDrawerItem(
                     label: l10n.drawerDebug,
                     icon: Icons.bug_report_outlined,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      unawaited(
-                        Navigator.of(context).pushNamed<void>('/debug'),
-                      );
-                    },
+                    onTap: () => _leaveDrawerFor(context, AppRoutes.debug),
                   ),
                 ],
               ],
@@ -172,6 +173,15 @@ class _MainPageState extends State<MainPage> {
       2 => const _SettingsContent(),
       _ => const _HomeContent(),
     };
+  }
+
+  /// Closes the drawer, then pushes [location].
+  ///
+  /// The pop has to happen first: `context.push` would otherwise leave the
+  /// drawer's route on the stack underneath the new screen.
+  static void _leaveDrawerFor(BuildContext context, String location) {
+    Navigator.of(context).pop();
+    unawaited(context.push<void>(location));
   }
 }
 
@@ -404,10 +414,21 @@ class _SettingsContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppListCard(
+          title: l10n.settingsBookmarks,
+          leading: const Icon(Icons.bookmark_outline),
+          onTap: () => unawaited(context.push<void>(AppRoutes.bookmarks)),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AppListCard(
+          title: l10n.settingsDeepLink,
+          leading: const Icon(Icons.link_outlined),
+          onTap: () => unawaited(context.push<void>(AppRoutes.deepLink)),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AppListCard(
           title: l10n.settingsAbout,
           leading: const Icon(Icons.info_outline),
-          onTap: () =>
-              unawaited(Navigator.of(context).pushNamed<void>('/about')),
+          onTap: () => unawaited(context.push<void>(AppRoutes.about)),
         ),
         const SizedBox(height: AppSpacing.sm),
         AppListCard(
@@ -424,17 +445,15 @@ class _SettingsContent extends StatelessWidget {
                     AppListCard(
                       title: l10n.settingsLogs,
                       leading: const Icon(Icons.list_alt_outlined),
-                      onTap: () => unawaited(
-                        Navigator.of(context).pushNamed<void>('/logs'),
-                      ),
+                      onTap: () =>
+                          unawaited(context.push<void>(AppRoutes.logs)),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     AppListCard(
                       title: l10n.settingsDebug,
                       leading: const Icon(Icons.bug_report_outlined),
-                      onTap: () => unawaited(
-                        Navigator.of(context).pushNamed<void>('/debug'),
-                      ),
+                      onTap: () =>
+                          unawaited(context.push<void>(AppRoutes.debug)),
                     ),
                   ],
                 )

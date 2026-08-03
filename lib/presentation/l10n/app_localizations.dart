@@ -46,6 +46,8 @@ abstract class AppLocalizations {
   String get drawerLicenses;
   String get drawerDebug;
   String get drawerLogs;
+  String get drawerBookmarks;
+  String get drawerDeepLink;
 
   // ─── Home tab ─────────────────────────────────────────────────────────
   String get homeWelcomeTitle;
@@ -78,6 +80,8 @@ abstract class AppLocalizations {
   String get settingsLicenses;
   String get settingsDebug;
   String get settingsLogs;
+  String get settingsBookmarks;
+  String get settingsDeepLink;
 
   // ─── Footer ───────────────────────────────────────────────────────────
   String get footerAbout;
@@ -158,6 +162,46 @@ abstract class AppLocalizations {
   String get logLevelInfo;
   String get logLevelWarning;
   String get logLevelError;
+
+  // ─── Bookmarks (sample feature) ──────────────────────────────────────
+  String get bookmarksTitle;
+  String get bookmarksEmpty;
+  String get bookmarksEmptyHint;
+  String get bookmarksAdd;
+  String get bookmarksAddTitle;
+  String get bookmarksTitleLabel;
+  String get bookmarksTitleHint;
+  String get bookmarksUrlLabel;
+  String get bookmarksUrlHint;
+  String get bookmarksSave;
+  String get bookmarksCancel;
+  String get bookmarksInvalidInput;
+  String get bookmarksSaved;
+  String get bookmarksRemoved;
+  String get bookmarkDetailTitle;
+  String get bookmarkNotFound;
+  String get bookmarkNotFoundHint;
+  String get bookmarkOpen;
+  String get bookmarkOpenFailed;
+  String get bookmarkRemove;
+  String get bookmarkRemoveConfirmTitle;
+  String get bookmarkRemoveConfirmBody;
+  String get bookmarkUrlLabel;
+  String get bookmarkCreatedAtLabel;
+  String get bookmarkDeepLinkLabel;
+
+  // ─── Deep links (App Links) ──────────────────────────────────────────
+  String get deepLinkTitle;
+  String get deepLinkIntro;
+  String get deepLinkOpenedWith;
+  String get deepLinkNoParameters;
+  String get deepLinkParameters;
+  String get deepLinkVerifiedSection;
+  String get deepLinkCustomSchemeSection;
+  String get deepLinkTrySection;
+  String get deepLinkTryHint;
+  String get deepLinkCopy;
+  String get deepLinkCopied;
 
   // ─── Licenses page ───────────────────────────────────────────────────
   String get licensesTitle;

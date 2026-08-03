@@ -495,17 +495,17 @@ void main() {
   });
 
   group('AppDefaultFooter', () {
-    testWidgets('pushes /about when the About link is tapped', (tester) async {
-      final recorder = RouteRecorder();
-      await pumpInScope(
+    testWidgets('navigates to /about when the About link is tapped', (
+      tester,
+    ) async {
+      final scope = await pumpInScope(
         tester,
         const Scaffold(bottomNavigationBar: AppDefaultFooter()),
-        observers: [recorder],
       );
       const l10n = AppLocalizationsEn();
       await tester.tap(find.text(l10n.footerAbout));
       await tester.pumpAndSettle();
-      expect(recorder.pushed, contains('/about'));
+      expect(scope.location, '/about');
       expect(find.text('route:/about'), findsOneWidget);
     });
 
