@@ -1,11 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutterbase/app/di/service_locator.dart';
+import 'package:flutterbase/presentation/app_scope.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
-import 'package:flutterbase/shared/config/app_config.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
+import 'package:flutterbase/shared/app_config.dart';
 
 /// Debug information page — shows build metadata and diagnostic actions.
 class DebugPage extends StatefulWidget {
@@ -16,23 +18,27 @@ class DebugPage extends StatefulWidget {
 }
 
 class _DebugPageState extends State<DebugPage> {
-  late final DebugViewModel _viewModel;
+  DebugViewModel? _viewModel;
 
   @override
-  void initState() {
-    super.initState();
-    _viewModel = sl<DebugViewModel>();
-    _viewModel.addListener(_onViewModelChange);
-    _viewModel.loadAppInfo();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_viewModel != null) return;
+    final viewModel = AppScope.of(context).createDebugViewModel();
+    _viewModel = viewModel;
+    viewModel.addListener(_onViewModelChange);
+    unawaited(viewModel.loadAppInfo());
   }
 
   @override
   void dispose() {
-    _viewModel.removeListener(_onViewModelChange);
+    _viewModel?.removeListener(_onViewModelChange);
     super.dispose();
   }
 
-  void _onViewModelChange() => setState(() {});
+  void _onViewModelChange() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,14 +68,14 @@ class _DebugPageState extends State<DebugPage> {
             ),
             child: Row(
               children: [
-                Icon(Icons.warning_amber, color: AppColors.statusWarning),
+                const Icon(Icons.warning_amber, color: AppColors.statusWarning),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     l10n.debugWarning,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.statusWarning,
-                        ),
+                      color: AppColors.statusWarning,
+                    ),
                   ),
                 ),
               ],
@@ -80,12 +86,12 @@ class _DebugPageState extends State<DebugPage> {
           // App info card
           AppSectionHeader(title: l10n.debugAppInfoSection),
           const SizedBox(height: AppSpacing.sm),
-          switch (_viewModel.state) {
+          switch (_viewModel?.state ?? DebugState.loading) {
             DebugState.loading => const AppLoadingView(),
             DebugState.error => AppErrorView(
-                message: _viewModel.appError?.message ?? l10n.commonError,
-                onRetry: _viewModel.loadAppInfo,
-              ),
+              message: _viewModel?.appError?.message ?? l10n.commonError,
+              onRetry: () => unawaited(_viewModel!.loadAppInfo()),
+            ),
             DebugState.loaded => _buildInfoCard(context),
           },
           const SizedBox(height: AppSpacing.lg),
@@ -143,7 +149,7 @@ class _DebugPageState extends State<DebugPage> {
             title: l10n.debugClearLogs,
             leading: const Icon(Icons.clear_all),
             onTap: () {
-              _viewModel.clearLogs();
+              _viewModel?.clearLogs();
               _showSnackBar(l10n.debugClearLogsSuccess);
             },
           ),
@@ -156,7 +162,7 @@ class _DebugPageState extends State<DebugPage> {
           const SizedBox(height: AppSpacing.sm),
           AppListCard(
             title: l10n.debugTestCrash,
-            leading: Icon(Icons.warning, color: AppColors.statusError),
+            leading: const Icon(Icons.warning, color: AppColors.statusError),
             onTap: _showCrashConfirmDialog,
           ),
         ],
@@ -165,7 +171,7 @@ class _DebugPageState extends State<DebugPage> {
   }
 
   Widget _buildInfoCard(BuildContext context) {
-    final info = _viewModel.appInfo!;
+    final info = _viewModel!.appInfo!;
     final l10n = AppLocalizations.of(context);
     final entries = <(String, String)>[
       (l10n.debugAppName, AppConfig.appName),
@@ -194,8 +200,8 @@ class _DebugPageState extends State<DebugPage> {
   }
 
   void _copyAllToClipboard() {
-    if (_viewModel.appInfo == null) return;
-    final info = _viewModel.appInfo!;
+    final info = _viewModel?.appInfo;
+    if (info == null) return;
     final l10n = AppLocalizations.of(context);
     final buffer = StringBuffer()
       ..writeln('${l10n.debugAppName}: ${AppConfig.appName}')
@@ -206,14 +212,15 @@ class _DebugPageState extends State<DebugPage> {
       ..writeln('${l10n.debugDartVersion}: ${info.dartVersion}')
       ..writeln('${l10n.debugBuildDate}: ${info.buildDate}')
       ..writeln('${l10n.debugIsDebugBuild}: ${info.isDebug}');
-    Clipboard.setData(ClipboardData(text: buffer.toString()));
+    unawaited(Clipboard.setData(ClipboardData(text: buffer.toString())));
     _showSnackBar(l10n.debugCopiedToClipboard);
   }
 
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showCrashConfirmDialog() async {
@@ -260,13 +267,14 @@ class _DebugInfoRow extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: valueWidget ??
+          child:
+              valueWidget ??
               SelectableText(
                 value,
                 style: Theme.of(context).textTheme.bodyMedium,

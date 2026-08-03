@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
+import 'package:flutterbase/application/ports/app_logger.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
 import 'package:flutterbase/presentation/pages/system/debug_page.dart';
 import 'package:flutterbase/presentation/pages/system/logs_page.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/logging/app_logger.dart';
 
 /// Named route definitions.
 class AppRouter {
@@ -20,25 +20,25 @@ class AppRouter {
     sl<AppLogger>().debug('[Router] → ${settings.name}');
     return switch (settings.name) {
       main => MaterialPageRoute<void>(
-          builder: (_) => const MainPage(),
-          settings: settings,
-        ),
+        builder: (_) => const MainPage(),
+        settings: settings,
+      ),
       about => MaterialPageRoute<void>(
-          builder: (_) => const AboutPage(),
-          settings: settings,
-        ),
+        builder: (_) => const AboutPage(),
+        settings: settings,
+      ),
       debug => MaterialPageRoute<void>(
-          builder: (_) => const DebugPage(),
-          settings: settings,
-        ),
+        builder: (_) => const DebugPage(),
+        settings: settings,
+      ),
       logs => MaterialPageRoute<void>(
-          builder: (_) => const LogsPage(),
-          settings: settings,
-        ),
+        builder: (_) => const LogsPage(),
+        settings: settings,
+      ),
       _ => MaterialPageRoute<void>(
-          builder: (_) => const _NotFoundPage(),
-          settings: settings,
-        ),
+        builder: (_) => const _NotFoundPage(),
+        settings: settings,
+      ),
     };
   }
 }

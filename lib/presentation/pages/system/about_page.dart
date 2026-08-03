@@ -1,11 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutterbase/app/di/service_locator.dart';
+import 'package:flutterbase/presentation/app_scope.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
-import 'package:flutterbase/shared/config/app_config.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
+import 'package:flutterbase/shared/app_config.dart';
 
 /// About / version information page.
 class AboutPage extends StatefulWidget {
@@ -18,27 +19,31 @@ class AboutPage extends StatefulWidget {
 class _AboutPageState extends State<AboutPage> {
   static const int _debugUnlockTapCount = 7;
 
-  late final AboutViewModel _viewModel;
+  AboutViewModel? _viewModel;
   int _versionTapCount = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _viewModel = sl<AboutViewModel>();
-    _viewModel.addListener(_onViewModelChange);
-    _viewModel.loadAppInfo();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_viewModel != null) return;
+    final viewModel = AppScope.of(context).createAboutViewModel();
+    _viewModel = viewModel;
+    viewModel.addListener(_onViewModelChange);
+    unawaited(viewModel.loadAppInfo());
   }
 
   @override
   void dispose() {
-    _viewModel.removeListener(_onViewModelChange);
+    _viewModel?.removeListener(_onViewModelChange);
     super.dispose();
   }
 
-  void _onViewModelChange() => setState(() {});
+  void _onViewModelChange() {
+    if (mounted) setState(() {});
+  }
 
   Future<void> _onVersionTapped() async {
-    final debugVm = sl<DebugSettingsViewModel>();
+    final debugVm = AppScope.of(context).debugSettingsViewModel;
     if (debugVm.debugEnabled) {
       _versionTapCount = 0;
       return;
@@ -49,9 +54,7 @@ class _AboutPageState extends State<AboutPage> {
     await debugVm.setDebugEnabled(true);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context).aboutDebugUnlocked),
-      ),
+      SnackBar(content: Text(AppLocalizations.of(context).aboutDebugUnlocked)),
     );
   }
 
@@ -62,19 +65,19 @@ class _AboutPageState extends State<AboutPage> {
 
     return Scaffold(
       appBar: AppMainHeader(title: l10n.aboutTitle),
-      body: switch (_viewModel.state) {
+      body: switch (_viewModel?.state ?? AboutState.loading) {
         AboutState.loading => const AppLoadingView(),
         AboutState.error => AppErrorView(
-            message: _viewModel.appError?.message ?? l10n.commonError,
-            onRetry: _viewModel.loadAppInfo,
-          ),
+          message: _viewModel?.appError?.message ?? l10n.commonError,
+          onRetry: () => unawaited(_viewModel!.loadAppInfo()),
+        ),
         AboutState.loaded => _buildContent(context, colorScheme),
       },
     );
   }
 
   Widget _buildContent(BuildContext context, ColorScheme colorScheme) {
-    final info = _viewModel.appInfo!;
+    final info = _viewModel!.appInfo!;
     final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
@@ -88,7 +91,11 @@ class _AboutPageState extends State<AboutPage> {
               color: colorScheme.primaryContainer,
               borderRadius: AppRadius.xlBorder,
             ),
-            child: Icon(Icons.web_asset, size: AppSpacing.aboutIconSize, color: colorScheme.primary),
+            child: Icon(
+              Icons.web_asset,
+              size: AppSpacing.aboutIconSize,
+              color: colorScheme.primary,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
@@ -103,8 +110,8 @@ class _AboutPageState extends State<AboutPage> {
           child: Text(
             AppConfig.appDescription,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+              color: colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
         ),
@@ -122,7 +129,10 @@ class _AboutPageState extends State<AboutPage> {
               const Divider(height: AppSpacing.xl),
               _InfoRow(label: l10n.aboutGitCommit, value: info.gitCommit),
               const Divider(height: AppSpacing.xl),
-              _InfoRow(label: l10n.aboutFlutterVersion, value: info.flutterVersion),
+              _InfoRow(
+                label: l10n.aboutFlutterVersion,
+                value: info.flutterVersion,
+              ),
               const Divider(height: AppSpacing.xl),
               _InfoRow(label: l10n.aboutDartVersion, value: info.dartVersion),
               const Divider(height: AppSpacing.xl),
@@ -151,8 +161,8 @@ class _InfoRow extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         Text(value, style: Theme.of(context).textTheme.bodyMedium),
       ],

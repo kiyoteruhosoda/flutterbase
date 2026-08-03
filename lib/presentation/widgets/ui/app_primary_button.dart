@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 
 /// デジタル庁デザインシステム準拠 プライマリボタン
 class AppPrimaryButton extends StatelessWidget {
@@ -32,15 +32,15 @@ class AppPrimaryButton extends StatelessWidget {
             ),
           )
         : icon != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: AppSpacing.iconMd),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(label),
-                ],
-              )
-            : Text(label);
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: AppSpacing.iconMd),
+              const SizedBox(width: AppSpacing.sm),
+              Text(label),
+            ],
+          )
+        : Text(label);
 
     return SizedBox(
       width: width,
@@ -84,15 +84,15 @@ class AppSecondaryButton extends StatelessWidget {
             ),
           )
         : icon != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: AppSpacing.iconMd),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(label),
-                ],
-              )
-            : Text(label);
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: AppSpacing.iconMd),
+              const SizedBox(width: AppSpacing.sm),
+              Text(label),
+            ],
+          )
+        : Text(label);
 
     return SizedBox(
       width: width,

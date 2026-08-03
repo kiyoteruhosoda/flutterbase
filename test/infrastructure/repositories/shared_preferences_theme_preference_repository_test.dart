@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutterbase/domain/value_objects/app_theme_mode.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_theme_preference_repository.dart';
-import 'package:flutterbase/shared/value_objects/app_theme_mode.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -47,7 +47,11 @@ void main() {
       for (final mode in AppThemeMode.values) {
         await repo.save(mode);
         final repo2 = SharedPreferencesThemePreferenceRepository(prefs);
-        expect(repo2.get(), equals(mode), reason: 'mode=$mode failed round-trip');
+        expect(
+          repo2.get(),
+          equals(mode),
+          reason: 'mode=$mode failed round-trip',
+        );
       }
     });
   });

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutterbase/shared/theme/app_theme.dart';
-import 'package:flutterbase/shared/theme/app_colors.dart';
+import 'package:flutterbase/presentation/theme/app_colors.dart';
+import 'package:flutterbase/presentation/theme/app_theme.dart';
 
 /// Helpers to build widgets under a specific theme for testing.
 Widget _wrapWithTheme(Widget child, ThemeData theme) {
-  return MaterialApp(theme: theme, home: Scaffold(body: child));
+  return MaterialApp(
+    theme: theme,
+    home: Scaffold(body: child),
+  );
 }
 
 void main() {
@@ -91,7 +94,10 @@ void main() {
       );
       await tester.pump();
 
-      expect(AppTheme.dark.scaffoldBackgroundColor, equals(AppColors.darkBgBase));
+      expect(
+        AppTheme.dark.scaffoldBackgroundColor,
+        equals(AppColors.darkBgBase),
+      );
     });
 
     testWidgets('AppBar respects theme colors', (tester) async {
@@ -110,33 +116,29 @@ void main() {
   });
 
   group('Widget smoke tests', () {
-    testWidgets('ElevatedButton renders correctly in light mode',
-        (tester) async {
+    testWidgets('ElevatedButton renders correctly in light mode', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
           home: Scaffold(
-            body: ElevatedButton(
-              onPressed: () {},
-              child: const Text('Button'),
-            ),
+            body: ElevatedButton(onPressed: () {}, child: const Text('Button')),
           ),
         ),
       );
       expect(find.text('Button'), findsOneWidget);
     });
 
-    testWidgets('ElevatedButton renders correctly in dark mode',
-        (tester) async {
+    testWidgets('ElevatedButton renders correctly in dark mode', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           darkTheme: AppTheme.dark,
           themeMode: ThemeMode.dark,
           home: Scaffold(
-            body: ElevatedButton(
-              onPressed: () {},
-              child: const Text('Button'),
-            ),
+            body: ElevatedButton(onPressed: () {}, child: const Text('Button')),
           ),
         ),
       );
@@ -149,7 +151,9 @@ void main() {
           MaterialApp(
             theme: theme,
             home: const Scaffold(
-              body: TextField(decoration: InputDecoration(hintText: 'Type here')),
+              body: TextField(
+                decoration: InputDecoration(hintText: 'Type here'),
+              ),
             ),
           ),
         );

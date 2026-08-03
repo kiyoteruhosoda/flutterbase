@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutterbase/app/di/service_locator.dart';
+import 'package:flutterbase/application/ports/app_logger.dart';
+import 'package:flutterbase/domain/entities/log_entry.dart';
+import 'package:flutterbase/domain/value_objects/log_level.dart';
+import 'package:flutterbase/presentation/app_scope.dart';
+import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
-import 'package:flutterbase/shared/l10n/app_localizations.dart';
-import 'package:flutterbase/shared/logging/app_logger.dart';
-import 'package:flutterbase/shared/theme/theme.dart';
 
 /// Displays the in-memory log buffer with level filtering and export.
 class LogsPage extends StatefulWidget {
@@ -16,7 +20,7 @@ class LogsPage extends StatefulWidget {
 
 class _LogsPageState extends State<LogsPage> {
   LogLevel? _filter; // null = all
-  late final AppLogger _logger = sl<AppLogger>();
+  AppLogger get _logger => AppScope.of(context).logger;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +61,7 @@ class _LogsPageState extends State<LogsPage> {
                       vertical: AppSpacing.sm,
                     ),
                     itemCount: entries.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (context, index) =>
                         _LogEntryTile(entry: entries[index]),
                   ),
@@ -71,8 +75,9 @@ class _LogsPageState extends State<LogsPage> {
     final path = await _logger.exportLogs();
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final msg =
-        path != null ? l10n.logsDownloadSuccess : l10n.logsDownloadError;
+    final msg = path != null
+        ? l10n.logsDownloadSuccess
+        : l10n.logsDownloadError;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
@@ -99,9 +104,9 @@ class _LogsPageState extends State<LogsPage> {
       _logger.clearBuffer();
       if (mounted) {
         setState(() {});
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.logsClearSuccess)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.logsClearSuccess)));
       }
     }
   }
@@ -171,8 +176,8 @@ class _FilterChip extends StatelessWidget {
       selectedColor: colorScheme.primaryContainer,
       checkmarkColor: colorScheme.primary,
       labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-          ),
+        color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+      ),
       side: BorderSide(
         color: selected ? colorScheme.primary : colorScheme.outline,
       ),
@@ -180,7 +185,7 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ─── Log entry tile ───────────────────────────────────────────────────────────
+// ─── Log entry tile ──────────────────────────────────────────────────────
 
 class _LogEntryTile extends StatelessWidget {
   const _LogEntryTile({required this.entry});
@@ -205,11 +210,9 @@ class _LogEntryTile extends StatelessWidget {
 
     return InkWell(
       onLongPress: () {
-        Clipboard.setData(ClipboardData(text: entry.toLogLine()));
+        unawaited(Clipboard.setData(ClipboardData(text: entry.toLogLine())));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).logsCopied),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context).logsCopied)),
         );
       },
       child: Padding(
@@ -232,9 +235,9 @@ class _LogEntryTile extends StatelessWidget {
               child: Text(
                 entry.levelLabel,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -250,8 +253,8 @@ class _LogEntryTile extends StatelessWidget {
                     Text(
                       '${entry.error}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                 ],
               ),
@@ -260,8 +263,8 @@ class _LogEntryTile extends StatelessWidget {
             Text(
               ts,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
