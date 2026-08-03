@@ -105,6 +105,12 @@ const Map<Layer, List<String>> _bannedUris = <Layer, List<String>>{
 
 /// Packages that reach the network, a database, the file system, or platform
 /// channels. Infrastructure is the only layer allowed to import them.
+///
+/// `url_launcher` is here for the same reason as the rest: handing a URL to
+/// the platform is a plugin call, so it sits behind the
+/// `ExternalLinkLauncher` port and its adapter in `infrastructure/links/`.
+/// `package:path` is deliberately absent — it is pure string manipulation
+/// with no platform behind it.
 const List<String> _ioPackages = [
   'package:dio/',
   'package:http/',
@@ -113,6 +119,7 @@ const List<String> _ioPackages = [
   'package:shared_preferences/',
   'package:path_provider/',
   'package:package_info_plus/',
+  'package:url_launcher/',
   'package:hive/',
   'package:drift/',
   'package:firebase_',

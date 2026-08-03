@@ -12,13 +12,12 @@ environment:
 # from is enforced by `tool/check_dependencies.dart` — see
 # `docs/ARCHITECTURE.md` §"Package placement rules".
 dependencies:
-  # Value-object equality (domain).
-  equatable: ^2.1.0
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  # State management (presentation).
+  # State management (presentation). Used without code generation — see
+  # docs/adr/0002-starter-stack.md.
   flutter_riverpod: ^3.3.2
   # Service locator — composition root only (lib/app/di).
   get_it: ^9.2.1
@@ -28,10 +27,10 @@ dependencies:
   logger: ^2.7.0
   # Runtime package metadata (infrastructure).
   package_info_plus: ^10.2.1
+  # Filesystem path composition — database file location (infrastructure).
   path: ^1.9.1
   # Platform directories (infrastructure).
   path_provider: ^2.1.6
-  riverpod_annotation: ^4.0.3
   # Key-value persistence (infrastructure).
   shared_preferences: ^2.5.5
   # SQLite (infrastructure).
@@ -53,7 +52,8 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   mockito: ^5.6.4
-  riverpod_generator: ^4.0.4
+  # Runs the SQLite adapter's tests on the host VM, where the Android/iOS
+  # sqflite plugin is unavailable.
   sqflite_common_ffi: ^2.4.2
 
 flutter:
@@ -99,14 +99,10 @@ flutter_launcher_icons:
 # here as a deliberate reservation, and still fails on any *other* unused
 # runtime dependency — so this list is the only place a "declared but unused"
 # package can hide, and reviewing it is reviewing the whole starter stack.
-# Delete an entry once lib/ starts importing the package (the checker will
-# tell you), or remove both the entry and the dependency to slim the template.
+#
+# The list is empty on purpose: every package the template declares is now
+# exercised by the bookmarks sample under lib/ (see
+# docs/adr/0002-starter-stack.md). Add an entry only when a package is
+# declared ahead of the code that will import it.
 dependency_policy:
-  reserved:
-    - equatable
-    - flutter_riverpod
-    - go_router
-    - path
-    - riverpod_annotation
-    - sqflite
-    - url_launcher
+  reserved: []

@@ -15,7 +15,8 @@
 #
 # What this script does NOT touch — edit these by hand:
 #   - pubspec.yaml `description` and `version`
-#   - AndroidManifest.xml `android:label`
+#   - AndroidManifest.xml `android:label` and the deep-link intent filters
+#     (App Link host + custom scheme) — see docs/DEEP_LINKS.md
 #   - lib/shared/config/app_config.dart (appName, fontFamily, etc.)
 #   - README.md
 #   - assets/icon/app_icon.png + app_icon_foreground.png
@@ -155,6 +156,11 @@ next steps (manual):
        - fonts.family (if swapping fonts — must match AppConfig.fontFamily)
   3. edit android/app/src/main/AndroidManifest.xml
        - android:label
+       - the autoVerify intent filter's android:host, and the custom
+         scheme's android:scheme — both must match
+         AppConfig.appLinkHost / AppConfig.customLinkScheme in
+         lib/shared/app_config.dart.  Then publish the new
+         .well-known/assetlinks.json for the domain: see docs/DEEP_LINKS.md.
   4. replace assets/icon/app_icon.png and app_icon_foreground.png,
      then run:  dart run flutter_launcher_icons
      remember to update the brand colour in

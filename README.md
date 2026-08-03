@@ -14,6 +14,23 @@ docs/CUSTOMISATION.md
 
 `docs/CUSTOMISATION.md` は、パッケージ名変更、アプリ名、Android label、launcher icon、debug keystore、検証手順など、fork 時に必要な具体的作業のガイドです。
 
+ディープリンク（App Links）を使う場合は、ホスト名の差し替えと `assetlinks.json` の配信が必要です。手順は `docs/DEEP_LINKS.md` にあります。
+
+## Starter Stack
+
+テンプレートが採用している package と、それぞれの担当レイヤーです。すべて `lib/` のサンプル実装（ブックマーク機能）で実際に使われています。採否の理由は `docs/adr/0002-starter-stack.md`、置き場所の一覧は `docs/ARCHITECTURE.md` にあります。
+
+| package | 用途 | レイヤー |
+|---|---|---|
+| `go_router` | ルーティングとディープリンク受け口 | 合成ルート（`lib/app/`） |
+| `flutter_riverpod` | 状態管理（コード生成なし） | Presentation |
+| `get_it` | サービスロケータ | 合成ルート |
+| `sqflite` | ローカル DB | Infrastructure |
+| `path` | DB ファイルパスの組み立て | Infrastructure |
+| `url_launcher` | 外部リンク起動（ポートの背後） | Infrastructure |
+
+`equatable` と `riverpod_annotation` / `riverpod_generator` は採用していません。値の等価性は手書きの `==` / `hashCode`、Riverpod の provider も手書きです。コード生成を挟まないぶん、clone してすぐ動きます。
+
 ## Purpose
 
 * 再利用しやすい Flutter プロジェクト構造を提供する
@@ -149,8 +166,9 @@ Domain は UI、DB、HTTP、JSON、フレームワークの詳細に依存しな
 
 | ファイル / ディレクトリ | 役割 | 書くこと | 書かないこと |
 |---|---|---|---|
-| `docs/ARCHITECTURE.md` | 設計ガイド | レイヤー構成、命名、設計パターン | 個別の操作手順 |
+| `docs/ARCHITECTURE.md` | 設計ガイド | レイヤー構成、命名、設計パターン、採用 package の置き場所 | 個別の操作手順 |
 | `docs/OPERATIONS.md` | 手順書 | 起動、build、reset、migration、配布コマンド | なぜそうしたかの長い経緯 |
+| `docs/DEEP_LINKS.md` | 手順書 | App Links / カスタムスキームの設定と確認 | 設計判断の経緯 |
 | `docs/Progress.md` | 進捗 | 未着手、進行中、要判断のタスク | 完了済みタスクの保管 |
 | `docs/CHANGELOG.md` | 変更履歴 | 完了した重要変更の短い要約 | 詳細な調査ログ |
 | `docs/adr/` | 設計判断 | ADR、採用・却下理由 | 日々の進捗 |

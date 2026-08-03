@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/navigation/app_routes.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_license_launcher.dart';
+import 'package:go_router/go_router.dart';
 
 /// Footer bar shown at the bottom of the main screen.
 /// Contains navigation links only — version info is on the About page.
@@ -64,7 +68,7 @@ class AppDefaultFooter extends StatelessWidget {
       links: [
         AppFooterLink(
           label: l10n.footerAbout,
-          onTap: () => Navigator.of(context).pushNamed('/about'),
+          onTap: () => unawaited(context.push<void>(AppRoutes.about)),
         ),
         AppFooterLink(
           label: l10n.footerLicenses,

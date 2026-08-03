@@ -65,6 +65,64 @@ flutter test --exclude-tags tool
 | `stale-reservation` | reserved の記載が実態と合っていない | 使い始めた package は reserved から外す |
 | カバレッジ下限割れ | テスト不足 | `--verbose` で低い順に出るので上から潰す |
 | `every library under lib/ is imported by this file` が落ちる | `lib/` にファイルを足したが `test/coverage_surface_test.dart` に import していない | 失敗メッセージのとおり import を追加 |
+| `AndroidManifest — deep links` が落ちる | `AppConfig` と `AndroidManifest.xml` のホスト / スキームが食い違った | 両方を揃える。手順は `docs/DEEP_LINKS.md` |
+
+## ローカル DB (SQLite)
+
+スキーマとマイグレーションは `lib/infrastructure/database/app_database.dart`
+に集約しています。DB を開くのはアプリ起動時（`InfrastructureModule.create`）
+の 1 回だけです。
+
+| 項目 | 値 / 場所 |
+|---|---|
+| ファイル名 | `flutterbase.db`（`AppDatabase.fileName`） |
+| 配置 | プラットフォームの databases ディレクトリ（`getDatabasesPath()`） |
+| スキーマ版 | `AppDatabase.schemaVersion` |
+| マイグレーション | `AppDatabase._upgrade` の `if (from < n)` ラダー |
+
+### スキーマを変更する
+
+1. `AppDatabase.schemaVersion` を 1 つ上げる。
+2. `_upgrade` に `if (from < <新しい版>) { ... }` を追加する。
+   既存のブロックは消さないでください。数リリース飛ばして更新した端末は、
+   上から順に全部を通ります。
+3. `_create` にも同じ最終形を反映する（新規インストール用）。
+4. `test/infrastructure/database/app_database_test.dart` にケースを足す。
+
+### リセット
+
+アプリのデータを消せば DB ファイルごと消えます。
+
+```bash
+adb shell pm clear com.example.flutterbase
+```
+
+### テスト
+
+Android / iOS の sqflite プラグインはホスト上では動かないため、テストは
+`sqflite_common_ffi` の `databaseFactory` に差し替えて**同じ production コード**
+を実行します。`AppDatabase.open` が top-level の `openDatabase` ではなく
+ambient な `databaseFactory` を使っているのはこのためです。
+
+```dart
+setUpAll(() {
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+});
+```
+
+## ディープリンク
+
+App Links / カスタムスキームの設定・確認手順は `docs/DEEP_LINKS.md` にあります。
+
+切り分けの起点はログです。ルーターに届いたリンクは必ず
+`[Router] → /bookmarks/1` の形で残ります。
+
+- ログが出ない → リンクがアプリに届いていない（intent filter か検証の問題）
+- ログは出るが画面が出ない → ルートが一致していない（`AppRoutes` を確認）
+
+アプリ内の `/link` 画面（ドロワー → ディープリンク）に、起動時 URL と
+`adb` コマンドが表示されます。
 
 ## Android ツールチェイン
 

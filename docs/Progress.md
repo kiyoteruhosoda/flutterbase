@@ -11,40 +11,40 @@
 
 | 優先 | # | 概要 | 状態 | 影響度 | 重要度 | 難易度 | 工数 |
 |---|---|---|---|---|---|---|---|
-| 1 | 1 | `minSdk = 36` が意図どおりか確認する | 🟡要判断 | 大 | 大 | 小 | 小 |
-| 2 | 2 | `dependency_policy.reserved` の 7 package を残すか決める | 🟡要判断 | 中 | 中 | 小 | 小 |
+| 1 | 1 | App Link のホストを実ドメインに差し替え、`assetlinks.json` を配信する | ⬜未着手 | 大 | 中 | 小 | 小 |
+| 2 | 2 | ViewModel + `AppScope` を Riverpod に寄せるか決める | 🟡要判断 | 中 | 中 | 中 | 大 |
 
 
 ## 詳細
 
-### 1. `minSdk = 36` が意図どおりか確認する
+### 1. App Link のホストを実ドメインに差し替える
 
-`android/app/build.gradle` の `defaultConfig` が
-`minSdk = 36` / `targetSdk = 36` / `compileSdk = 36` になっています。
-`minSdk = 36` は「Android 16 以降にしかインストールできない」という意味で、
-テンプレートの既定値としてはかなり強い制約です。
+テンプレートの既定値は `flutterbase.example.com` で、実在しません。
+そのままでは `autoVerify` が失敗し、リンクはブラウザで開きます
+（アプリの起動やアプリ内遷移は壊れません）。
 
-一方 `pubspec.yaml` の `flutter_launcher_icons` は
-`min_sdk_android: 21` を指定しており、両者が食い違っています。
-`compileSdk` / `targetSdk` を上げる際に `minSdk` も一緒に書き換えてしまった
-可能性があります。
+fork 後に必要な作業は 3 つで、いずれも `docs/DEEP_LINKS.md` に手順があります。
 
-意図的でなければ `minSdk` だけを下げてください（21 / 24 が一般的）。
-`compileSdk` と `targetSdk` は 36 のままで問題ありません。
+1. `lib/shared/app_config.dart` の `appLinkHost` を実ドメインにする。
+2. `android/app/src/main/AndroidManifest.xml` の `android:host` を合わせる。
+3. `docs/deep_links/assetlinks.json` に署名フィンガープリントを入れ、
+   `https://<host>/.well-known/assetlinks.json` として配信する。
 
-判断が必要なのでこの変更は行っていません。
+テンプレート側で決められるのはここまでなので、作業自体は fork 側に残します。
 
-### 2. `dependency_policy.reserved` の 7 package を残すか決める
+### 2. ViewModel + `AppScope` を Riverpod に寄せるか決める
 
-`go_router` / `flutter_riverpod` / `riverpod_annotation` / `sqflite` /
-`path` / `url_launcher` / `equatable` は `pubspec.yaml` で宣言されていますが、
-`lib/` からは一度も import されていません。
+現在、状態管理の入り口が 2 つあります。
 
-テンプレートとして「生成後のアプリが使う前提の初期スタック」を配っている、
-という解釈で `dependency_policy.reserved` に列挙し、
-`tool/check_dependencies.dart` が意図的な予約として扱うようにしました
-（`docs/ARCHITECTURE.md` 参照）。
+- 既存のテーマ・言語・デバッグ設定・About・Logs: `get_it` + `ChangeNotifier`
+  + `AppScope`（`InheritedWidget`）
+- ブックマーク機能: `flutter_riverpod`（provider は Presentation に宣言し、
+  合成ルートが `overrideWithValue` で実体を注入）
 
-テンプレートを軽くしたい場合は、reserved の記載と `dependencies` の両方から
-削除してください。いずれも未使用なので、削除しても `lib/` の修正は不要です。
-リポジトリ所有者の方針次第なので、判断は保留しています。
+役割は同じ（合成ルートが注入し、Presentation は契約だけを見る）で、
+どちらも `tool/check_architecture.dart` を通ります。ただしテンプレートとして
+「どちらで書けばいいか」が一目で決まらないのは弱点です。
+
+Riverpod に統一する場合、ViewModel 5 本とそのテスト、`AppScope`、
+テストハーネスが影響範囲です。既存コードが動いている以上、急ぎではありません。
+経緯は `docs/adr/0002-starter-stack.md`。

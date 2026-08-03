@@ -255,31 +255,46 @@ void main() {
       expect(find.text(l10n.homeWelcomeTitle), findsOneWidget);
     });
 
-    testWidgets('About in the drawer pushes the /about route', (tester) async {
-      final recorder = RouteRecorder();
-      await pumpInScope(tester, const MainPage(), observers: [recorder]);
+    testWidgets('About in the drawer navigates to /about', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
       await openDrawer(tester);
       await tester.tap(inDrawer(l10n.drawerAbout));
       await tester.pumpAndSettle();
-      expect(recorder.pushed, contains('/about'));
+      expect(scope.location, '/about');
     });
 
-    testWidgets('Logs in the drawer pushes the /logs route', (tester) async {
-      final recorder = RouteRecorder();
-      await pumpInScope(tester, const MainPage(), observers: [recorder]);
+    testWidgets('Logs in the drawer navigates to /logs', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
       await openDrawer(tester);
       await tester.tap(inDrawer(l10n.drawerLogs));
       await tester.pumpAndSettle();
-      expect(recorder.pushed, contains('/logs'));
+      expect(scope.location, '/logs');
     });
 
-    testWidgets('Debug in the drawer pushes the /debug route', (tester) async {
-      final recorder = RouteRecorder();
-      await pumpInScope(tester, const MainPage(), observers: [recorder]);
+    testWidgets('Debug in the drawer navigates to /debug', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
       await openDrawer(tester);
       await tester.tap(inDrawer(l10n.drawerDebug));
       await tester.pumpAndSettle();
-      expect(recorder.pushed, contains('/debug'));
+      expect(scope.location, '/debug');
+    });
+
+    testWidgets('Bookmarks in the drawer navigates to /bookmarks', (
+      tester,
+    ) async {
+      final scope = await pumpInScope(tester, const MainPage());
+      await openDrawer(tester);
+      await tester.tap(inDrawer(l10n.drawerBookmarks));
+      await tester.pumpAndSettle();
+      expect(scope.location, '/bookmarks');
+    });
+
+    testWidgets('Deep Links in the drawer navigates to /link', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
+      await openDrawer(tester);
+      await tester.tap(inDrawer(l10n.drawerDeepLink));
+      await tester.pumpAndSettle();
+      expect(scope.location, '/link');
     });
 
     testWidgets('Licenses in the drawer opens the license page', (
@@ -384,28 +399,39 @@ void main() {
       );
     });
 
-    testWidgets('the About row pushes the /about route', (tester) async {
-      final recorder = RouteRecorder();
-      await pumpInScope(tester, const MainPage(), observers: [recorder]);
+    testWidgets('the About row navigates to /about', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
       await selectTab(tester, 2);
       await scrollAndTap(tester, l10n.settingsAbout);
-      expect(recorder.pushed, contains('/about'));
+      expect(scope.location, '/about');
     });
 
-    testWidgets('the Logs row pushes the /logs route', (tester) async {
-      final recorder = RouteRecorder();
-      await pumpInScope(tester, const MainPage(), observers: [recorder]);
+    testWidgets('the Logs row navigates to /logs', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
       await selectTab(tester, 2);
       await scrollAndTap(tester, l10n.settingsLogs);
-      expect(recorder.pushed, contains('/logs'));
+      expect(scope.location, '/logs');
     });
 
-    testWidgets('the Debug row pushes the /debug route', (tester) async {
-      final recorder = RouteRecorder();
-      await pumpInScope(tester, const MainPage(), observers: [recorder]);
+    testWidgets('the Debug row navigates to /debug', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
       await selectTab(tester, 2);
       await scrollAndTap(tester, l10n.settingsDebug);
-      expect(recorder.pushed, contains('/debug'));
+      expect(scope.location, '/debug');
+    });
+
+    testWidgets('the Bookmarks row navigates to /bookmarks', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
+      await selectTab(tester, 2);
+      await scrollAndTap(tester, l10n.settingsBookmarks);
+      expect(scope.location, '/bookmarks');
+    });
+
+    testWidgets('the Deep Links row navigates to /link', (tester) async {
+      final scope = await pumpInScope(tester, const MainPage());
+      await selectTab(tester, 2);
+      await scrollAndTap(tester, l10n.settingsDeepLink);
+      expect(scope.location, '/link');
     });
 
     testWidgets('the Licenses row opens the license page', (tester) async {

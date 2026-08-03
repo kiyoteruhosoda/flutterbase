@@ -20,7 +20,53 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- ── App Links ────────────────────────────────────────────
+                 android:autoVerify="true" makes Android fetch
+                 https://<host>/.well-known/assetlinks.json at install time
+                 and compare its signing-certificate fingerprints with this
+                 APK's. Only if they match does the system open these links
+                 here instead of in the browser — that verification is the
+                 difference between an App Link and a custom scheme anyone
+                 could claim.
+
+                 The host must equal AppConfig.appLinkHost, and the paths
+                 must match the routes in
+                 presentation/navigation/app_routes.dart. See
+                 docs/DEEP_LINKS.md for generating assetlinks.json and for
+                 verifying with adb. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="flutterbase.example.com"/>
+            </intent-filter>
+
+            <!-- ── Custom scheme fallback ───────────────────────────────
+                 Unverified: any app may register the same scheme, so this
+                 is for local testing and for entry points you control —
+                 never for a link a stranger can send. Links must use the
+                 empty-authority form (flutterbase:///bookmarks/1), because
+                 Flutter's Android embedding builds the in-app route from
+                 the URI path and drops the authority. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="flutterbase"/>
+            </intent-filter>
         </activity>
+
+        <!-- Hands the launch intent's URI to the Flutter framework as the
+             initial route, and delivers later ones to the Router API while
+             the app is running. Without this, the intent filters above open
+             the app but always land on "/". -->
+        <meta-data
+            android:name="flutter_deeplinking_enabled"
+            android:value="true" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
@@ -29,6 +75,12 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- url_launcher needs to see which apps can handle a web URL before
+             canLaunchUrl() will answer truthfully on API 30+. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>
