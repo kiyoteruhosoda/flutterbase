@@ -13,8 +13,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT="$ROOT_DIR/lib/shared/build_info.dart"
 
+# ── Build number ─────────────────────────────────────────────────────────────
+# BUILD_NUMBER when the caller set one — scripts/build.sh passes the same
+# value it gives `flutter build --build-number`, so the About screen and the
+# artifact's versionCode always agree. Otherwise the git commit count.
+BUILD_NUMBER_VALUE=${BUILD_NUMBER:-$(git -C "$ROOT_DIR" rev-list --count HEAD 2>/dev/null || echo "0")}
+
 # ── Git info ────────────────────────────────────────────────────────────────
-GIT_COUNT=$(git -C "$ROOT_DIR" rev-list --count HEAD 2>/dev/null || echo "0")
 GIT_SHORT=$(git -C "$ROOT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_FULL=$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
 
@@ -42,8 +47,9 @@ class BuildInfo {
   /// Semantic version from pubspec.yaml (e.g. "1.0.0").
   static const String version = '$VERSION';
 
-  /// Git commit count used as build number (e.g. "26").
-  static const String buildNumber = '$GIT_COUNT';
+  /// Build number (e.g. "26") — BUILD_NUMBER when the build set one,
+  /// otherwise the git commit count.
+  static const String buildNumber = '$BUILD_NUMBER_VALUE';
 
   /// Short Git commit hash (e.g. "f3c3fd3").
   static const String gitCommit = '$GIT_SHORT';
@@ -67,7 +73,7 @@ EOF
 
 echo "Generated $OUTPUT"
 echo "  version:      $VERSION"
-echo "  buildNumber:  $GIT_COUNT"
+echo "  buildNumber:  $BUILD_NUMBER_VALUE"
 echo "  gitCommit:    $GIT_SHORT"
 echo "  flutterVersion: $FLUTTER_VERSION"
 echo "  dartVersion:  $DART_VERSION"

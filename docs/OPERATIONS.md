@@ -67,6 +67,124 @@ flutter test --exclude-tags tool
 | `every library under lib/ is imported by this file` が落ちる | `lib/` にファイルを足したが `test/coverage_surface_test.dart` に import していない | 失敗メッセージのとおり import を追加 |
 | `AndroidManifest — deep links` が落ちる | `AppConfig` と `AndroidManifest.xml` のホスト / スキームが食い違った | 両方を揃える。手順は `docs/DEEP_LINKS.md` |
 
+## 配布物をビルドする
+
+配布用の APK / AAB は `scripts/build.sh` で作ります。出力先ディレクトリ
+（既定 `dist/`）が配布物の一式で、これをそのまま配布元のマシンへ渡せば足ります
+（リポジトリも Flutter SDK も要りません）。
+
+```bash
+./scripts/build.sh              # APK + AAB（release）を dist/ へ
+./scripts/build.sh apk          # APK だけ
+./scripts/build.sh aab out      # AAB だけを out/ へ
+./scripts/build.sh --help
+```
+
+| 環境変数 | 既定 | 意味 |
+|---|---|---|
+| `BUILD_MODE` | `release` | ビルド variant（`release` / `debug`） |
+| `BUILD_NUMBER` | `git rev-list --count HEAD` | Android の versionCode |
+
+出力されるもの:
+
+| ファイル | 内容 |
+|---|---|
+| `<base>-<version>-<variant>.apk` | 端末へ入れる配布物 |
+| `<base>-<version>-<variant>.aab` | Play Console へ上げる配布物 |
+| `manifest.env` | commit / branch / version / 署名鍵 / ファイル名 |
+| `manifest.sha256` | 転送破損を検出するためのチェックサム |
+
+`<base>` は `android/app/build.gradle` の `appApplicationId` の末尾
+（`android/gradle.properties` の `app.archivesBaseName` があればそちら）です。
+
+出力先にある古い APK / AAB は毎回消してから書き出します。新しいものの隣に
+前回の版が残っていると、配布元では見分けが付かないためです。
+
+### 署名
+
+`android/key.properties` に `storeFile` があれば release 鍵で、無ければ debug 鍵で
+署名されます（`android/app/build.gradle` のフォールバック）。判定はファイルの有無
+ではなく `storeFile` の有無で行います。`build.gradle` がそう判定するためで、
+中身が空・書きかけの `key.properties` があっても debug 鍵になります。
+
+debug 鍵になった場合は警告を出し、`manifest.env` の `signing` にも
+`debug-keystore` と記録します。**社外へ配るビルドでは必ず
+`signing=release-keystore` を確認してください。** 鍵の用意は
+`docs/CUSTOMISATION.md` にあります。
+
+### 生成物とワーキングツリー
+
+`lib/shared/build_info.dart` は生成物ですがコミット対象です。ビルドで書き換わった
+ままだとビルドホストの次の `git pull --ff-only` が失敗するため、`build.sh` は
+ビルド前の内容へ戻してから終了します（失敗時も戻します）。開発機で未コミットの
+変更を持っている場合も、その内容が戻ります。
+
+`BUILD_NUMBER` を指定した場合、その値は `BuildInfo.buildNumber` にも渡ります。
+アプリの About 画面が表示する build number と、成果物の versionCode・
+`manifest.env` が食い違わないようにするためです。
+
+## git も Flutter も無いホストでビルドする
+
+NAS やファイルサーバーのように、git も Flutter SDK も置けないホストで配布物を
+用意する場合は `scripts/build-remote-container.sh` を使います。ソース取得と
+ビルドは**同じホスト上の dev コンテナ**の中で行い、出来上がった `dist/` を
+ホストから見えるパス経由で配布ディレクトリへ取り込みます。
+
+```bash
+./build-remote-container.sh          # APK + AAB
+./build-remote-container.sh apk
+./build-remote-container.sh aab
+```
+
+実行される 5 ステップ:
+
+| 順 | ステップ | 内容 |
+|---|---|---|
+| 1 | SYNC | dev コンテナ内で `git pull --ff-only` |
+| 2 | BUILD | dev コンテナ内で `scripts/build.sh <target>` |
+| 3 | PICK | 出来上がった `dist/` を配布ディレクトリ内の一時ディレクトリへ取り込む |
+| 4 | VERIFY | `manifest.sha256` で取り込んだ配布物を照合する |
+| 5 | PUBLISH | 照合できた配布物を入れ替える（旧版はここで消える） |
+
+取り込みを一時ディレクトリで行うのは、**照合が通るまで前回の配布物を残す**ためです。
+コピーが途中で失敗しても、壊れたビルドが届いても、ダウンロードできるのは
+前回の正常なビルドのままです。
+
+SYNC の直後に、dev コンテナ内の `build-remote-container.sh` と自分自身を
+byte 単位で比較し、異なれば最新版へ差し替えて同じ引数で再実行します
+（このスクリプトは `dist/` に含まれない手置きのブートストラップなので、
+`git pull` では更新されないため）。再実行は 1 回に限定します。
+
+### 設定
+
+スクリプトと同じ場所に `build-remote-container.env`（`KEY=VALUE` 形式。雛形は
+`scripts/build-remote-container.env.example`）を置くか、環境変数で与えます。
+**スクリプト冒頭の既定値は書き換えないでください**（自己更新で丸ごと差し替わり、
+編集は次回実行時に失われます）。
+
+| キー | 既定 | 意味 |
+|---|---|---|
+| `APP_PROJECT` | ディレクトリから自動取得 | プロジェクト名 |
+| `APP_DEV_CONTAINER` | `ubuntu-dev` | ビルドを行う dev コンテナ名 |
+| `APP_DEV_USER` | `sshuser` | コンテナ内の実行ユーザー |
+| `APP_DEV_WORKDIR` | `/work/project/{PROJECT}` | コンテナ内のリポジトリ working dir |
+| `APP_DIST_DIR` | （必須） | ホストから見える `dist/` の絶対パス |
+| `APP_ARTIFACT_DIR` | スクリプトの場所 | 配布ディレクトリ |
+| `BUILD_MODE` | （未設定） | `build.sh` へそのまま渡す |
+
+値の中の `{PROJECT}` は確定したプロジェクト名へ展開されます。ディレクトリ構成が
+`/<プロジェクト名>/<チャネル>`（例 `/volume1/builds/flutterbase/internal`）なら
+プロジェクト名は親ディレクトリ名から決まるので、`PROJECT` の指定は不要です。
+
+### よくある失敗と対処
+
+| 症状 | 原因 | 対処 |
+|---|---|---|
+| `git pull inside the dev container failed` | コンテナ内のワーキングツリーが汚れている | コンテナ内で `git status` を見る。`build.sh` 以外が生成物を書き換えていないか確認 |
+| `dist not found` | `APP_DIST_DIR` がコンテナ内のパスを指している | ホストから見えるパスを指定する |
+| `checksum mismatch` | 取り込み中に転送が壊れた | もう一度実行する。繰り返すなら共有フォルダの状態を確認 |
+| `signing=debug-keystore` のまま配ってしまった | `android/key.properties` が無い | 鍵を置いて再ビルドする（`docs/CUSTOMISATION.md`） |
+
 ## ローカル DB (SQLite)
 
 スキーマとマイグレーションは `lib/infrastructure/database/app_database.dart`

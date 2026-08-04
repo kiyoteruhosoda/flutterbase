@@ -3,6 +3,37 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-08-03 — 配布物ビルドのスクリプト化
+
+判断の経緯は `docs/adr/0003-build-in-dev-container.md`。
+
+### 追加
+
+- `scripts/build.sh` — APK / AAB をビルドし、`dist/` に配布物一式
+  （成果物 + `manifest.env` + `manifest.sha256`）を書き出す。`apk` / `aab` /
+  `all` の指定と、`BUILD_MODE` / `BUILD_NUMBER` に対応。
+  `android/key.properties` に `storeFile` が無い release ビルド（＝Gradle が
+  debug 鍵へフォールバックするビルド）は警告し、manifest に
+  `signing=debug-keystore` を残す。
+- `scripts/build-remote-container.sh` — git も Flutter も無い配布先ホスト向けの
+  一括ビルド（SYNC → BUILD → PICK → VERIFY → PUBLISH）。同一ホスト上の dev
+  コンテナで `git pull` と `build.sh` を実行し、`dist/` を一時ディレクトリへ
+  取り込み、チェックサムが通ってから入れ替える（照合が通るまで前回の配布物を
+  残す）。実行のたびに自分自身を最新版へ差し替える。
+- `scripts/build-remote-container.env.example` — 上記の設定雛形。
+
+### 変更
+
+- `build.sh` はビルド後に `lib/shared/build_info.dart` をビルド前の内容へ戻す
+  （未コミットの変更を持っていた場合はその内容へ）。生成物でありながら
+  コミット対象のため、汚れたままだとビルドホストの次回の `git pull --ff-only`
+  が失敗するため。
+- `scripts/generate_build_info.sh` が `BUILD_NUMBER` を受け付けるようになった。
+  未指定なら従来どおりコミット数。`build.sh` は `flutter build --build-number`
+  と同じ値を渡すため、About 画面の build number と成果物の versionCode・
+  `manifest.env` が食い違わない。
+- `.gitignore` に `dist/` を追加。
+
 ## 2026-08-03 — 初期スタックの確定と App Links 対応
 
 判断の経緯は `docs/adr/0002-starter-stack.md`。
