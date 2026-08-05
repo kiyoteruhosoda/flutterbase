@@ -23,9 +23,11 @@
 # dist/, so git pull never updates it. After SYNC it is compared byte for
 # byte with the copy inside the dev container and, when they differ, replaces
 # itself with the newer one and re-runs with the same arguments. This happens
-# on every run, not just the first. It only works if the copy already on the
-# host is a self-update-aware one; an older copy has to be replaced by hand
-# once, after which it keeps itself current.
+# on every run, not just the first. The re-run goes through the interpreter
+# that is already running, so it works whether or not the host copy carries
+# the execute bit. It only works if the copy already on the host is a
+# self-update-aware one; an older copy has to be replaced by hand once, after
+# which it keeps itself current.
 #
 # Usage (on the build host; the target is read from any argument position,
 # default all):
@@ -194,15 +196,43 @@ if [[ "${APP_SELF_UPDATED:-0}" != "1" ]]; then
       && [[ -s "$_self_tmp" ]] && ! cmp -s "$_self_tmp" "$self_path"; then
       log "SELF-UPDATE  newer build-remote-container.sh found; replacing and re-running."
       # mktemp creates 0600, which would lock out other users and automation
-      # accounts. Carry over the existing permissions instead.
-      chmod --reference="$self_path" "$_self_tmp" 2>/dev/null \
-        || chmod "$(stat -c '%a' "$self_path" 2>/dev/null || echo 755)" "$_self_tmp" 2>/dev/null \
-        || chmod 0755 "$_self_tmp"
+      # accounts. Carry over the existing permissions instead — plus execute,
+      # which a copy placed by hand over a file share usually lacks and which
+      # carrying the mode over would otherwise perpetuate. Execute is granted
+      # only where read already is, so a deliberately narrow mode stays narrow:
+      # a bare `chmod +x` takes its classes from the umask, which would turn
+      # 0640 into 0751 and hand execute to users who cannot read the file.
+      _self_mode="$(stat -c '%a' "$self_path" 2>/dev/null \
+        || stat -f '%Lp' "$self_path" 2>/dev/null || true)"
+      if [[ "$_self_mode" =~ ^[0-7]{3,4}$ ]]; then
+        # Everything above the last three digits is setuid/setgid/sticky and
+        # is carried over untouched.
+        _self_new_mode="${_self_mode%???}"
+        for ((_i = ${#_self_mode} - 3; _i < ${#_self_mode}; _i++)); do
+          _digit="${_self_mode:_i:1}"
+          if ((_digit & 4)); then _digit=$((_digit | 1)); fi
+          _self_new_mode+="$_digit"
+        done
+        chmod "$_self_new_mode" "$_self_tmp" 2>/dev/null || chmod 0755 "$_self_tmp"
+      else
+        # No usable stat: carry the mode over as is and add execute for the
+        # owner only, the one class that can restore the rest with chmod.
+        chmod --reference="$self_path" "$_self_tmp" 2>/dev/null || chmod 0755 "$_self_tmp"
+        chmod u+x "$_self_tmp" 2>/dev/null || true
+      fi
       # Same-directory rename, so the swap is atomic: the running process
       # keeps the old inode through its open fd, and the exec below opens the
       # new one by path.
       mv -f "$_self_tmp" "$self_path"
       export APP_SELF_UPDATED=1
+      # Re-run through the interpreter that is already running rather than
+      # executing the file. Executing it needs the execute bit and a mount
+      # that allows execution; when either is missing the re-run dies with
+      # "bad interpreter: Permission denied" (exit 126) and no build happens
+      # — even though the same shell had just been running that very script.
+      if [[ -n "${BASH:-}" && -x "${BASH}" ]]; then
+        exec "$BASH" "$self_path" "$@"
+      fi
       exec "$self_path" "$@"
     fi
     rm -f "$_self_tmp"
