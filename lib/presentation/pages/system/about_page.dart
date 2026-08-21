@@ -1,57 +1,38 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutterbase/presentation/app_scope.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutterbase/domain/entities/app_info.dart';
+import 'package:flutterbase/domain/errors/app_error.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/providers/app_info_providers.dart';
+import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
-import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/app_config.dart';
 
 /// About / version information page.
-class AboutPage extends StatefulWidget {
+class AboutPage extends ConsumerStatefulWidget {
   const AboutPage({super.key});
 
   @override
-  State<AboutPage> createState() => _AboutPageState();
+  ConsumerState<AboutPage> createState() => _AboutPageState();
 }
 
-class _AboutPageState extends State<AboutPage> {
+class _AboutPageState extends ConsumerState<AboutPage> {
   static const int _debugUnlockTapCount = 7;
 
-  AboutViewModel? _viewModel;
+  /// Local to the screen — nothing outside it cares how far a user has got
+  /// through the unlock gesture, so it stays out of Riverpod.
   int _versionTapCount = 0;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_viewModel != null) return;
-    final viewModel = AppScope.of(context).createAboutViewModel();
-    _viewModel = viewModel;
-    viewModel.addListener(_onViewModelChange);
-    unawaited(viewModel.loadAppInfo());
-  }
-
-  @override
-  void dispose() {
-    _viewModel?.removeListener(_onViewModelChange);
-    super.dispose();
-  }
-
-  void _onViewModelChange() {
-    if (mounted) setState(() {});
-  }
-
   Future<void> _onVersionTapped() async {
-    final debugVm = AppScope.of(context).debugSettingsViewModel;
-    if (debugVm.debugEnabled) {
+    if (ref.read(debugModeProvider)) {
       _versionTapCount = 0;
       return;
     }
     _versionTapCount++;
     if (_versionTapCount < _debugUnlockTapCount) return;
     _versionTapCount = 0;
-    await debugVm.setDebugEnabled(true);
+    await ref.read(debugModeProvider.notifier).setEnabled(true);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).aboutDebugUnlocked)),
@@ -65,19 +46,26 @@ class _AboutPageState extends State<AboutPage> {
 
     return Scaffold(
       appBar: AppMainHeader(title: l10n.aboutTitle),
-      body: switch (_viewModel?.state ?? AboutState.loading) {
-        AboutState.loading => const AppLoadingView(),
-        AboutState.error => AppErrorView(
-          message: _viewModel?.appError?.message ?? l10n.commonError,
-          onRetry: () => unawaited(_viewModel!.loadAppInfo()),
+      body: switch (ref.watch(appInfoProvider)) {
+        AsyncLoading<AppInfo>() => const AppLoadingView(),
+        AsyncError<AppInfo>(:final error) => AppErrorView(
+          message: error is AppError ? error.message : l10n.commonError,
+          onRetry: () => ref.invalidate(appInfoProvider),
         ),
-        AboutState.loaded => _buildContent(context, colorScheme),
+        AsyncData<AppInfo>(value: final info) => _buildContent(
+          context,
+          colorScheme,
+          info,
+        ),
       },
     );
   }
 
-  Widget _buildContent(BuildContext context, ColorScheme colorScheme) {
-    final info = _viewModel!.appInfo!;
+  Widget _buildContent(
+    BuildContext context,
+    ColorScheme colorScheme,
+    AppInfo info,
+  ) {
     final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageMargin),

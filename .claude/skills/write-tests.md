@@ -10,10 +10,12 @@ Shared test doubles live in `test/support/`:
 - `fakes.dart` — in-memory repository fakes. Each records what was written
   (`saved`, `savedLogLevels`, …) and can be told to fail (`failOnSave`).
 - `recording_app_logger.dart` — a recording double for the `AppLogger` port.
-  Use `reset()` to clear the entries the ViewModels log while wiring up.
-- `test_harness.dart` — `pumpInScope` (full `AppScope` + theme + i18n, for
-  pages) and `pumpComponent` (theme + i18n only, for leaf widgets), plus
-  `RouteRecorder` for asserting navigation.
+  Use `reset()` to clear the entries the providers log while wiring up.
+- `test_harness.dart` — `pumpInScope` (full `ProviderScope` + theme + i18n,
+  for pages) and `pumpComponent` (theme + i18n only, for leaf widgets), plus
+  `RouteRecorder` for asserting navigation. `TestScope.container` reads
+  provider state directly, and `TestScope.providerOverrides()` mirrors the
+  composition root with fakes in place of the real adapters.
 
 ## What to test
 
@@ -25,8 +27,8 @@ Shared test doubles live in `test/support/`:
 3. Infrastructure: adapters, mappers, migrations. Stub the platform channel
    rather than skipping the test — see
    `test/infrastructure/logging/persistent_app_logger_test.dart`.
-4. Presentation: ViewModel state transitions, and widget tests for the
-   loading, empty, error and normal states.
+4. Presentation: provider state transitions (`test/presentation/providers/`),
+   and widget tests for the loading, empty, error and normal states.
 
 ## Rules
 

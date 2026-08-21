@@ -1,7 +1,11 @@
 # Skill: Add UI
 
 1. Confirm the screen/component purpose and input/output contract.
-2. Keep UI free of business rules; call Application through a view model/controller/presenter.
+2. Keep UI free of business rules; call Application through a Riverpod
+   provider declared in `lib/presentation/providers/`. Declare a use-case
+   provider that throws `missingOverrideMessage(...)`, override it in
+   `lib/app/di/provider_overrides.dart`, and let the screen's `Notifier` /
+   `FutureProvider` read it. Never import `lib/app/` from a screen.
 3. Handle loading, empty, error, and normal states when relevant.
 4. Reuse existing design tokens/components.
 5. Ensure the default startup path still reaches a usable initial screen.

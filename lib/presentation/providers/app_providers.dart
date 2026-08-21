@@ -13,9 +13,8 @@ String missingOverrideMessage(String providerName) =>
 ///
 /// Declared here with a throwing body and overridden in the composition root.
 /// That is what keeps the dependency arrow pointing inward: Presentation
-/// names the contract it needs, and `lib/app/` supplies the instance —
-/// exactly the role `AppScope` plays for the ChangeNotifier ViewModels,
-/// expressed in Riverpod's vocabulary.
+/// names the contract it needs, and `lib/app/` supplies the instance. Every
+/// use-case provider in this directory follows the same shape.
 final Provider<AppLogger> appLoggerProvider = Provider<AppLogger>((ref) {
   throw UnimplementedError(missingOverrideMessage('appLoggerProvider'));
 });

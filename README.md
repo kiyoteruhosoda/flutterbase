@@ -23,13 +23,15 @@ docs/CUSTOMISATION.md
 | package | 用途 | レイヤー |
 |---|---|---|
 | `go_router` | ルーティングとディープリンク受け口 | 合成ルート（`lib/app/`） |
-| `flutter_riverpod` | 状態管理（コード生成なし） | Presentation |
-| `get_it` | サービスロケータ | 合成ルート |
+| `flutter_riverpod` | 状態管理・DI（コード生成なし） | Presentation |
+| `get_it` | サービスロケータ | 合成ルート（`lib/app/di/` のみ） |
 | `sqflite` | ローカル DB | Infrastructure |
 | `path` | DB ファイルパスの組み立て | Infrastructure |
 | `url_launcher` | 外部リンク起動（ポートの背後） | Infrastructure |
 
 `equatable` と `riverpod_annotation` / `riverpod_generator` は採用していません。値の等価性は手書きの `==` / `hashCode`、Riverpod の provider も手書きです。コード生成を挟まないぶん、clone してすぐ動きます。
+
+画面の状態管理は Riverpod に統一しています（`docs/adr/0003-riverpod-unification.md`）。provider は `lib/presentation/providers/` に宣言し、実体は `lib/app/di/provider_overrides.dart` が差し込みます。`get_it` は合成ルートの中で Infrastructure とユースケースを組み立てる役割だけを持ち、Presentation からは見えません。
 
 ## Purpose
 

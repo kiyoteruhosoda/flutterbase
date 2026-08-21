@@ -14,9 +14,9 @@ import 'package:go_router/go_router.dart';
 
 /// Lists the bookmarks stored in SQLite.
 ///
-/// A [ConsumerWidget] rather than a `StatefulWidget` with a ViewModel: the
-/// list has no local state beyond what the repository holds, so Riverpod's
-/// [AsyncValue] carries the loading, error, and data states directly.
+/// A [ConsumerWidget] rather than a `StatefulWidget`: the list has no local
+/// state beyond what the repository holds, so Riverpod's [AsyncValue] carries
+/// the loading, error, and data states directly.
 class BookmarksPage extends ConsumerWidget {
   const BookmarksPage({super.key});
 

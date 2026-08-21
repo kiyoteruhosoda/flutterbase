@@ -31,7 +31,7 @@ void main() {
       expect(find.byType(NavigationBar), findsOneWidget);
     });
 
-    testWidgets('Theme changes persist via ThemeViewModel', (tester) async {
+    testWidgets('Theme changes persist via themeModeProvider', (tester) async {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 

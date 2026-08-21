@@ -2,55 +2,32 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutterbase/presentation/app_scope.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutterbase/domain/entities/app_info.dart';
+import 'package:flutterbase/domain/errors/app_error.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
+import 'package:flutterbase/presentation/providers/app_info_providers.dart';
+import 'package:flutterbase/presentation/providers/app_providers.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
-import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/app_config.dart';
 
 /// Debug information page — shows build metadata and diagnostic actions.
-class DebugPage extends StatefulWidget {
+class DebugPage extends ConsumerWidget {
   const DebugPage({super.key});
 
   @override
-  State<DebugPage> createState() => _DebugPageState();
-}
-
-class _DebugPageState extends State<DebugPage> {
-  DebugViewModel? _viewModel;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_viewModel != null) return;
-    final viewModel = AppScope.of(context).createDebugViewModel();
-    _viewModel = viewModel;
-    viewModel.addListener(_onViewModelChange);
-    unawaited(viewModel.loadAppInfo());
-  }
-
-  @override
-  void dispose() {
-    _viewModel?.removeListener(_onViewModelChange);
-    super.dispose();
-  }
-
-  void _onViewModelChange() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final appInfo = ref.watch(appInfoProvider);
     return Scaffold(
       appBar: AppMainHeader(
         title: l10n.debugTitle,
         actions: [
           IconButton(
             icon: const Icon(Icons.copy),
-            onPressed: _copyAllToClipboard,
+            onPressed: () => _copyAllToClipboard(context, appInfo.value),
             tooltip: l10n.debugCopyAll,
           ),
         ],
@@ -86,13 +63,16 @@ class _DebugPageState extends State<DebugPage> {
           // App info card
           AppSectionHeader(title: l10n.debugAppInfoSection),
           const SizedBox(height: AppSpacing.sm),
-          switch (_viewModel?.state ?? DebugState.loading) {
-            DebugState.loading => const AppLoadingView(),
-            DebugState.error => AppErrorView(
-              message: _viewModel?.appError?.message ?? l10n.commonError,
-              onRetry: () => unawaited(_viewModel!.loadAppInfo()),
+          switch (appInfo) {
+            AsyncLoading<AppInfo>() => const AppLoadingView(),
+            AsyncError<AppInfo>(:final error) => AppErrorView(
+              message: error is AppError ? error.message : l10n.commonError,
+              onRetry: () => ref.invalidate(appInfoProvider),
             ),
-            DebugState.loaded => _buildInfoCard(context),
+            AsyncData<AppInfo>(value: final info) => _buildInfoCard(
+              context,
+              info,
+            ),
           },
           const SizedBox(height: AppSpacing.lg),
 
@@ -149,29 +129,30 @@ class _DebugPageState extends State<DebugPage> {
             title: l10n.debugClearLogs,
             leading: const Icon(Icons.clear_all),
             onTap: () {
-              _viewModel?.clearLogs();
-              _showSnackBar(l10n.debugClearLogsSuccess);
+              ref.read(appLoggerProvider)
+                ..info('[Debug] clearLogs')
+                ..clearBuffer();
+              _showSnackBar(context, l10n.debugClearLogsSuccess);
             },
           ),
           const SizedBox(height: AppSpacing.sm),
           AppListCard(
             title: l10n.debugClearCache,
             leading: const Icon(Icons.cleaning_services_outlined),
-            onTap: () => _showSnackBar(l10n.debugClearCacheSuccess),
+            onTap: () => _showSnackBar(context, l10n.debugClearCacheSuccess),
           ),
           const SizedBox(height: AppSpacing.sm),
           AppListCard(
             title: l10n.debugTestCrash,
             leading: const Icon(Icons.warning, color: AppColors.statusError),
-            onTap: _showCrashConfirmDialog,
+            onTap: () => _showCrashConfirmDialog(context),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoCard(BuildContext context) {
-    final info = _viewModel!.appInfo!;
+  Widget _buildInfoCard(BuildContext context, AppInfo info) {
     final l10n = AppLocalizations.of(context);
     final entries = <(String, String)>[
       (l10n.debugAppName, AppConfig.appName),
@@ -199,8 +180,7 @@ class _DebugPageState extends State<DebugPage> {
     );
   }
 
-  void _copyAllToClipboard() {
-    final info = _viewModel?.appInfo;
+  void _copyAllToClipboard(BuildContext context, AppInfo? info) {
     if (info == null) return;
     final l10n = AppLocalizations.of(context);
     final buffer = StringBuffer()
@@ -213,17 +193,17 @@ class _DebugPageState extends State<DebugPage> {
       ..writeln('${l10n.debugBuildDate}: ${info.buildDate}')
       ..writeln('${l10n.debugIsDebugBuild}: ${info.isDebug}');
     unawaited(Clipboard.setData(ClipboardData(text: buffer.toString())));
-    _showSnackBar(l10n.debugCopiedToClipboard);
+    _showSnackBar(context, l10n.debugCopiedToClipboard);
   }
 
-  void _showSnackBar(String message) {
-    if (!mounted) return;
+  static void _showSnackBar(BuildContext context, String message) {
+    if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _showCrashConfirmDialog() async {
+  static Future<void> _showCrashConfirmDialog(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,

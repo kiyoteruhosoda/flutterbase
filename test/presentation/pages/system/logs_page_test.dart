@@ -13,8 +13,8 @@ const l10n = AppLocalizationsEn();
 
 /// A scope whose logger holds exactly one entry per level.
 ///
-/// The entries are written *after* the scope is built, because constructing
-/// the ViewModels logs their initial state.
+/// The entries are written *after* the scope is built, because building the
+/// app-wide providers logs their initial state.
 TestScope scopeWithEntries() {
   final logger = RecordingAppLogger();
   final scope = TestScope(logger: logger);

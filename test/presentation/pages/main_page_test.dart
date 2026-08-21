@@ -5,6 +5,7 @@ import 'package:flutterbase/domain/value_objects/app_theme_mode.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations_en.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
+import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/app_config.dart';
 
@@ -316,7 +317,7 @@ void main() {
       await scrollAndTap(tester, l10n.settingsThemeDark);
 
       expect(scope.themeRepository.saved, equals([AppThemeMode.dark]));
-      expect(scope.themeViewModel.themeMode, ThemeMode.dark);
+      expect(scope.container.read(themeModeProvider), ThemeMode.dark);
     });
 
     testWidgets('every theme option is reachable', (tester) async {

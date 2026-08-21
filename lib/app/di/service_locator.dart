@@ -19,19 +19,15 @@ import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
 import 'package:flutterbase/infrastructure/infrastructure_module.dart';
-import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:get_it/get_it.dart';
 
 /// Composition root.
 ///
 /// This is the only place allowed to see every layer at once: it binds Domain
-/// interfaces to Infrastructure adapters and hands the wired objects down to
-/// Presentation through `AppScope`. Nothing outside `lib/app/` may import
-/// this file — `tool/check_architecture.dart` enforces that.
+/// interfaces to Infrastructure adapters and registers the use cases built on
+/// top of them. `provider_overrides.dart` is what hands those objects to
+/// Presentation. Nothing outside `lib/app/` may import this file —
+/// `tool/check_architecture.dart` enforces that.
 final GetIt sl = GetIt.instance;
 
 /// Wires up all dependencies. Call once at app startup before `runApp`.
@@ -100,37 +96,6 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerFactory<OpenBookmarkUseCase>(
     () => OpenBookmarkUseCase(sl<ExternalLinkLauncher>(), sl<AppLogger>()),
-  );
-
-  // ─── ViewModels ──────────────────────────────────────────────────────
-
-  sl.registerSingleton<ThemeViewModel>(
-    ThemeViewModel(
-      sl<GetThemePreferenceUseCase>(),
-      sl<SetThemePreferenceUseCase>(),
-      sl<AppLogger>(),
-    ),
-  );
-  sl.registerSingleton<LanguageViewModel>(
-    LanguageViewModel(
-      sl<GetLanguagePreferenceUseCase>(),
-      sl<SetLanguagePreferenceUseCase>(),
-      sl<AppLogger>(),
-    ),
-  );
-  sl.registerSingleton<DebugSettingsViewModel>(
-    DebugSettingsViewModel(
-      sl<GetDebugSettingsUseCase>(),
-      sl<SetDebugModeUseCase>(),
-      sl<SetLogLevelUseCase>(),
-      sl<AppLogger>(),
-    ),
-  );
-  sl.registerFactory<AboutViewModel>(
-    () => AboutViewModel(sl<GetAppInfoUseCase>(), sl<AppLogger>()),
-  );
-  sl.registerFactory<DebugViewModel>(
-    () => DebugViewModel(sl<GetAppInfoUseCase>(), sl<AppLogger>()),
   );
 
   sl<AppLogger>().info('[DI] Service locator setup complete');

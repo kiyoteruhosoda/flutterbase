@@ -3,6 +3,43 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-08-21 — 画面の状態管理を Riverpod に統一
+
+判断の経緯は `docs/adr/0003-riverpod-unification.md`。
+
+### 削除
+
+- `lib/presentation/viewmodels/`（`ChangeNotifier` ViewModel 5 本）と
+  `lib/presentation/app_scope.dart`（`InheritedWidget`）。状態管理の入り口が
+  Riverpod と 2 系統あったのを 1 つにするため。
+
+### 追加
+
+- `lib/presentation/providers/theme_providers.dart` — `themeModeProvider`。
+- `lib/presentation/providers/language_providers.dart` — `appLanguageProvider`
+  と、そこから `Locale` を導く `appLocaleProvider`。
+- `lib/presentation/providers/debug_providers.dart` — `debugModeProvider` と
+  `logLevelProvider`。デバッグ表示とログレベルは別々に watch できる。
+- `lib/presentation/providers/app_info_providers.dart` — `appInfoProvider`。
+  About と Debug が同じビルド情報を共有する（旧 `AboutViewModel` /
+  `DebugViewModel` はほぼ同一のコードだった）。Riverpod 3 の自動リトライは
+  無効化し、失敗は 1 回だけ表示する。
+
+### 変更
+
+- `provider_overrides.dart` がユースケース 14 本すべての注入先になった。
+  画面の状態を持つ provider はそこから自分で組み立てるので、合成ルートは
+  UI の状態を知らない。
+- `AppWidget` は `ConsumerStatefulWidget` になり、`themeMode` / `locale` を
+  `ref.watch` で読む。サービスロケータ参照と `ListenableBuilder` が消えた。
+- テーマ・言語の保存は「保存が成功してから state を進める」形になった。
+  以前は `await` の前に値を書き換えており、保存に失敗すると画面に
+  保存されていない値が残っていた。
+- About / Debug のエラー表示が翻訳キー（`commonError`）になった。
+  以前はハードコードされた英語メッセージ。
+- `TestScope` が `ProviderContainer` を持つ。ウィジェットテストは実際の
+  notifier を動かし、`scope.container.read(...)` で状態を読む。
+
 ## 2026-08-05 — 自己更新後の再実行が終了コード 126 で落ちる問題の修正
 
 - `scripts/build-remote-container.sh` の自己更新後の再実行を、ファイルを直接
