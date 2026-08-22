@@ -67,7 +67,7 @@ stages:
           - script: flutter --version
             displayName: 'Flutter Version Check'
 
-          - script: flutter pub get
+          - script: flutter pub get --enforce-lockfile
             displayName: 'Install Dependencies'
 
           - script: dart format --output=none --set-exit-if-changed lib/ test/
@@ -123,7 +123,7 @@ stages:
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'
 
-          - script: flutter pub get
+          - script: flutter pub get --enforce-lockfile
             displayName: 'Install Dependencies'
 
           - script: flutter build apk --debug
@@ -173,7 +173,7 @@ stages:
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'
 
-          - script: flutter pub get
+          - script: flutter pub get --enforce-lockfile
             displayName: 'Install Dependencies'
 
           # Keystore を Azure Pipelines の SecureFiles から取得
@@ -233,7 +233,7 @@ stages:
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'
 
-          - script: flutter pub get
+          - script: flutter pub get --enforce-lockfile
             displayName: 'Install Dependencies'
 
           - script: |
@@ -291,7 +291,7 @@ stages:
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'
 
-          - script: flutter pub get
+          - script: flutter pub get --enforce-lockfile
             displayName: 'Install Dependencies'
 
           # 証明書・プロビジョニングプロファイルのインストール

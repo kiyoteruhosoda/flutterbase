@@ -64,6 +64,14 @@ CI で `stable` のような流動的なブランチを clone してはいけま
 stable を進めた瞬間に lock と食い違い、`--enforce-lockfile` が構造的に必ず
 失敗するようになります。
 
+依存解決は全経路で `--enforce-lockfile` を使います
+（`scripts/ci.sh` / `scripts/build.sh` / `.github/workflows/build.yml` /
+`azure-pipelines.yml`）。配布物を作る経路が、品質ゲートで検証していない依存で
+ビルドされるのを防ぐためです。**副作用として、ビルダーの Flutter が固定値から
+ずれると `scripts/build.sh` は依存解決の時点で止まります。** これは意図した
+挙動で、黙って別の依存で配布物が作られるより早く気付けます。直し方は上の表の
+3 か所を揃えるか、ビルダーの Flutter を固定値に戻すかのどちらかです。
+
 #### 上げるとき
 
 1. 上記 3 か所を新しいバージョンに揃える。

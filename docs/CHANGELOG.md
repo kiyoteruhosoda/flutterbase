@@ -20,10 +20,14 @@
   流動的な `stable` ブランチを clone していたのを直した。5 か所すべてが
   `--branch $(FLUTTER_VERSION)` を使う。固定値を宣言していても clone が
   `stable` を追う限り、lock は Flutter が stable を進めた時点で必ず腐る。
-- `scripts/ci.sh` の依存解決を `flutter pub get --enforce-lockfile` にした。
-  lock のズレを品質ゲートで検出する。
+- 依存解決を `flutter pub get --enforce-lockfile` に統一した
+  （`scripts/ci.sh` / `scripts/build.sh` / `.github/workflows/build.yml` /
+  `azure-pipelines.yml` の 5 ジョブ）。lock のズレを黙って上書きせず、必ず
+  失敗させる。配布物を作る経路が、品質ゲートで検証していない依存で
+  ビルドされることを防ぐ。
 - `analysis_options.yaml` の除外に `android/` などのプラットフォームディレクトリ。
-  Flutter 3.47 の `pub get` が自動で足すもので、外しても再度書き戻される。
+  Flutter 3.47 の `pub get` が自動で足すもので、外しても書き戻される
+  （実際に消して `pub get` を走らせ、復活することを確認済み）。
 - Dart 3.13 の `dart format` に合わせて 5 ファイルを再整形（メソッド連鎖の
   改行位置が変わった）。挙動は変わらない。
 
