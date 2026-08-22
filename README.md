@@ -31,7 +31,7 @@ docs/CUSTOMISATION.md
 
 `equatable` と `riverpod_annotation` / `riverpod_generator` は採用していません。値の等価性は手書きの `==` / `hashCode`、Riverpod の provider も手書きです。コード生成を挟まないぶん、clone してすぐ動きます。
 
-画面の状態管理は Riverpod に統一しています（`docs/adr/0003-riverpod-unification.md`）。provider は `lib/presentation/providers/` に宣言し、実体は `lib/app/di/provider_overrides.dart` が差し込みます。`get_it` は合成ルートの中で Infrastructure とユースケースを組み立てる役割だけを持ち、Presentation からは見えません。
+画面の状態管理は Riverpod に統一しています（`docs/adr/0004-riverpod-unification.md`）。provider は `lib/presentation/providers/` に宣言し、実体は `lib/app/di/provider_overrides.dart` が差し込みます。`get_it` は合成ルートの中で Infrastructure とユースケースを組み立てる役割だけを持ち、Presentation からは見えません。
 
 ## Purpose
 

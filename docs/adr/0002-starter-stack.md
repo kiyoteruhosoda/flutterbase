@@ -75,7 +75,7 @@ Infrastructure 以外からの import を CI で落とすようにしました�
 
 ### Riverpod と `get_it` の併存
 
-> **この節は `docs/adr/0003-riverpod-unification.md` に置き換えられました。**
+> **この節は `docs/adr/0004-riverpod-unification.md` に置き換えられました。**
 > 画面の状態管理は Riverpod に統一済みで、`ChangeNotifier` ViewModel と
 > `AppScope` は削除されています。`get_it` は合成ルート内の
 > `service_locator.dart` にのみ残ります。以下は当時の判断の記録です。

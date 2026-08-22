@@ -30,13 +30,16 @@
   （実際に消して `pub get` を走らせ、復活することを確認済み）。
 - Dart 3.13 の `dart format` に合わせて 5 ファイルを再整形（メソッド連鎖の
   改行位置が変わった）。挙動は変わらない。
+- ADR の番号重複を解消した。`0003` が 2 つあったため、後から入った
+  Riverpod 統一の ADR を `0004-riverpod-unification.md` に採番し直し、
+  参照 4 か所を追随させた。`0003-build-in-dev-container.md` は据え置き。
 
 固定バージョンの定義場所と上げ方は `docs/OPERATIONS.md`
 「Flutter のバージョン固定と `pubspec.lock`」にまとめた。
 
 ## 2026-08-21 — 画面の状態管理を Riverpod に統一
 
-判断の経緯は `docs/adr/0003-riverpod-unification.md`。
+判断の経緯は `docs/adr/0004-riverpod-unification.md`。
 
 ### 削除
 
