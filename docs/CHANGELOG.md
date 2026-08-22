@@ -3,6 +3,33 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-08-22 — Flutter 3.47.0 に固定し、`pubspec.lock` を作り直した
+
+`flutter pub get --enforce-lockfile` がビルダー上で必ず失敗していた。
+`pubspec.lock` は Flutter 3.44 系で生成されていた一方、ビルダーの Flutter は
+3.47.0 で、SDK 側が固定する 7 パッケージ（`intl` / `matcher` / `meta` /
+`test` / `test_api` / `test_core` / `vector_math`）が食い違っていたため。
+
+### 変更
+
+- `pubspec.lock` を Flutter 3.47.0 / Dart 3.13.0 で再生成。
+- `pubspec.yaml` の `environment` を `flutter: ">=3.47.0"` /
+  `sdk: ">=3.13.0 <4.0.0"` に更新。
+- `.github/workflows/quality.yml` の `flutter-version` を 3.47.0 へ。
+- `azure-pipelines.yml` が `FLUTTER_VERSION` を宣言しながら使わず、
+  流動的な `stable` ブランチを clone していたのを直した。5 か所すべてが
+  `--branch $(FLUTTER_VERSION)` を使う。固定値を宣言していても clone が
+  `stable` を追う限り、lock は Flutter が stable を進めた時点で必ず腐る。
+- `scripts/ci.sh` の依存解決を `flutter pub get --enforce-lockfile` にした。
+  lock のズレを品質ゲートで検出する。
+- `analysis_options.yaml` の除外に `android/` などのプラットフォームディレクトリ。
+  Flutter 3.47 の `pub get` が自動で足すもので、外しても再度書き戻される。
+- Dart 3.13 の `dart format` に合わせて 5 ファイルを再整形（メソッド連鎖の
+  改行位置が変わった）。挙動は変わらない。
+
+固定バージョンの定義場所と上げ方は `docs/OPERATIONS.md`
+「Flutter のバージョン固定と `pubspec.lock`」にまとめた。
+
 ## 2026-08-21 — 画面の状態管理を Riverpod に統一
 
 判断の経緯は `docs/adr/0003-riverpod-unification.md`。
