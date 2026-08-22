@@ -16,7 +16,7 @@
 | `lib/domain/` | エンティティ・値オブジェクト・ドメインエラー・リポジトリ *インターフェース* | 不可 |
 | `lib/application/` | ユースケース、外向きポート (`ports/`) | 不可 |
 | `lib/infrastructure/` | 外部システムのアダプター（永続化・プラットフォーム・ネットワーク） | 可 |
-| `lib/presentation/` | 画面・ウィジェット・ViewModel・テーマ・i18n | 可 |
+| `lib/presentation/` | 画面・ウィジェット・Riverpod provider・テーマ・i18n | 可 |
 | `lib/app/` | 合成ルート（DI・起動・ルーティング）。`lib/main.dart` も含む | 可 |
 | `lib/shared/` | フレームワーク非依存の定数のみ（`AppConfig` / `BuildInfo`） | 不可 |
 
@@ -56,9 +56,9 @@ presentation  infrastructure
 | app | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | shared | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
-**Presentation は `lib/app/` を import できません。** ViewModel は
-`presentation/app_scope.dart`（`InheritedWidget`）経由で受け取ります。
-合成ルートが `AppScope` に値を注入し、画面はそれを読むだけです。
+**Presentation は `lib/app/` を import できません。** ユースケースは
+`presentation/providers/` の provider 経由で受け取ります。合成ルートが
+`lib/app/di/provider_overrides.dart` で実体を差し込み、画面はそれを読むだけです。
 サービスロケータを画面から直接引く形にすると矢印が外向きに逆転するため、CI で落ちます。
 
 ## CI が拒否するもの
@@ -117,17 +117,35 @@ reserved に残っていても CI が落ちます）。
 採用していません。値の等価性は手書きの `==` / `hashCode`、Riverpod の
 provider は手書きで書きます。
 
-### Riverpod と `AppScope` の使い分け
+### Riverpod の使い方
 
-どちらも役割は同じです。**合成ルートが実体を注入し、Presentation は契約だけを見る。**
+画面の状態管理は Riverpod に統一しています。経緯は
+`docs/adr/0003-riverpod-unification.md`。原則は一つです。
+**合成ルートが実体を注入し、Presentation は契約だけを見る。**
 
-- `AppScope`（`InheritedWidget`）— 既存の `ChangeNotifier` ViewModel 用。
-- Riverpod — ブックマーク機能などの新しいコード用。
-  provider は Presentation に宣言し、本体は `UnimplementedError` を投げます。
-  `lib/app/di/provider_overrides.dart` が `overrideWithValue` で実体を差すので、
+`lib/presentation/providers/` には 2 種類の provider が並びます。
+
+- **ユースケースの継ぎ目** — 本体は `UnimplementedError` を投げるだけで、
+  `lib/app/di/provider_overrides.dart` が `overrideWithValue` で実体を差します。
   注入漏れは起動時に必ず失敗します（黙って null にはなりません）。
+  ウィジェットテストは同じ provider を fake で override します。
+- **画面の状態** — `Notifier` / `AsyncNotifier` / `FutureProvider`。
+  上のユースケース provider だけを読むので、合成ルートは画面の状態を
+  一切知りません。
 
-どちらの場合も、Presentation から `lib/app/` を import することはできません。
+| provider | 型 | 中身 |
+|---|---|---|
+| `themeModeProvider` | `Notifier<ThemeMode>` | テーマ設定 |
+| `appLanguageProvider` / `appLocaleProvider` | `Notifier<AppLanguage>` / `Provider<Locale?>` | 言語設定と、そこから導く `Locale` |
+| `debugModeProvider` / `logLevelProvider` | `Notifier<bool>` / `Notifier<LogLevel>` | デバッグ設定 |
+| `appInfoProvider` | `FutureProvider<AppInfo>` | About / Debug が共有するビルド情報 |
+| `bookmarkListProvider` / `bookmarkProvider` | `AsyncNotifierProvider` / `FutureProvider.family` | ブックマーク |
+
+書き込みを伴う状態は、**永続化が成功してから state を進めます**。
+保存に失敗した画面が、保存されていない値を表示したままになるのを防ぐためです。
+
+`riverpod_generator` は使いません（`docs/adr/0002-starter-stack.md`）。
+provider はすべて手書きです。
 
 ## ルーティングとディープリンク
 
@@ -163,15 +181,16 @@ pubspec レベルでも依存方向を強制できます。本テンプレート
 - `test/support/fakes.dart` — 各 Repository の in-memory 実装。書き込み内容を記録し、
   失敗も注入できます。
 - `test/support/recording_app_logger.dart` — `AppLogger` ポートの記録用ダブル。
-- `test/support/test_harness.dart` — `AppScope` + テーマ + i18n を組んだ
+- `test/support/test_harness.dart` — `ProviderScope` + テーマ + i18n を組んだ
   ウィジェットテスト用ハーネス（`pumpInScope` / `pumpComponent`）。
+  `TestScope.container` から provider の状態を直接読めます。
 
 特に次を必ずテストします。
 
 - Domain エンティティの状態遷移、値オブジェクトの不正値
 - ユースケースの正常系・異常系
 - Repository・外部ポートの呼び出し（記録用ダブルで検証）
-- ViewModel の状態遷移
+- provider の状態遷移（`test/presentation/providers/`）
 
 ### カバレッジ目標
 

@@ -16,17 +16,15 @@ import 'package:flutterbase/application/usecases/language/get_language_preferenc
 import 'package:flutterbase/application/usecases/language/set_language_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
-import 'package:flutterbase/presentation/app_scope.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/navigation/app_routes.dart';
+import 'package:flutterbase/presentation/providers/app_info_providers.dart';
 import 'package:flutterbase/presentation/providers/app_providers.dart';
 import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
+import 'package:flutterbase/presentation/providers/debug_providers.dart';
+import 'package:flutterbase/presentation/providers/language_providers.dart';
+import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
-import 'package:flutterbase/presentation/viewmodels/about_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/debug_settings_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/debug_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/language_viewmodel.dart';
-import 'package:flutterbase/presentation/viewmodels/theme_viewmodel.dart';
 import 'package:go_router/go_router.dart';
 
 import 'fakes.dart';
@@ -37,6 +35,10 @@ import 'recording_app_logger.dart';
 /// Mirrors what `app/di/service_locator.dart` and
 /// `app/di/provider_overrides.dart` assemble at runtime, so a widget test
 /// exercises the same wiring the app ships — without any platform channel.
+///
+/// The overrides carry use cases only, exactly as in production: the
+/// providers that hold screen state build themselves from those, so a test
+/// exercises the real notifiers rather than stand-ins.
 class TestScope {
   TestScope({
     FakeThemePreferenceRepository? themeRepository,
@@ -55,22 +57,16 @@ class TestScope {
        bookmarkRepository = bookmarkRepository ?? FakeBookmarkRepository(),
        linkLauncher = linkLauncher ?? RecordingExternalLinkLauncher(),
        logger = logger ?? RecordingAppLogger() {
-    themeViewModel = ThemeViewModel(
-      GetThemePreferenceUseCase(this.themeRepository),
-      SetThemePreferenceUseCase(this.themeRepository),
-      this.logger,
-    );
-    languageViewModel = LanguageViewModel(
-      GetLanguagePreferenceUseCase(this.languageRepository),
-      SetLanguagePreferenceUseCase(this.languageRepository),
-      this.logger,
-    );
-    debugSettingsViewModel = DebugSettingsViewModel(
-      GetDebugSettingsUseCase(this.debugSettingsRepository),
-      SetDebugModeUseCase(this.debugSettingsRepository),
-      SetLogLevelUseCase(this.debugSettingsRepository, this.logger),
-      this.logger,
-    );
+    container = ProviderContainer(overrides: providerOverrides());
+    addTearDown(container.dispose);
+    // Build the app-wide state the way startup does, so a test that inspects
+    // the log buffer sees the same init entries the app writes — and can
+    // `reset()` them away before recording its own.
+    container
+      ..read(themeModeProvider)
+      ..read(appLanguageProvider)
+      ..read(debugModeProvider)
+      ..read(logLevelProvider);
   }
 
   final FakeThemePreferenceRepository themeRepository;
@@ -81,13 +77,12 @@ class TestScope {
   final RecordingExternalLinkLauncher linkLauncher;
   final RecordingAppLogger logger;
 
-  late final ThemeViewModel themeViewModel;
-  late final LanguageViewModel languageViewModel;
-  late final DebugSettingsViewModel debugSettingsViewModel;
-
-  /// Number of times a per-screen ViewModel has been requested.
-  int aboutViewModelsCreated = 0;
-  int debugViewModelsCreated = 0;
+  /// The Riverpod container the pumped widget tree runs on.
+  ///
+  /// Exposed so a test can read state the UI holds —
+  /// `scope.container.read(themeModeProvider)` — without reaching into the
+  /// widget tree for it.
+  late final ProviderContainer container;
 
   /// The router [wrap] installed, available once [wrap] has been called.
   late final GoRouter router;
@@ -99,21 +94,35 @@ class TestScope {
   /// Where the router currently is.
   String get location => router.state.uri.toString();
 
-  AboutViewModel createAboutViewModel() {
-    aboutViewModelsCreated++;
-    return AboutViewModel(GetAppInfoUseCase(appInfoRepository), logger);
-  }
-
-  DebugViewModel createDebugViewModel() {
-    debugViewModelsCreated++;
-    return DebugViewModel(GetAppInfoUseCase(appInfoRepository), logger);
-  }
-
   /// The Riverpod overrides the composition root installs, with fakes in
   /// place of the real adapters.
   List<Override> providerOverrides() {
     return <Override>[
       appLoggerProvider.overrideWithValue(logger),
+      getThemePreferenceUseCaseProvider.overrideWithValue(
+        GetThemePreferenceUseCase(themeRepository),
+      ),
+      setThemePreferenceUseCaseProvider.overrideWithValue(
+        SetThemePreferenceUseCase(themeRepository),
+      ),
+      getLanguagePreferenceUseCaseProvider.overrideWithValue(
+        GetLanguagePreferenceUseCase(languageRepository),
+      ),
+      setLanguagePreferenceUseCaseProvider.overrideWithValue(
+        SetLanguagePreferenceUseCase(languageRepository),
+      ),
+      getDebugSettingsUseCaseProvider.overrideWithValue(
+        GetDebugSettingsUseCase(debugSettingsRepository),
+      ),
+      setDebugModeUseCaseProvider.overrideWithValue(
+        SetDebugModeUseCase(debugSettingsRepository),
+      ),
+      setLogLevelUseCaseProvider.overrideWithValue(
+        SetLogLevelUseCase(debugSettingsRepository, logger),
+      ),
+      getAppInfoUseCaseProvider.overrideWithValue(
+        GetAppInfoUseCase(appInfoRepository),
+      ),
       listBookmarksUseCaseProvider.overrideWithValue(
         ListBookmarksUseCase(bookmarkRepository),
       ),
@@ -157,19 +166,13 @@ class TestScope {
   /// a real screen, for instance.
   Widget wrapRouter(GoRouter config, {Locale? locale}) {
     router = config;
-    return ProviderScope(
-      overrides: providerOverrides(),
-      child: AppScope(
-        logger: logger,
-        themeViewModel: themeViewModel,
-        languageViewModel: languageViewModel,
-        debugSettingsViewModel: debugSettingsViewModel,
-        createAboutViewModel: createAboutViewModel,
-        createDebugViewModel: createDebugViewModel,
-        child: MaterialApp.router(
+    return UncontrolledProviderScope(
+      container: container,
+      child: Consumer(
+        builder: (context, ref, _) => MaterialApp.router(
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          themeMode: themeViewModel.themeMode,
+          themeMode: ref.watch(themeModeProvider),
           locale: locale,
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
@@ -245,7 +248,7 @@ Future<TestScope> pumpInScope(
   return resolved;
 }
 
-/// Pumps a bare widget with theme and localisations but no [AppScope].
+/// Pumps a bare widget with theme and localisations but no [ProviderScope].
 ///
 /// For leaf UI components that must not reach for app state.
 ///

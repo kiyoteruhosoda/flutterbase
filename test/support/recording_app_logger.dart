@@ -80,9 +80,9 @@ final class RecordingAppLogger implements AppLogger {
 
   /// Drops every recorded entry without counting as a [clearBuffer] call.
   ///
-  /// Wiring a [TestScope] constructs the ViewModels, and each of those logs
-  /// its initial state — so a test that cares about buffer contents starts by
-  /// resetting, not by calling the method it is about to assert on.
+  /// Wiring a test scope builds the app-wide providers, and each of those
+  /// logs its initial state — so a test that cares about buffer contents
+  /// starts by resetting, not by calling the method it is about to assert on.
   void reset() {
     _entries.clear();
     setMinLevelCalls.clear();
