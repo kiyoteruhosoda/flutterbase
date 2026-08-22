@@ -97,9 +97,8 @@ class _AboutPageState extends ConsumerState<AboutPage> {
         Center(
           child: Text(
             AppConfig.appDescription,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ),
@@ -148,9 +147,8 @@ class _InfoRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         Text(value, style: Theme.of(context).textTheme.bodyMedium),
       ],

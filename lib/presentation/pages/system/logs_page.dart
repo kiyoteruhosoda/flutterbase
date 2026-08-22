@@ -109,9 +109,8 @@ class _LogsPageState extends ConsumerState<LogsPage> {
       _logger.clearBuffer();
       if (mounted) {
         setState(() {});
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.logsClearSuccess)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.logsClearSuccess)));
       }
     }
   }
@@ -239,10 +238,8 @@ class _LogEntryTile extends StatelessWidget {
               ),
               child: Text(
                 entry.levelLabel,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: color, fontWeight: FontWeight.w700),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),

@@ -86,9 +86,8 @@ class _DrawerHeader extends StatelessWidget {
                 if (subtitle != null)
                   Text(
                     subtitle!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
               ],
             ),
