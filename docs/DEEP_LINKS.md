@@ -96,7 +96,7 @@ https://<appLinkHost>/.well-known/assetlinks.json
 4. 端末に再インストールして検証を走らせ、結果を確認する。
 
    ```bash
-   adb shell pm get-app-links com.example.flutterbase
+   adb shell pm get-app-links com.nolumia.flutterbase
    ```
 
    `verified` と表示されれば成功です。`legacy_failure` などが出る場合は

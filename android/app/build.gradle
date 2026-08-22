@@ -33,6 +33,17 @@ if (keystorePropertiesFile.exists()) {
 }
 def hasKeystore = keystoreProperties.getProperty("storeFile") != null
 
+// CI 用の「署名なし」モード。
+//
+// NOLUMIA_SIGNING=none を渡すと release から signingConfig を外し、Gradle は
+// 署名しない成果物を出す。署名はビルドの後段で、**アプリのコードを実行しない
+// 別コンテナ**が apksigner / jarsigner で行う。こうすると署名鍵が pub パッケージや
+// Gradle プラグインから見えなくなる。
+//
+// 手元のビルドや従来の key.properties 方式は今までどおり動く。
+// 詳細は deploy-repo の docs/flutter-signing.md を参照。
+def unsignedRelease = (System.getenv("NOLUMIA_SIGNING") == "none")
+
 // Project-local debug keystore — checked into the repo so every dev and CI
 // runner signs debug builds with the same key.  Without this, each machine
 // generates its own ~/.android/debug.keystore, and switching APKs between
@@ -44,8 +55,8 @@ def sharedDebugKeystore = rootProject.file("app/debug.keystore")
 // Single source of truth for namespace + applicationId + the APK/AAB
 // base filename.  `scripts/rename_app.sh` rewrites the two string
 // constants below, and the archives base name derives from them.
-def appNamespace     = "com.example.flutterbase"
-def appApplicationId = "com.example.flutterbase"
+def appNamespace     = "com.nolumia.flutterbase"
+def appApplicationId = "com.nolumia.flutterbase"
 def appArchivesBase  = (project.findProperty("app.archivesBaseName")
     ?: appApplicationId.tokenize('.').last())
 
@@ -98,7 +109,12 @@ android {
 
     buildTypes {
         release {
-            signingConfig = hasKeystore ? signingConfigs.release : signingConfigs.debug
+            // ⚠ 鍵が無いと debug 署名に落ちる。CI ではこれが「緑のまま Play に
+            //    出せない成果物が出る」事故になるので、署名なしモードでは
+            //    そもそも signingConfig を付けず、後段で明示的に署名する。
+            signingConfig = unsignedRelease
+                ? null
+                : (hasKeystore ? signingConfigs.release : signingConfigs.debug)
         }
     }
 }
@@ -136,6 +152,15 @@ project.afterEvaluate {
                     if (src?.exists()) {
                         // 1. Next to the AGP output.
                         new File(src.parentFile, "${perAppBase}.apk").bytes = src.bytes
+
+                        // 1b. 署名なしモードでは AGP の出力が
+                        //     app-<type>-unsigned.apk になる。Flutter の CLI は
+                        //     app-<type>.apk を決め打ちで探し、無いと
+                        //     "Gradle build failed to produce an .apk file" で
+                        //     落ちるので、既定名のコピーも置く（中身は unsigned）。
+                        if (src.name.endsWith("-unsigned.apk")) {
+                            new File(src.parentFile, "app-${variantName}.apk").bytes = src.bytes
+                        }
 
                         // 2. Next to Flutter's post-build copy.  Flutter
                         //    creates flutter-apk/ after Gradle exits, so we

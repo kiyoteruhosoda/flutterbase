@@ -217,7 +217,7 @@ byte 単位で比較し、異なれば最新版へ差し替えて同じ引数で
 アプリのデータを消せば DB ファイルごと消えます。
 
 ```bash
-adb shell pm clear com.example.flutterbase
+adb shell pm clear com.nolumia.flutterbase
 ```
 
 ### テスト
