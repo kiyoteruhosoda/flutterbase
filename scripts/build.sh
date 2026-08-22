@@ -149,8 +149,11 @@ clear_artifact_paths() {
   rm -f "$dir/${archives_base}-${version}-${variant}.${ext}" "$dir/app-${variant}.${ext}"
 }
 
+# --enforce-lockfile: a distributed artifact must be built from exactly the
+# dependency versions the quality gate verified. Without it `pub get` would
+# silently re-resolve and rewrite pubspec.lock here.
 log "resolving dependencies ..."
-flutter pub get
+flutter pub get --enforce-lockfile
 
 # The generator gets the same build number that Gradle and the manifest use,
 # so the About screen cannot disagree with the artifact's versionCode.

@@ -117,7 +117,10 @@ jobs:
             sudo chmod -R a+rwx "$ANDROID_HOME" || true
           fi
       - name: Flutter pub get
-        run: flutter pub get
+        # --enforce-lockfile: a released artifact must be built from exactly
+        # the dependency versions the quality gate verified. Without it
+        # `pub get` would silently re-resolve and rewrite pubspec.lock here.
+        run: flutter pub get --enforce-lockfile
       - name: Generate build info
         run: bash scripts/generate_build_info.sh
       - name: Validate release signing secrets

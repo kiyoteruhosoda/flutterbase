@@ -120,7 +120,7 @@ provider は手書きで書きます。
 ### Riverpod の使い方
 
 画面の状態管理は Riverpod に統一しています。経緯は
-`docs/adr/0003-riverpod-unification.md`。原則は一つです。
+`docs/adr/0004-riverpod-unification.md`。原則は一つです。
 **合成ルートが実体を注入し、Presentation は契約だけを見る。**
 
 `lib/presentation/providers/` には 2 種類の provider が並びます。

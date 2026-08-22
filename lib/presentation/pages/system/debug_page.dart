@@ -50,9 +50,8 @@ class DebugPage extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     l10n.debugWarning,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.statusWarning,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: AppColors.statusWarning),
                   ),
                 ),
               ],
@@ -198,9 +197,8 @@ class DebugPage extends ConsumerWidget {
 
   static void _showSnackBar(BuildContext context, String message) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   static Future<void> _showCrashConfirmDialog(BuildContext context) async {

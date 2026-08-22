@@ -15,9 +15,8 @@ void main() {
   late String manifest;
 
   setUpAll(() {
-    manifest = File(
-      'android/app/src/main/AndroidManifest.xml',
-    ).readAsStringSync();
+    manifest = File('android/app/src/main/AndroidManifest.xml')
+        .readAsStringSync();
   });
 
   group('AndroidManifest — deep links', () {
@@ -112,9 +111,8 @@ void main() {
 
     test('names the same application id as the Gradle build', () {
       final gradle = File('android/app/build.gradle').readAsStringSync();
-      final match = RegExp(
-        r'def appApplicationId\s*=\s*"([^"]+)"',
-      ).firstMatch(gradle);
+      final match = RegExp(r'def appApplicationId\s*=\s*"([^"]+)"')
+          .firstMatch(gradle);
       expect(match, isNotNull, reason: 'appApplicationId not found');
 
       expect(

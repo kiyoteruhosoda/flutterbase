@@ -18,7 +18,7 @@
 
 | # | 検査 | コマンド |
 |---|---|---|
-| 1 | 依存解決 | `flutter pub get` |
+| 1 | 依存解決 | `flutter pub get --enforce-lockfile` |
 | 2 | コード生成（使用時のみ） | `dart run build_runner build --delete-conflicting-outputs` |
 | 3 | 生成物のコミット漏れ | `git diff --exit-code` |
 | 4 | 整形 | `dart format --output=none --set-exit-if-changed .` |
@@ -32,6 +32,54 @@
 2 と 3 は、`build.yaml` があるか `lib/` に `part '*.g.dart'` /
 `part '*.freezed.dart'` があるときだけ走ります。現状このテンプレートは
 コード生成を使っていないため自動的にスキップされます。
+
+### Flutter のバージョン固定と `pubspec.lock`
+
+Flutter は自身が同梱するパッケージ（`meta` / `matcher` / `test_api` /
+`test_core` / `test` / `vector_math` / `intl` など）のバージョンを SDK 側で
+固定します。そのため `pubspec.lock` は **それを生成した Flutter でしか
+解決できません**。別のバージョンで `flutter pub get --enforce-lockfile` を
+走らせると、必ず次のように落ちます。
+
+```text
+> intl 0.20.3 (was 0.20.2)
+> matcher 0.12.20 (was 0.12.19)
+...
+Unable to satisfy `pubspec.yaml` using `pubspec.lock`.
+```
+
+これは lock の書き方の問題ではなく、ツールチェインが食い違っているという
+意味です。したがってバージョンは 1 か所に決め打ちし、全ての実行環境で
+同じものを使います。
+
+| 定義場所 | 項目 |
+|---|---|
+| `pubspec.yaml` | `environment: flutter:` / `sdk:` |
+| `.github/workflows/quality.yml` | `subosito/flutter-action` の `flutter-version` |
+| `azure-pipelines.yml` | `FLUTTER_VERSION`（clone 時の `--branch` に渡す） |
+
+現在の固定値は **Flutter 3.47.0 / Dart 3.13.0** です。
+
+CI で `stable` のような流動的なブランチを clone してはいけません。Flutter 側が
+stable を進めた瞬間に lock と食い違い、`--enforce-lockfile` が構造的に必ず
+失敗するようになります。
+
+依存解決は全経路で `--enforce-lockfile` を使います
+（`scripts/ci.sh` / `scripts/build.sh` / `.github/workflows/build.yml` /
+`azure-pipelines.yml`）。配布物を作る経路が、品質ゲートで検証していない依存で
+ビルドされるのを防ぐためです。**副作用として、ビルダーの Flutter が固定値から
+ずれると `scripts/build.sh` は依存解決の時点で止まります。** これは意図した
+挙動で、黙って別の依存で配布物が作られるより早く気付けます。直し方は上の表の
+3 か所を揃えるか、ビルダーの Flutter を固定値に戻すかのどちらかです。
+
+#### 上げるとき
+
+1. 上記 3 か所を新しいバージョンに揃える。
+2. そのバージョンの Flutter で `flutter pub get`（`--enforce-lockfile` なし）を
+   走らせ、`pubspec.lock` を作り直す。
+3. `./scripts/ci.sh` を通し、`pubspec.lock` を一緒にコミットする。
+4. Android ツールチェインの最低要件が上がっていないか、本書の
+   「Android ツールチェイン」を確認する。
 
 ### 個別に走らせる
 
@@ -65,6 +113,7 @@ flutter test --exclude-tags tool
 | `stale-reservation` | reserved の記載が実態と合っていない | 使い始めた package は reserved から外す |
 | カバレッジ下限割れ | テスト不足 | `--verbose` で低い順に出るので上から潰す |
 | `every library under lib/ is imported by this file` が落ちる | `lib/` にファイルを足したが `test/coverage_surface_test.dart` に import していない | 失敗メッセージのとおり import を追加 |
+| `Unable to satisfy pubspec.yaml using pubspec.lock` | 手元の Flutter が固定バージョンと違う、または `pubspec.lock` の更新をコミットし忘れた | 上の「Flutter のバージョン固定と `pubspec.lock`」を参照 |
 | `AndroidManifest — deep links` が落ちる | `AppConfig` と `AndroidManifest.xml` のホスト / スキームが食い違った | 両方を揃える。手順は `docs/DEEP_LINKS.md` |
 
 ## 配布物をビルドする
@@ -249,7 +298,7 @@ App Links / カスタムスキームの設定・確認手順は `docs/DEEP_LINKS
 
 ## Android ツールチェイン
 
-`android/` は Flutter 3.44 系に合わせて次で固定しています。
+`android/` は Flutter 3.47 系に合わせて次で固定しています。
 
 | 項目 | バージョン | 定義場所 |
 |---|---|---|
@@ -261,6 +310,22 @@ App Links / カスタムスキームの設定・確認手順は `docs/DEEP_LINKS
 Flutter は AGP 9 / Gradle 9 系もサポートしますが、AGP 9 は新 DSL のみを
 読むため、Groovy の `build.gradle` をそのまま使うなら 8 系に留めるのが安全です。
 上げる場合は `android.newDsl` と `build.gradle` の書き換えをセットで行ってください。
+
+### 3.47 が出す非推奨警告
+
+Flutter 3.47 の `flutter build` は、上の 3 つについて「近く対応を打ち切る」と
+警告します。**警告であってエラーではなく、ビルドは通ります**（CI で確認済み）。
+
+| 項目 | 現在 | 3.47 が求める版 |
+|---|---|---|
+| Gradle | 8.14.3 | 9.1.0 以上 |
+| Android Gradle Plugin | 8.11.1 | 9.0.1 以上 |
+| Kotlin | 2.2.20 | 2.3.20 以上 |
+
+いずれも AGP 9 系への移行とセットになるため、上の判断（Groovy DSL を使う限り
+8 系に留める）を変えるまで据え置きます。実際に打ち切られたら移行が必要です。
+`--android-skip-build-dependency-validation` で黙らせることもできますが、
+期限が見えなくなるので付けていません。
 
 Gradle のバージョンが低いと `flutter build` は
 `Your project's Gradle version ... is lower than Flutter's minimum supported version`
