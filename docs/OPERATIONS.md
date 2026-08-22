@@ -303,6 +303,22 @@ Flutter は AGP 9 / Gradle 9 系もサポートしますが、AGP 9 は新 DSL �
 読むため、Groovy の `build.gradle` をそのまま使うなら 8 系に留めるのが安全です。
 上げる場合は `android.newDsl` と `build.gradle` の書き換えをセットで行ってください。
 
+### 3.47 が出す非推奨警告
+
+Flutter 3.47 の `flutter build` は、上の 3 つについて「近く対応を打ち切る」と
+警告します。**警告であってエラーではなく、ビルドは通ります**（CI で確認済み）。
+
+| 項目 | 現在 | 3.47 が求める版 |
+|---|---|---|
+| Gradle | 8.14.3 | 9.1.0 以上 |
+| Android Gradle Plugin | 8.11.1 | 9.0.1 以上 |
+| Kotlin | 2.2.20 | 2.3.20 以上 |
+
+いずれも AGP 9 系への移行とセットになるため、上の判断（Groovy DSL を使う限り
+8 系に留める）を変えるまで据え置きます。実際に打ち切られたら移行が必要です。
+`--android-skip-build-dependency-validation` で黙らせることもできますが、
+期限が見えなくなるので付けていません。
+
 Gradle のバージョンが低いと `flutter build` は
 `Your project's Gradle version ... is lower than Flutter's minimum supported version`
 で失敗します。Flutter を上げたらこの表も合わせて更新してください。
