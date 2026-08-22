@@ -3,9 +3,16 @@ description: flutterbase
 publish_to: "none"
 version: 1.7.2+155
 
+# The Flutter version here is also the version `pubspec.lock` was resolved
+# with. Flutter pins the versions of its own vendored packages (`meta`,
+# `matcher`, `test_api`, `vector_math`, `intl`, ...), so a lockfile is only
+# ever valid for the exact SDK that produced it — `flutter pub get
+# --enforce-lockfile` fails on any other one. Keep this in sync with
+# `flutter-version` in `.github/workflows/quality.yml` and `FLUTTER_VERSION`
+# in `azure-pipelines.yml`, and regenerate the lockfile whenever it moves.
 environment:
-  sdk: ">=3.12.0 <4.0.0"
-  flutter: ">=3.44.0"
+  sdk: ">=3.13.0 <4.0.0"
+  flutter: ">=3.47.0"
 
 # Dependencies are listed alphabetically (enforced by the
 # `sort_pub_dependencies` lint). The layer each package may be imported

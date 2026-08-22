@@ -22,8 +22,12 @@ pr:
       - develop
 
 variables:
+  # Pinned, not floating: `pubspec.lock` is only valid for the exact SDK that
+  # resolved it, because Flutter pins its own vendored packages. Keep in sync
+  # with the `environment:` block in pubspec.yaml and with `flutter-version`
+  # in .github/workflows/quality.yml.
   - name: FLUTTER_VERSION
-    value: '3.19.0'
+    value: '3.47.0'
   - name: JAVA_VERSION
     value: '17'
   - name: ANDROID_BUILD_TOOLS_VERSION
@@ -55,7 +59,7 @@ stages:
               # Flutter SDKのインストール
               git clone https://github.com/flutter/flutter.git \
                 --depth 1 \
-                --branch stable \
+                --branch $(FLUTTER_VERSION) \
                 $HOME/flutter
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter $(FLUTTER_VERSION)'
@@ -114,7 +118,7 @@ stages:
           - script: |
               git clone https://github.com/flutter/flutter.git \
                 --depth 1 \
-                --branch stable \
+                --branch $(FLUTTER_VERSION) \
                 $HOME/flutter
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'
@@ -164,7 +168,7 @@ stages:
           - script: |
               git clone https://github.com/flutter/flutter.git \
                 --depth 1 \
-                --branch stable \
+                --branch $(FLUTTER_VERSION) \
                 $HOME/flutter
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'
@@ -224,7 +228,7 @@ stages:
           - script: |
               git clone https://github.com/flutter/flutter.git \
                 --depth 1 \
-                --branch stable \
+                --branch $(FLUTTER_VERSION) \
                 $HOME/flutter
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'
@@ -282,7 +286,7 @@ stages:
           - script: |
               git clone https://github.com/flutter/flutter.git \
                 --depth 1 \
-                --branch stable \
+                --branch $(FLUTTER_VERSION) \
                 $HOME/flutter
               echo "##vso[task.prependpath]$HOME/flutter/bin"
             displayName: 'Install Flutter'

@@ -101,7 +101,14 @@ command -v flutter >/dev/null 2>&1 || {
 printf '%sFlutter toolchain%s\n' "$BOLD" "$OFF"
 flutter --version
 
-run "pub get" flutter pub get
+# --enforce-lockfile: resolve to exactly what pubspec.lock records, never
+# rewrite it. It is what catches a lockfile that drifted away from the pinned
+# toolchain — Flutter pins the versions of its own vendored packages, so a
+# lockfile resolved by a different SDK cannot be satisfied by this one. When
+# this step fails, either the Flutter version above is not the pinned one
+# (see the `environment:` block in pubspec.yaml), or a dependency changed and
+# the regenerated pubspec.lock was not committed.
+run "pub get" flutter pub get --enforce-lockfile
 
 # Code generation, when the project uses it. Generated output is committed, so
 # a dirty tree after regenerating means someone edited a source without

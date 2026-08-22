@@ -35,8 +35,11 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          # Keep in sync with the `environment:` block in pubspec.yaml.
-          flutter-version: "3.44.8"
+          # Pinned, not floating: `pubspec.lock` is only valid for the exact
+          # SDK that resolved it, because Flutter pins its own vendored
+          # packages. Keep in sync with the `environment:` block in
+          # pubspec.yaml and with `FLUTTER_VERSION` in azure-pipelines.yml.
+          flutter-version: "3.47.0"
           channel: stable
           cache: true
 
