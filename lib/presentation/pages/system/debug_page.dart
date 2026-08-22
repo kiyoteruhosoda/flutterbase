@@ -145,7 +145,7 @@ class DebugPage extends ConsumerWidget {
           AppListCard(
             title: l10n.debugTestCrash,
             leading: const Icon(Icons.warning, color: AppColors.statusError),
-            onTap: () => _showCrashConfirmDialog(context),
+            onTap: () => unawaited(_showCrashConfirmDialog(context)),
           ),
         ],
       ),
