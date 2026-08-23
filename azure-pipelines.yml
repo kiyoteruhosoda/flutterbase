@@ -27,7 +27,7 @@ variables:
   # with the `environment:` block in pubspec.yaml and with `flutter-version`
   # in .github/workflows/quality.yml.
   - name: FLUTTER_VERSION
-    value: '3.47.0'
+    value: '3.47.1'
   - name: JAVA_VERSION
     value: '17'
   - name: ANDROID_BUILD_TOOLS_VERSION

@@ -58,7 +58,7 @@ Unable to satisfy `pubspec.yaml` using `pubspec.lock`.
 | `.github/workflows/quality.yml` | `subosito/flutter-action` の `flutter-version` |
 | `azure-pipelines.yml` | `FLUTTER_VERSION`（clone 時の `--branch` に渡す） |
 
-現在の固定値は **Flutter 3.47.0 / Dart 3.13.0** です。
+現在の固定値は **Flutter 3.47.1 / Dart 3.13.1** です。
 
 CI で `stable` のような流動的なブランチを clone してはいけません。Flutter 側が
 stable を進めた瞬間に lock と食い違い、`--enforce-lockfile` が構造的に必ず
@@ -298,34 +298,58 @@ App Links / カスタムスキームの設定・確認手順は `docs/DEEP_LINKS
 
 ## Android ツールチェイン
 
-`android/` は Flutter 3.47 系に合わせて次で固定しています。
+`android/` は Flutter 3.47.1 の**テンプレート既定値に揃えて**固定しています。
+`flutter create` が 3.47.1 で生成するのと同じ組み合わせで、Flutter 側が
+テストしている範囲そのものです。
 
 | 項目 | バージョン | 定義場所 |
 |---|---|---|
-| Gradle | 8.14.3 | `android/gradle/wrapper/gradle-wrapper.properties` |
-| Android Gradle Plugin | 8.11.1 | `android/settings.gradle` |
-| Kotlin | 2.2.20 | `android/settings.gradle` |
+| Gradle | 9.3.1 | `android/gradle/wrapper/gradle-wrapper.properties` |
+| Android Gradle Plugin | 9.1.0 | `android/settings.gradle` |
+| Kotlin (KGP) | 2.4.0 | `android/settings.gradle` |
 | JDK | 17 | `android/app/build.gradle` (`compileOptions`) |
 
-Flutter は AGP 9 / Gradle 9 系もサポートしますが、AGP 9 は新 DSL のみを
-読むため、Groovy の `build.gradle` をそのまま使うなら 8 系に留めるのが安全です。
-上げる場合は `android.newDsl` と `build.gradle` の書き換えをセットで行ってください。
+Flutter 3.47.1 が要求する下限（`DependencyVersionChecker`）との関係は次のとおりです。
+`error` を下回るとビルドが失敗し、`warn` を下回ると非推奨警告が出ます。
 
-### 3.47 が出す非推奨警告
+| 項目 | error（失敗） | warn（警告） | 現在 |
+|---|---|---|---|
+| Gradle | 8.14.0 | 9.1.0 | 9.3.1 |
+| AGP | 8.11.1 | 9.0.1 | 9.1.0 |
+| KGP | 2.2.20 | 2.3.20 | 2.4.0 |
+| JDK | 17 | 17 | 17 |
 
-Flutter 3.47 の `flutter build` は、上の 3 つについて「近く対応を打ち切る」と
-警告します。**警告であってエラーではなく、ビルドは通ります**（CI で確認済み）。
+以前は AGP 8.11.1 / KGP 2.2.20 で、いずれも **error 閾値ちょうど**に乗っていました。
+Flutter が下限を 1 つ上げた時点でビルドが失敗する位置です。現在はどれも warn を
+超えており、余裕があります。
 
-| 項目 | 現在 | 3.47 が求める版 |
-|---|---|---|
-| Gradle | 8.14.3 | 9.1.0 以上 |
-| Android Gradle Plugin | 8.11.1 | 9.0.1 以上 |
-| Kotlin | 2.2.20 | 2.3.20 以上 |
+### AGP 9 と Groovy DSL
 
-いずれも AGP 9 系への移行とセットになるため、上の判断（Groovy DSL を使う限り
-8 系に留める）を変えるまで据え置きます。実際に打ち切られたら移行が必要です。
-`--android-skip-build-dependency-validation` で黙らせることもできますが、
-期限が見えなくなるので付けていません。
+AGP 9 は新 DSL を既定にしますが、`android/gradle.properties` の
+`android.newDsl=false` で従来の DSL を読み続けます。Flutter 3.47.1 の
+テンプレート自身がこのフラグを false で出荷しており、Groovy の
+`build.gradle` を書き換えずに AGP 9 へ上げられます。
+`applicationVariants` を使う成果物リネーム処理（`android/app/build.gradle`）も
+AGP 9.1.0 でそのまま動くことを、APK / AAB 両方のビルドで確認しています。
+
+### built-in Kotlin にはまだ移行できない
+
+AGP 9 では `android.builtInKotlin` が既定で有効になり、有効なままだと
+Flutter が「KGP を明示適用しているので将来のリリースで壊れる」と警告します。
+ただし**今は移行できません**。AGP 9.1.0 / 9.2.1 / 9.3.1 のいずれも同梱する
+Kotlin が 2.2.10 で、Flutter の下限 2.2.20 を下回るためです。有効にすると
+Flutter Gradle プラグインの適用時点で次のように失敗します。
+
+```text
+Error: Your project's Kotlin version (2.2.10) is lower than Flutter's
+minimum supported version of 2.2.20.
+```
+
+そのため `android.builtInKotlin=false` のまま KGP を明示適用します。これは
+Flutter 3.47.1 のテンプレートと同じ構成なので、`flutter create` で作った
+新規アプリと同じだけ将来に耐えます。AGP の同梱 Kotlin が 2.2.20 以上になったら
+移行してください。手順は
+<https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers>。
 
 Gradle のバージョンが低いと `flutter build` は
 `Your project's Gradle version ... is lower than Flutter's minimum supported version`

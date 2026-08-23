@@ -3,6 +3,42 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-08-23 — Flutter 3.47.1 と Android ツールチェインを更新
+
+Flutter 3.47 が Gradle / AGP / Kotlin について出していた「近く対応を打ち切る」
+警告を解消した。AGP 8.11.1 と KGP 2.2.20 は Flutter の **error 閾値ちょうど**に
+乗っており、Flutter が下限を 1 つ上げた時点でビルドが失敗する位置だった。
+
+### 変更
+
+- Flutter の固定値を 3.47.0 → **3.47.1**（Dart 3.13.1）。3 か所（`pubspec.yaml` /
+  `quality.yml` / `azure-pipelines.yml`）を揃えた。`pubspec.lock` は 3.47.0 と
+  3.47.1 で解決結果が完全に一致するため変更なし。
+- Android ツールチェインを Flutter 3.47.1 のテンプレート既定値に合わせた。
+  `flutter create` が生成するのと同じ組み合わせ。
+
+  | 項目 | 旧 | 新 | error 閾値 | warn 閾値 |
+  |---|---|---|---|---|
+  | Gradle | 8.14.3 | 9.3.1 | 8.14.0 | 9.1.0 |
+  | AGP | 8.11.1 | 9.1.0 | 8.11.1 | 9.0.1 |
+  | KGP | 2.2.20 | 2.4.0 | 2.2.20 | 2.3.20 |
+
+### 分かったこと
+
+- **AGP 9 でも Groovy DSL はそのまま使える。** `android.newDsl=false` で従来の
+  DSL を読み続ける。Flutter 3.47.1 のテンプレート自身がこのフラグを false で
+  出荷している。旧ドキュメントの「AGP 9 は新 DSL のみを読むので 8 系に留めるのが
+  安全」という判断は、この事実に基づき撤回した。`build.gradle` の書き換えは不要。
+- **`applicationVariants` を使う成果物リネーム処理は AGP 9.1.0 でも動く。**
+  APK / AAB 両方をビルドし、既定名と per-app 名の両方が
+  `apk/debug/` `flutter-apk/` `bundle/release/` すべてに出ることを確認した。
+- **built-in Kotlin にはまだ移行できない。** AGP 9.1.0 / 9.2.1 / 9.3.1 のいずれも
+  同梱 Kotlin が 2.2.10 で、Flutter の下限 2.2.20 を下回る。有効にすると
+  Flutter Gradle プラグインの適用時点で失敗する。`android.builtInKotlin=false`
+  のまま KGP を明示適用する（テンプレートと同じ構成）。この構成では
+  「KGP を明示適用している」旨の警告が 1 件残るが、これは AGP 側の同梱 Kotlin が
+  上がるまで解消できない。詳細は `docs/OPERATIONS.md`。
+
 ## 2026-08-22 — Flutter 3.47.0 に固定し、`pubspec.lock` を作り直した
 
 `flutter pub get --enforce-lockfile` がビルダー上で必ず失敗していた。

@@ -12,7 +12,7 @@ version: 1.8.2+167
 # in `azure-pipelines.yml`, and regenerate the lockfile whenever it moves.
 environment:
   sdk: ">=3.13.0 <4.0.0"
-  flutter: ">=3.47.0"
+  flutter: ">=3.47.1"
 
 # Dependencies are listed alphabetically (enforced by the
 # `sort_pub_dependencies` lint). The layer each package may be imported
