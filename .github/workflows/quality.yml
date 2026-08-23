@@ -39,7 +39,7 @@ jobs:
           # SDK that resolved it, because Flutter pins its own vendored
           # packages. Keep in sync with the `environment:` block in
           # pubspec.yaml and with `FLUTTER_VERSION` in azure-pipelines.yml.
-          flutter-version: "3.47.0"
+          flutter-version: "3.47.1"
           channel: stable
           cache: true
 
