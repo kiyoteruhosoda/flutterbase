@@ -33,22 +33,27 @@
 # Environment:
 #   BUILD_NUMBER=<n>   Android versionCode (default: git commit count)
 #
-# Prerequisites: flutter on PATH and a working Android SDK. `unzip` and
-# `aapt2`, when present, enable two further checks; they are skipped with a
-# note when absent, so the script stays usable on a bare toolchain.
+# Prerequisites: flutter on PATH and a working Android SDK. `apksigner`,
+# `unzip` and `aapt2`, when present, enable three further checks; each is
+# skipped with a note when absent, so this stays usable on a bare toolchain.
 set -uo pipefail
 
 log()  { printf '[contract] %s\n' "$*" >&2; }
 die()  { printf '[contract][error] %s\n' "$*" >&2; exit 2; }
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$repo_root"
+# Fix this script's absolute path before any cd: --help reads the header out of
+# it, and a relative BASH_SOURCE[0] no longer resolves once we have moved.
+self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")" \
+  || die "could not resolve this script's own path."
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" \
+  || die "could not resolve the repository root."
+cd "$repo_root" || die "could not enter the repository root: $repo_root"
 
 do_build=1
 for arg in "$@"; do
   case "$arg" in
     --no-build) do_build=0 ;;
-    -h | --help) sed -n '2,38p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h | --help) sed -n '2,38p' "$self_path" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown argument: $arg (try --help)" ;;
   esac
 done
@@ -87,6 +92,13 @@ archives_base="$(sed -n 's/^ *app\.archivesBaseName *= *//p' android/gradle.prop
 [ -n "$archives_base" ] || archives_base="${application_id##*.}"
 
 build_number="${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || printf 1)}"
+# Gradle does `versionCode = flutterVersionCode.toInteger()`, so a non-numeric
+# value here surfaces as a NumberFormatException from inside build.gradle
+# rather than as anything that names BUILD_NUMBER. Reject it up front, the way
+# scripts/build.sh does.
+case "$build_number" in
+  '' | *[!0-9]*) die "BUILD_NUMBER must be a positive integer: $build_number" ;;
+esac
 
 per_app="${archives_base}-${version}-release"
 apk_agp="build/app/outputs/apk/release/${per_app}.apk"
@@ -254,37 +266,87 @@ else
     "an .apk file\". build.gradle copies the default name back for it."
 fi
 
-# Belt and braces over the marker check: read the archives themselves for a
-# JAR signature. This is the one that would catch a release signed by
-# something other than AGP's own signingConfig.
-if command -v unzip >/dev/null 2>&1; then
-  signed_entries() {
-    unzip -l "$1" 2>/dev/null | grep -cE 'META-INF/.*\.(RSA|DSA|EC)$'
-  }
-  for archive in "$apk_flutter" "$aab"; do
-    [ -f "$archive" ] || continue
-    if [ "$(signed_entries "$archive")" -eq 0 ]; then
-      pass "unsigned as stage 1 must leave it — $(basename "$archive")"
-    else
-      fail "unsigned as stage 1 must leave it — $(basename "$archive")" \
-        "The archive carries a META-INF signature block, so something signed it" \
-        "during the build. Signing belongs in stage 2, where the app's own code" \
-        "does not run."
+# Locate a build-tools binary: on PATH first, then under whichever SDK root
+# the environment names. Both ANDROID_HOME and ANDROID_SDK_ROOT are in use —
+# honouring only one of them turns these checks into a silent skip on half the
+# machines that could run them. `sort -V` so build-tools/36.0.0 wins over
+# build-tools/9.0.0, which a lexicographic sort gets backwards.
+find_build_tool() {
+  local name="$1" root
+  if command -v "$name" >/dev/null 2>&1; then
+    command -v "$name"
+    return 0
+  fi
+  for root in "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}"; do
+    [ -n "$root" ] || continue
+    [ -d "$root/build-tools" ] || continue
+    local found
+    found="$(find "$root/build-tools" -maxdepth 2 -name "$name" -type f 2>/dev/null | sort -V | tail -1)"
+    if [ -n "$found" ]; then
+      printf '%s\n' "$found"
+      return 0
     fi
   done
+  return 1
+}
+
+# Belt and braces over the marker check: read the archives themselves for a
+# signature. This is the one that would catch a release signed by something
+# other than AGP's own signingConfig.
+#
+# The APK needs apksigner, not a look inside the zip: minSdk is 36, so AGP
+# leaves v1/JAR signing off by default and a signed APK carries only an APK
+# Signing Block (v2/v3) — no META-INF/*.RSA to find. Grepping the entry list
+# would report every signed APK as unsigned. An AAB is always jar-signed, so
+# the entry list is the right read there.
+# apksigner is a shell wrapper that execs `java`, and the release builder image
+# deliberately keeps the JDK out of PATH — only JAVA_HOME points at it. Without
+# this, the wrapper exits 127, which an `if` cannot tell apart from "this APK
+# carries no signature": the check would print a pass for a signed APK, which
+# is the failure it exists to catch.
+if ! command -v java >/dev/null 2>&1 && [ -n "${JAVA_HOME:-}" ]; then
+  PATH="$JAVA_HOME/bin:$PATH"
+  export PATH
+fi
+
+apksigner_bin="$(find_build_tool apksigner || true)"
+
+if [ -f "$apk_flutter" ]; then
+  if [ -z "$apksigner_bin" ]; then
+    skip "APK carries no signature" "apksigner not found"
+  elif ! "$apksigner_bin" version >/dev/null 2>&1; then
+    # Prove the tool runs before reading anything into its exit status.
+    skip "APK carries no signature" "apksigner found but will not run (needs java)"
+  elif "$apksigner_bin" verify "$apk_flutter" >/dev/null 2>&1; then
+    fail "unsigned as stage 1 must leave it — $(basename "$apk_flutter")" \
+      "apksigner verifies a signature on this APK, so something signed it during" \
+      "the build. Signing belongs in stage 2, where the app's own code does not" \
+      "run. Note that with minSdk 36 the signature is v2/v3 only, so it leaves no" \
+      "META-INF entry behind."
+  else
+    pass "unsigned as stage 1 must leave it — $(basename "$apk_flutter")"
+  fi
+fi
+
+if command -v unzip >/dev/null 2>&1; then
+  if [ -f "$aab" ]; then
+    if unzip -l "$aab" 2>/dev/null | grep -qE 'META-INF/.*\.(RSA|DSA|EC)$'; then
+      fail "unsigned as stage 1 must leave it — $(basename "$aab")" \
+        "The bundle carries a META-INF signature block, so something signed it" \
+        "during the build. Signing belongs in stage 2, where the app's own code" \
+        "does not run."
+    else
+      pass "unsigned as stage 1 must leave it — $(basename "$aab")"
+    fi
+  fi
 else
-  skip "archives carry no signature block" "unzip is not installed"
+  skip "AAB carries no signature block" "unzip is not installed"
 fi
 
 # The verify stage compares the APK's package name against the applicationId
 # declared for this app on the build host, and refuses a mismatch. What this
 # repository controls is the other side of that comparison.
-aapt2_bin=''
-if command -v aapt2 >/dev/null 2>&1; then
-  aapt2_bin=aapt2
-elif [ -n "${ANDROID_SDK_ROOT:-}" ]; then
-  aapt2_bin="$(find "$ANDROID_SDK_ROOT/build-tools" -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -r | head -1)"
-fi
+aapt2_bin="$(find_build_tool aapt2 || true)"
 
 if [ -n "$aapt2_bin" ] && [ -f "$apk_flutter" ]; then
   built_id="$("$aapt2_bin" dump packagename "$apk_flutter" 2>/dev/null | tr -d '[:space:]')"

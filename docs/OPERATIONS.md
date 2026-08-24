@@ -246,14 +246,27 @@ debug 鍵になった場合は警告を出し、`manifest.env` の `signing` に
 | ファイル名の版数が `pubspec.yaml` の `version` と一致する | 段 3 が「前回ビルドの残骸を拾っている」と判断して落ちる |
 | `app-release-unsigned.apk` がある（＝ `NOLUMIA_SIGNING=none` が効いている） | Gradle が debug 鍵で署名してしまい、段 3 が「debug 鍵で署名されている」で落ちる |
 | `flutter-apk/app-release.apk` がある | Flutter CLI が「Gradle build failed to produce an .apk file」でビルドごと落ちる |
-| 成果物に署名ブロックが無い | 段 1 の中で何かが署名している。鍵がアプリのコードから届く位置にある疑い |
+| 成果物が署名されていない | 段 1 の中で何かが署名している。鍵がアプリのコードから届く位置にある疑い |
 | APK の applicationId が `build.gradle` の宣言と一致する | 段 3 が「applicationId が宣言と一致しない」で落ちる |
 
 `<base>` は `android/app/build.gradle` の `appApplicationId` の末尾
 （`android/gradle.properties` に `app.archivesBaseName` があればそちら）です。
 
-最後の 2 つは `unzip` / `aapt2` が要ります。無い環境では
-その 2 つだけスキップされ、他は変わらず走ります。
+最後の 2 つは外部ツールが要ります。APK の署名判定は `apksigner`、AAB の署名判定は
+`unzip`、applicationId の照合は `aapt2` です。無い環境ではその検査だけスキップされ、
+他は変わらず走ります。
+
+⚠ APK の署名判定に zip の中身（`META-INF/*.RSA`）を見てはいけません。`minSdk` が
+36 なので AGP は v1（JAR）署名を既定で行わず、署名済みでも APK Signing Block
+（v2/v3）にしか署名が入りません。エントリ一覧を見る方法だと**署名済みの APK も
+「未署名」と判定してしまいます。**
+
+⚠ `apksigner` は `java` を PATH から探すシェルラッパーです。**ビルダーイメージは
+JDK を PATH に置いていない**（`JAVA_HOME` だけが指している）ため、素のままでは
+exit 127 で落ちます。これは「署名が無い」と終了コードで区別が付かないので、
+検査は `JAVA_HOME/bin` を PATH に足したうえで、**先に `apksigner version` が
+通ることを確かめてから**署名の有無を読みます。動かない場合は「未署名」ではなく
+スキップとして出ます。
 
 ### なぜ debug ビルドでは足りなかったのか
 
