@@ -121,24 +121,47 @@ if [[ "$variant" == release && "$signing" == debug-keystore ]]; then
 fi
 
 # ─── Build ─────────────────────────────────────────────────────────────────
-# lib/shared/build_info.dart is generated but committed, so a build would
-# otherwise leave the working tree dirty and break the next `git pull
-# --ff-only` on a build host. Keep a copy of whatever is there — committed
-# content or a developer's uncommitted edits, both of which the generator
-# below overwrites — and put it back on the way out, including when the
-# build fails.
-build_info=lib/shared/build_info.dart
-build_info_backup=''
-restore_generated_build_info() {
-  [[ -n "$build_info_backup" && -f "$build_info_backup" ]] || return 0
-  mv -f "$build_info_backup" "$build_info"
-  build_info_backup=''
+# Two tracked files are generated but committed, so a build would otherwise
+# leave the working tree dirty and break the next `git pull --ff-only` on a
+# build host:
+#
+#   lib/shared/build_info.dart
+#     written by scripts/generate_build_info.sh, below.
+#
+#   android/.../GeneratedPluginRegistrant.java
+#     rewritten by `flutter build`, which registers only the plugins that
+#     variant actually links. integration_test comes from a dev dependency,
+#     so a release build drops it and a debug build puts it back.
+#
+# Keep a copy of whatever is there — committed content or a developer's
+# uncommitted edits, both of which the build overwrites — and put it back on
+# the way out, including when the build fails.
+generated_committed=(
+  lib/shared/build_info.dart
+  android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+)
+backup_dir=''
+restore_generated_sources() {
+  [[ -n "$backup_dir" ]] || return 0
+  local n=0 f
+  for f in "${generated_committed[@]}"; do
+    n=$((n + 1))
+    if [[ -f "$backup_dir/$n" ]]; then
+      cp -p "$backup_dir/$n" "$f"
+    fi
+  done
+  rm -rf "$backup_dir"
+  backup_dir=''
 }
-if [[ -f "$build_info" ]]; then
-  build_info_backup="$(mktemp)"
-  cp -p "$build_info" "$build_info_backup"
-  trap restore_generated_build_info EXIT
-fi
+backup_dir="$(mktemp -d)"
+trap restore_generated_sources EXIT
+generated_index=0
+for generated_file in "${generated_committed[@]}"; do
+  generated_index=$((generated_index + 1))
+  if [[ -f "$generated_file" ]]; then
+    cp -p "$generated_file" "$backup_dir/$generated_index"
+  fi
+done
 
 # build/ is not cleaned between runs, so the paths this build is about to
 # write are removed first. Otherwise an artifact left there by an earlier

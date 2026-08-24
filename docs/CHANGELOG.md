@@ -37,6 +37,16 @@
   1 つはこのリポジトリの外にあり、**そちらを先に用意しないと CI は緑のまま
   リリースビルドだけが落ちる。**
 
+### 修正
+
+- `scripts/build.sh` がビルド後に戻す生成物に
+  `GeneratedPluginRegistrant.java` を追加した。`flutter build` は、その
+  variant が実際にリンクするプラグインだけを登録し直す。`integration_test`
+  は dev 依存なので **release では消え、debug では戻る。**コミットされて
+  いるのは debug 側の内容なので、release を焼くと必ずワーキングツリーが
+  汚れ、ビルドホストの次の `git pull --ff-only` を壊していた。
+  `build_info.dart` だけが戻されていて、こちらは戻されていなかった。
+
 ### 削除
 
 - `azure-pipelines.yml` — 一度も使われていない。存在しない `ios/` をビルドし、

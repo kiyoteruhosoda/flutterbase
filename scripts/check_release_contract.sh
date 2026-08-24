@@ -106,23 +106,47 @@ log "═════════════════════════
 if [ "$do_build" -eq 1 ]; then
   command -v flutter >/dev/null 2>&1 || die "flutter is not on PATH."
 
-  # lib/shared/build_info.dart is generated but committed. Leaving it
-  # rewritten would fail the `git diff --exit-code` step in scripts/ci.sh and
-  # dirty a build host's working tree, so put back whatever was there —
-  # committed content or a developer's uncommitted edits — on the way out,
-  # including when the build fails.
-  build_info=lib/shared/build_info.dart
-  build_info_backup=''
-  restore_generated_build_info() {
-    [ -n "$build_info_backup" ] && [ -f "$build_info_backup" ] || return 0
-    mv -f "$build_info_backup" "$build_info"
-    build_info_backup=''
+  # Two tracked files are rewritten by the build below:
+  #
+  #   lib/shared/build_info.dart
+  #     written by scripts/generate_build_info.sh, a few lines down.
+  #
+  #   android/.../GeneratedPluginRegistrant.java
+  #     rewritten by `flutter build --release`, which registers only the
+  #     plugins a release build actually links. integration_test comes from a
+  #     dev dependency, so the release build drops it and the debug build puts
+  #     it back — which is why this never surfaced while the gate built debug.
+  #
+  # Both are generated but committed. Leaving either rewritten would report a
+  # dirty tree here and break the next `git pull --ff-only` on a build host, so
+  # put back whatever was there — committed content or a developer's
+  # uncommitted edits — on the way out, including when the build fails.
+  generated_committed=(
+    lib/shared/build_info.dart
+    android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+  )
+  backup_dir=''
+  restore_generated_sources() {
+    [ -n "$backup_dir" ] || return 0
+    local n=0 f
+    for f in "${generated_committed[@]}"; do
+      n=$((n + 1))
+      if [ -f "$backup_dir/$n" ]; then
+        cp -p "$backup_dir/$n" "$f"
+      fi
+    done
+    rm -rf "$backup_dir"
+    backup_dir=''
   }
-  if [ -f "$build_info" ]; then
-    build_info_backup="$(mktemp)"
-    cp -p "$build_info" "$build_info_backup"
-    trap restore_generated_build_info EXIT
-  fi
+  backup_dir="$(mktemp -d)"
+  trap restore_generated_sources EXIT
+  n=0
+  for f in "${generated_committed[@]}"; do
+    n=$((n + 1))
+    if [ -f "$f" ]; then
+      cp -p "$f" "$backup_dir/$n"
+    fi
+  done
 
   # Everything below mirrors stage 1 of the pipeline, in the same order.
   #

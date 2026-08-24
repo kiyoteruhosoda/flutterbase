@@ -187,10 +187,20 @@ debug 鍵になった場合は警告を出し、`manifest.env` の `signing` に
 
 ### 生成物とワーキングツリー
 
-`lib/shared/build_info.dart` は生成物ですがコミット対象です。ビルドで書き換わった
-ままだとビルドホストの次の `git pull --ff-only` が失敗するため、`build.sh` は
-ビルド前の内容へ戻してから終了します（失敗時も戻します）。開発機で未コミットの
-変更を持っている場合も、その内容が戻ります。
+生成物でありながらコミット対象のファイルが 2 つあります。ビルドで書き換わった
+ままだとビルドホストの次の `git pull --ff-only` が失敗するため、`build.sh` と
+`check_release_contract.sh` はビルド前の内容へ戻してから終了します（失敗時も
+戻します）。開発機で未コミットの変更を持っている場合も、その内容が戻ります。
+
+| ファイル | 誰が書き換えるか |
+|---|---|
+| `lib/shared/build_info.dart` | `scripts/generate_build_info.sh` |
+| `android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` | `flutter build` |
+
+⚠ 2 つ目は **variant によって中身が変わります。** そのビルドが実際にリンクする
+プラグインだけを登録するので、`integration_test`（dev 依存）は **release では
+消え、debug では戻ります。**リポジトリにコミットされているのは debug 側の内容
+です。release を焼いたあとに差分が出ていたらこれで、異常ではありません。
 
 `BUILD_NUMBER` を指定した場合、その値は `BuildInfo.buildNumber` にも渡ります。
 アプリの About 画面が表示する build number と、成果物の versionCode・
