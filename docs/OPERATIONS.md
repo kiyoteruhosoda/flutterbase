@@ -27,11 +27,17 @@
 | 7 | 依存関係規約 | `dart run tool/check_dependencies.dart` |
 | 8 | テスト | `flutter test --coverage` |
 | 9 | カバレッジ下限 | `dart run tool/check_coverage.dart` |
-| 10 | ビルド | `flutter build apk --debug` |
+| 10 | リリース契約 | `bash scripts/check_release_contract.sh` |
 
 2 と 3 は、`build.yaml` があるか `lib/` に `part '*.g.dart'` /
 `part '*.freezed.dart'` があるときだけ走ります。現状このテンプレートは
 コード生成を使っていないため自動的にスキップされます。
+
+10 は release の APK / AAB を**リリース経路と同じ焼き方で**作り、その成果物が
+リリース経路の後段の前提を満たしているかを確かめます（下の
+「リリース契約を手元で検査する」）。以前ここは `flutter build apk --debug`
+でしたが、debug ビルドは release ビルドタイプも成果物のファイル名も未署名出力も
+通らないため、そこを壊しても緑のままでした。
 
 ### Flutter のバージョン固定と `pubspec.lock`
 
@@ -52,34 +58,47 @@ Unable to satisfy `pubspec.yaml` using `pubspec.lock`.
 意味です。したがってバージョンは 1 か所に決め打ちし、全ての実行環境で
 同じものを使います。
 
-| 定義場所 | 項目 |
-|---|---|
-| `pubspec.yaml` | `environment: flutter:` / `sdk:` |
-| `.github/workflows/quality.yml` | `subosito/flutter-action` の `flutter-version` |
-| `azure-pipelines.yml` | `FLUTTER_VERSION`（clone 時の `--branch` に渡す） |
+| 定義場所 | 項目 | 所在 |
+|---|---|---|
+| `pubspec.yaml` | `environment: flutter:` / `sdk:` | このリポジトリ |
+| `.github/workflows/quality.yml` | `subosito/flutter-action` の `flutter-version` | このリポジトリ |
+| リリースビルダーイメージ | イメージに同梱された Flutter 本体 | **リポジトリ外**（ビルドホスト） |
 
 現在の固定値は **Flutter 3.47.1 / Dart 3.13.1** です。
+
+⚠ **3 つ目はこのリポジトリからは動かせません。** リリースの APK / AAB を焼くのは
+ビルドホスト側で digest 固定されたコンテナイメージで、そこに入っている Flutter が
+実際の固定値です。`environment:` の床を上げるときは、**先にビルダーイメージ側が
+その版を持っていることを確認**してください。順序を逆にすると、CI は緑のまま
+リリースビルドだけが `version solving failed` で落ちます。手順は
+`docs/RELEASE.md` を参照。
 
 CI で `stable` のような流動的なブランチを clone してはいけません。Flutter 側が
 stable を進めた瞬間に lock と食い違い、`--enforce-lockfile` が構造的に必ず
 失敗するようになります。
 
-依存解決は全経路で `--enforce-lockfile` を使います
-（`scripts/ci.sh` / `scripts/build.sh` / `.github/workflows/build.yml` /
-`azure-pipelines.yml`）。配布物を作る経路が、品質ゲートで検証していない依存で
-ビルドされるのを防ぐためです。**副作用として、ビルダーの Flutter が固定値から
-ずれると `scripts/build.sh` は依存解決の時点で止まります。** これは意図した
-挙動で、黙って別の依存で配布物が作られるより早く気付けます。直し方は上の表の
-3 か所を揃えるか、ビルダーの Flutter を固定値に戻すかのどちらかです。
+依存解決は全経路で `--enforce-lockfile` を使います（`scripts/ci.sh` /
+`scripts/build.sh` / `scripts/check_release_contract.sh`、およびリリース経路）。
+配布物を作る経路が、品質ゲートで検証していない依存でビルドされるのを防ぐ
+ためです。**副作用として、ビルダーの Flutter が固定値からずれると依存解決の
+時点で止まります。** これは意図した挙動で、黙って別の依存で配布物が作られるより
+早く気付けます。直し方は上の表の 3 か所を揃えるか、ビルダーの Flutter を固定値に
+戻すかのどちらかです。
 
 #### 上げるとき
 
-1. 上記 3 か所を新しいバージョンに揃える。
-2. そのバージョンの Flutter で `flutter pub get`（`--enforce-lockfile` なし）を
+1. **先にビルダーイメージを新しい版で焼き直す**（リポジトリ外の作業）。
+   ここが最後になると、リリースビルドだけが落ちる状態が生まれます。
+2. 上の表の残り 2 か所を新しいバージョンに揃える。
+3. そのバージョンの Flutter で `flutter pub get`（`--enforce-lockfile` なし）を
    走らせ、`pubspec.lock` を作り直す。
-3. `./scripts/ci.sh` を通し、`pubspec.lock` を一緒にコミットする。
-4. Android ツールチェインの最低要件が上がっていないか、本書の
+4. `./scripts/ci.sh` を通し、`pubspec.lock` を一緒にコミットする。
+5. Android ツールチェインの最低要件が上がっていないか、本書の
    「Android ツールチェイン」を確認する。
+
+⚠ SDK を上げても `pubspec.lock` が必ず壊れるわけではありません。壊れるのは
+**新しい SDK が同梱パッケージの版を動かしたときだけ**です。`flutter pub get
+--enforce-lockfile` が通るなら lock はそのままで構いません。
 
 ### 個別に走らせる
 
@@ -117,6 +136,11 @@ flutter test --exclude-tags tool
 | `AndroidManifest — deep links` が落ちる | `AppConfig` と `AndroidManifest.xml` のホスト / スキームが食い違った | 両方を揃える。手順は `docs/DEEP_LINKS.md` |
 
 ## 配布物をビルドする
+
+⚠ **ここは手元でビルドする話です。**main に入ったものを配る正規の経路は
+ビルドホスト側にあり、そちらが署名と検証まで行います（`docs/RELEASE.md`）。
+この節の `scripts/build.sh` は、CI を通さずに手元の判断で焼きたいとき
+（任意のブランチ、外部ネットワークに出せない環境）のためのものです。
 
 配布用の APK / AAB は `scripts/build.sh` で作ります。出力先ディレクトリ
 （既定 `dist/`）が配布物の一式で、これをそのまま配布元のマシンへ渡せば足ります
@@ -163,81 +187,92 @@ debug 鍵になった場合は警告を出し、`manifest.env` の `signing` に
 
 ### 生成物とワーキングツリー
 
-`lib/shared/build_info.dart` は生成物ですがコミット対象です。ビルドで書き換わった
-ままだとビルドホストの次の `git pull --ff-only` が失敗するため、`build.sh` は
-ビルド前の内容へ戻してから終了します（失敗時も戻します）。開発機で未コミットの
-変更を持っている場合も、その内容が戻ります。
+生成物でありながらコミット対象のファイルが 2 つあります。ビルドで書き換わった
+ままだとビルドホストの次の `git pull --ff-only` が失敗するため、`build.sh` と
+`check_release_contract.sh` はビルド前の内容へ戻してから終了します（失敗時も
+戻します）。開発機で未コミットの変更を持っている場合も、その内容が戻ります。
+
+| ファイル | 誰が書き換えるか |
+|---|---|
+| `lib/shared/build_info.dart` | `scripts/generate_build_info.sh` |
+| `android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` | `flutter build` |
+
+⚠ 2 つ目は **variant によって中身が変わります。** そのビルドが実際にリンクする
+プラグインだけを登録するので、`integration_test`（dev 依存）は **release では
+消え、debug では戻ります。**リポジトリにコミットされているのは debug 側の内容
+です。release を焼いたあとに差分が出ていたらこれで、異常ではありません。
 
 `BUILD_NUMBER` を指定した場合、その値は `BuildInfo.buildNumber` にも渡ります。
 アプリの About 画面が表示する build number と、成果物の versionCode・
 `manifest.env` が食い違わないようにするためです。
 
-## git も Flutter も無いホストでビルドする
+## リリース契約を手元で検査する
 
-NAS やファイルサーバーのように、git も Flutter SDK も置けないホストで配布物を
-用意する場合は `scripts/build-remote-container.sh` を使います。ソース取得と
-ビルドは**同じホスト上の dev コンテナ**の中で行い、出来上がった `dist/` を
-ホストから見えるパス経由で配布ディレクトリへ取り込みます。
+配布する APK / AAB を焼くのはこのリポジトリの CI ではなく、ビルドホスト側の
+リリース経路です（全体像は `docs/RELEASE.md`）。その経路は 3 段に分かれていて、
+**署名する段と検証する段はリポジトリを見ません。**成果物を固定のディレクトリから
+固定の名前で拾うだけです。
+
+| 段 | やること | リポジトリを見るか | 鍵を持つか |
+|---|---|---|---|
+| 1 | ビルド | 見る（アプリのコードが走る） | **持たない** → 未署名 |
+| 2 | 署名 | 見ない | 持つ |
+| 3 | 検証・保管 | 見ない | 持たない |
+
+こう分けてあるのは、署名鍵を pub パッケージや Gradle プラグインの手が届かない
+場所に置くためです。その代償として、**段 2 と段 3 が探すファイル名とディレクトリが
+そのまま契約になります。**そしてその名前を作っているのは
+`android/app/build.gradle` 1 つだけで、リポジトリ内の他のどこからも参照されて
+いません。つまりここを壊しても、debug ビルドは通り、テストも通り、**マージ後に
+ビルドホストで初めて落ちます。**
+
+`scripts/check_release_contract.sh` がその穴を塞ぎます。段 1 をリリース経路と
+同じ手順で走らせ、そのあとで段 2 と段 3 が探すものが揃っているかを確かめます。
 
 ```bash
-./build-remote-container.sh          # APK + AAB
-./build-remote-container.sh apk
-./build-remote-container.sh aab
+./scripts/check_release_contract.sh              # ビルドしてから検査
+./scripts/check_release_contract.sh --no-build   # 既存の build/ をそのまま検査
 ```
 
-実行される 5 ステップ:
+`./scripts/ci.sh` の最後の検査がこれです（`--fast` で飛ばせます）。
 
-| 順 | ステップ | 内容 |
-|---|---|---|
-| 1 | SYNC | dev コンテナ内で `git pull --ff-only` |
-| 2 | BUILD | dev コンテナ内で `scripts/build.sh <target>` |
-| 3 | PICK | 出来上がった `dist/` を配布ディレクトリ内の一時ディレクトリへ取り込む |
-| 4 | VERIFY | `manifest.sha256` で取り込んだ配布物を照合する |
-| 5 | PUBLISH | 照合できた配布物を入れ替える（旧版はここで消える） |
+### 検査している契約
 
-取り込みを一時ディレクトリで行うのは、**照合が通るまで前回の配布物を残す**ためです。
-コピーが途中で失敗しても、壊れたビルドが届いても、ダウンロードできるのは
-前回の正常なビルドのままです。
+| 契約 | 破れると |
+|---|---|
+| `build/app/outputs/apk/release/<base>-<version>-release.apk` がある | 段 2 が署名対象を 1 つも拾えず「署名対象の APK が見つからない」で落ちる |
+| `build/app/outputs/flutter-apk/<base>-<version>-release.apk` がある | 段 2 は成功するのに、段 3 が「APK が見つからない」で落ちる |
+| `build/app/outputs/bundle/release/<base>-<version>-release.aab` がある | 段 2・段 3 とも「署名対象の AAB が見つからない」で落ちる |
+| ファイル名の版数が `pubspec.yaml` の `version` と一致する | 段 3 が「前回ビルドの残骸を拾っている」と判断して落ちる |
+| `app-release-unsigned.apk` がある（＝ `NOLUMIA_SIGNING=none` が効いている） | Gradle が debug 鍵で署名してしまい、段 3 が「debug 鍵で署名されている」で落ちる |
+| `flutter-apk/app-release.apk` がある | Flutter CLI が「Gradle build failed to produce an .apk file」でビルドごと落ちる |
+| 成果物が署名されていない | 段 1 の中で何かが署名している。鍵がアプリのコードから届く位置にある疑い |
+| APK の applicationId が `build.gradle` の宣言と一致する | 段 3 が「applicationId が宣言と一致しない」で落ちる |
 
-SYNC の直後に、dev コンテナ内の `build-remote-container.sh` と自分自身を
-byte 単位で比較し、異なれば最新版へ差し替えて同じ引数で再実行します
-（このスクリプトは `dist/` に含まれない手置きのブートストラップなので、
-`git pull` では更新されないため）。再実行は 1 回に限定します。
-再実行は「今動いている bash に自分自身を渡す」形で行うため、ホスト上の
-コピーに実行権が無くても（共有フォルダ経由で置くと 0644 になりがちです）
-そのまま続行します。差し替え後のファイルには実行権も付けますが、付けるのは
-読み取りを許可している相手だけです（`0640` は `0750` になります）。
+`<base>` は `android/app/build.gradle` の `appApplicationId` の末尾
+（`android/gradle.properties` に `app.archivesBaseName` があればそちら）です。
 
-### 設定
+最後の 2 つは外部ツールが要ります。APK の署名判定は `apksigner`、AAB の署名判定は
+`unzip`、applicationId の照合は `aapt2` です。無い環境ではその検査だけスキップされ、
+他は変わらず走ります。
 
-スクリプトと同じ場所に `build-remote-container.env`（`KEY=VALUE` 形式。雛形は
-`scripts/build-remote-container.env.example`）を置くか、環境変数で与えます。
-**スクリプト冒頭の既定値は書き換えないでください**（自己更新で丸ごと差し替わり、
-編集は次回実行時に失われます）。
+⚠ APK の署名判定に zip の中身（`META-INF/*.RSA`）を見てはいけません。`minSdk` が
+36 なので AGP は v1（JAR）署名を既定で行わず、署名済みでも APK Signing Block
+（v2/v3）にしか署名が入りません。エントリ一覧を見る方法だと**署名済みの APK も
+「未署名」と判定してしまいます。**
 
-| キー | 既定 | 意味 |
-|---|---|---|
-| `APP_PROJECT` | ディレクトリから自動取得 | プロジェクト名 |
-| `APP_DEV_CONTAINER` | `ubuntu-dev` | ビルドを行う dev コンテナ名 |
-| `APP_DEV_USER` | `sshuser` | コンテナ内の実行ユーザー |
-| `APP_DEV_WORKDIR` | `/work/project/{PROJECT}` | コンテナ内のリポジトリ working dir |
-| `APP_DIST_DIR` | （必須） | ホストから見える `dist/` の絶対パス |
-| `APP_ARTIFACT_DIR` | スクリプトの場所 | 配布ディレクトリ |
-| `BUILD_MODE` | （未設定） | `build.sh` へそのまま渡す |
+⚠ `apksigner` は `java` を PATH から探すシェルラッパーです。**ビルダーイメージは
+JDK を PATH に置いていない**（`JAVA_HOME` だけが指している）ため、素のままでは
+exit 127 で落ちます。これは「署名が無い」と終了コードで区別が付かないので、
+検査は `JAVA_HOME/bin` を PATH に足したうえで、**先に `apksigner version` が
+通ることを確かめてから**署名の有無を読みます。動かない場合は「未署名」ではなく
+スキップとして出ます。
 
-値の中の `{PROJECT}` は確定したプロジェクト名へ展開されます。ディレクトリ構成が
-`/<プロジェクト名>/<チャネル>`（例 `/volume1/builds/flutterbase/internal`）なら
-プロジェクト名は親ディレクトリ名から決まるので、`PROJECT` の指定は不要です。
+### なぜ debug ビルドでは足りなかったのか
 
-### よくある失敗と対処
-
-| 症状 | 原因 | 対処 |
-|---|---|---|
-| `git pull inside the dev container failed` | コンテナ内のワーキングツリーが汚れている | コンテナ内で `git status` を見る。`build.sh` 以外が生成物を書き換えていないか確認 |
-| SELF-UPDATE 直後に `bad interpreter: Permission denied`（終了コード 126） | 自己更新に対応していない古いホスト側コピーが、実行権の無いファイルを直接実行しようとした | もう一度実行する（差し替えは済んでいるので次回は通る）。以後は再実行が bash 経由になるため再発しません |
-| `dist not found` | `APP_DIST_DIR` がコンテナ内のパスを指している | ホストから見えるパスを指定する |
-| `checksum mismatch` | 取り込み中に転送が壊れた | もう一度実行する。繰り返すなら共有フォルダの状態を確認 |
-| `signing=debug-keystore` のまま配ってしまった | `android/key.properties` が無い | 鍵を置いて再ビルドする（`docs/CUSTOMISATION.md`） |
+以前ここは `flutter build apk --debug` でした。Gradle が設定として壊れていない
+ことは分かりますが、release ビルドタイプも、成果物のリネーム処理も、未署名モードも
+一切通りません。リリース経路が読むものは全部そこにあるので、**壊しても緑**でした。
 
 ## ローカル DB (SQLite)
 

@@ -5,7 +5,8 @@ name: Quality
 # CI-only subset of them.
 #
 # This workflow is read-only: it does not tag, bump, publish, or merge.
-# Release automation stays in version_bump.yml and build.yml.
+# Release automation stays in version_bump.yml and, for the artifacts
+# themselves, off GitHub entirely — see docs/RELEASE.md.
 
 on:
   pull_request:
@@ -24,7 +25,11 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # The last check in scripts/ci.sh builds the release APK and AAB the way
+    # the release pipeline does (see docs/RELEASE.md), which is slower than the
+    # debug build that used to be there — and slower again whenever the Gradle
+    # cache below misses.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
@@ -38,7 +43,8 @@ jobs:
           # Pinned, not floating: `pubspec.lock` is only valid for the exact
           # SDK that resolved it, because Flutter pins its own vendored
           # packages. Keep in sync with the `environment:` block in
-          # pubspec.yaml and with `FLUTTER_VERSION` in azure-pipelines.yml.
+          # pubspec.yaml and with the Flutter inside the release builder
+          # image — see docs/OPERATIONS.md.
           flutter-version: "3.47.1"
           channel: stable
           cache: true

@@ -35,14 +35,51 @@ Play App Signing のアップロード鍵。alias は `flutterbase-upload`。
 | パスワード | Komodo Secret Variable `SIGN_FLUTTERBASE_STORE_PASS` / `_KEY_PASS` |
 | 紐付けの宣言 | `deploy-repo` の `resources/repos.toml` |
 
+## リポジトリ側が守る契約
+
+stage 2 と stage 3 は**リポジトリを見ない。**成果物を固定のディレクトリから
+固定の名前で拾うだけで、その名前を作っているのは `android/app/build.gradle` の
+中の、リポジトリ内の他のどこからも参照されていないコピー処理と
+`unsignedRelease` フラグだけ。
+
+つまりここを壊しても debug ビルドは通り、テストも通り、**マージ後に
+nolumialab で初めて落ちる。**
+
+```bash
+./scripts/check_release_contract.sh
+```
+
+これが stage 1 を同じ手順で走らせ、stage 2 / stage 3 が探すものが揃っているかを
+確かめる。`./scripts/ci.sh` の最後の検査でもあるので、PR が緑なら契約は
+守られている。検査項目の一覧と、破れたときに何が起きるかは
+`docs/OPERATIONS.md` の「リリース契約を手元で検査する」にある。
+
+## Flutter を上げるとき
+
+固定値は 3 か所にあり、**1 つはこのリポジトリの外**（ビルダーイメージに同梱
+された Flutter 本体）。
+
+**先にビルダーイメージを用意すること。** 逆順にすると、`pubspec.yaml` の
+`environment: flutter:` の床だけが上がった状態になり、CI は緑のまま
+リリースビルドだけが `version solving failed` で落ちる。
+
+`pubspec.lock` は必ず作り直しになるわけではない。壊れるのは新しい SDK が
+同梱パッケージ（`meta` / `matcher` / `test_api` / `vector_math` / `intl` …）の
+版を動かしたときだけで、`--enforce-lockfile` が通るならそのままでよい。
+
 ## この雛形から派生アプリを作るとき
 
 ```bash
 scripts/rename_app.sh <dart_name> com.nolumia.<app>
 ```
 
-そのあと nolumialab で鍵を発行し、`deploy-repo` に登録する。
-手順は `deploy-repo/docs/flutter-signing.md` の「新しいアプリを追加する」。
+これは `docs/komodo-registration.md` を生成する。**登録が済むまで、その派生
+アプリは main に入れても何も焼かれない。**必要な値（applicationId・鍵の別名・
+Secret 変数名・`repos.toml` に貼るブロック）はこのアプリの分が埋まった形で
+そこに入っているので、順に片付けて、済んだらファイルを消す。
+
+鍵の発行そのものは nolumialab 側の作業。手順は
+`deploy-repo/docs/flutter-signing.md` の「新しいアプリを追加する」。
 
 ## `build.gradle` の署名まわり
 

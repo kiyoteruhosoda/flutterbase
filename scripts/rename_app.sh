@@ -12,6 +12,7 @@
 #   - lib/**, test/**, integration_test/**  (package:flutterbase/... imports)
 #   - android/app/build.gradle (namespace, applicationId)
 #   - android/app/src/main/kotlin/...  (MainActivity package + directory layout)
+#   - docs/komodo-registration.md      (generated: what the build host needs)
 #
 # What this script does NOT touch — edit these by hand:
 #   - pubspec.yaml `description` and `version`
@@ -134,7 +135,126 @@ rm -f pubspec.yaml.bak android/app/build.gradle.bak
 find lib test integration_test "$NEW_KOTLIN_DIR" \
     -name '*.bak' -type f -delete 2>/dev/null || true
 
-# ─── 7. Sanity check ─────────────────────────────────────────────────────
+# ─── 7. Registration sheet for the release build host ────────────────────
+#
+# Renaming the app is only half of forking the template. The other half lives
+# outside this repository: the release build host has to be told that this app
+# exists, which signing key is its own, and — the part that is easy to skip —
+# which certificate fingerprint it is allowed to produce. That declaration is
+# what makes the verify stage able to reject an artifact signed by the wrong
+# key; without it the build simply has nothing to compare against.
+#
+# None of that can be done from here, so write down exactly what has to be
+# handed over, with this app's values already filled in. The one field that
+# cannot be filled in yet is the fingerprint: it does not exist until the key
+# does.
+APP_SLUG="$NEW_DART_NAME"
+APP_ENV_PREFIX="$(echo "$APP_SLUG" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9' '_' | $SED 's/_*$//')"
+REGISTRATION_DOC="docs/komodo-registration.md"
+
+cat >"$REGISTRATION_DOC" <<REGISTRATION
+# リリースビルドの登録メモ（$APP_SLUG）
+
+\`scripts/rename_app.sh\` が生成しました。**登録が済んだらこのファイルは
+消して構いません**（残す場合は指紋を埋めてから）。
+
+配布する APK / AAB を焼くのはこのリポジトリの CI ではなく、ビルドホスト側の
+リリース経路です（仕組みは \`docs/RELEASE.md\`）。そこに**このアプリを登録する
+までは、main に入れても何も焼かれません。**
+
+## 1. 署名鍵を作る
+
+ビルドホストで、このアプリ専用のアップロード鍵を 1 つ発行します。鍵の実体は
+リポジトリには入りません。既存アプリの手順に合わせてください。
+
+- 鍵の別名（alias）: \`$APP_SLUG-upload\`
+- 稼働用の置き場: ビルドホストの署名鍵ディレクトリ配下 \`$APP_SLUG/\`
+- 保管の正: NAS 側の署名鍵ディレクトリ（**バックアップはここ 1 箇所**）
+
+⚠ Play App Signing を使うならこれは「アップロード鍵」で、紛失しても Play
+Console からリセットを申請できます。**Play に出さないアプリではこの鍵が
+そのまま配布鍵になり、紛失すると更新を配れなくなります。**
+
+## 2. パスワードを Secret として登録する
+
+| 変数名 | 中身 |
+|---|---|
+| \`SIGN_${APP_ENV_PREFIX}_STORE_PASS\` | キーストアのパスワード |
+| \`SIGN_${APP_ENV_PREFIX}_KEY_PASS\` | 鍵のパスワード |
+
+## 3. 証明書指紋を測る
+
+作った鍵から SHA-256 指紋を取り出し、下のブロックの \`CERT_SHA256\` に
+書き写します。
+
+\`\`\`
+keytool -list -v -keystore upload-keystore.jks -alias $APP_SLUG-upload \\
+  | sed -n 's/.*SHA256: *//p' | head -1
+\`\`\`
+
+⚠ **これは「このアプリはこの鍵で署名される」という宣言です。**ビルドのたびに
+実測の指紋と突き合わされ、一致しなければ保管されません。**鍵を作り直したら
+ここも更新してください。**
+
+## 4. リポジトリ定義を足す
+
+ビルドホストのリポジトリ定義（\`repos.toml\`）へ、次のブロックを追加します。
+\`environment\` の値は 3 連引用符で囲む TOML の複数行文字列です。
+
+\`\`\`toml
+[[repo]]
+name = "$APP_SLUG"
+tags = ["managed"]
+[repo.config]
+server = "<ビルドホスト名>"
+repo = "<owner>/$APP_SLUG"
+git_provider = "github.com"
+git_account = "<git アカウント>"
+branch = "main"
+environment = '''
+APP             = $APP_SLUG
+APPLICATION_ID  = $NEW_ANDROID_PKG
+KEY_ALIAS       = $APP_SLUG-upload
+CERT_SHA256     = <手順 3 で測った指紋>
+STORE_PASS      = [[SIGN_${APP_ENV_PREFIX}_STORE_PASS]]
+KEY_PASS        = [[SIGN_${APP_ENV_PREFIX}_KEY_PASS]]
+PUB_ARGS        = --enforce-lockfile
+'''
+
+[repo.config.on_pull]
+path = "."
+shell_mode = true
+command = "<リリーススクリプトのパス>"
+\`\`\`
+
+⚠ 既存アプリの定義は \`environment\` を 3 連ダブルクォートで書いています。
+どちらでも構いませんが、**周りに合わせてください。**
+
+⚠ **\`on_clone\` は書かないこと。** clone は on_clone と on_pull を両方走らせる
+ため、両方に書くと 1 回のクローンでビルドが 2 周します。しかもリリース
+スクリプトは読み終えた設定を即座に消す（アプリのコードから署名パスワードが
+読めないようにするため）ので、2 周目は必ず失敗します。
+
+⚠ \`PUB_ARGS = --enforce-lockfile\` は、\`pubspec.lock\` がビルダーの Flutter で
+解決できるときだけ付けてください。落ちる場合は、その Flutter で
+\`pubspec.lock\` を作り直してコミットするのが正しい直し方です
+（\`docs/OPERATIONS.md\`）。
+
+## 5. main への push で発火するようにする
+
+このリポジトリの GitHub webhook を、ビルドホストの受け口へ向けます。
+これが無いと、登録だけしても push でビルドが始まりません。
+
+## 6. 確認
+
+- \`./scripts/check_release_contract.sh\` が手元で通ること
+- ビルドホストで 1 回ビルドが完走し、成果物と署名レポートが保管されること
+- 署名レポートの証明書 DN が **Android Debug ではない**こと
+REGISTRATION
+
+echo "wrote $REGISTRATION_DOC"
+
+# ─── 8. Sanity check ─────────────────────────────────────────────────────
 LEAKED="$(grep -rl "package:${OLD_DART_NAME}" lib test integration_test 2>/dev/null || true)"
 if [[ -n "$LEAKED" ]]; then
     echo "warning: residual package:${OLD_DART_NAME} imports remain in:" >&2
@@ -178,5 +298,9 @@ next steps (manual):
      applicationId, which rename_app.sh has just rewritten.
   7. update README.md line 1
   8. run: flutter clean && flutter pub get && dart analyze && flutter test
+  9. register this app with the release build host — nothing is built for
+     it until that is done.  The values it needs, with this app's already
+     filled in, are in the generated docs/komodo-registration.md.
+     Delete that file once the registration is in place.
 
 MSG

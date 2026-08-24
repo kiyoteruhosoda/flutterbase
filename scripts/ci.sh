@@ -8,7 +8,7 @@
 #
 # Usage:
 #   ./scripts/ci.sh                 # everything
-#   ./scripts/ci.sh --fast          # skip the APK build (the slow step)
+#   ./scripts/ci.sh --fast          # skip the release build (the slow step)
 #   ./scripts/ci.sh --keep-going    # run all checks, report at the end
 #   ./scripts/ci.sh --help
 #
@@ -24,7 +24,7 @@ for arg in "$@"; do
     --fast)       FAST=1 ;;
     --keep-going) KEEP_GOING=1 ;;
     -h|--help)
-      sed -n '2,16p' "$0" | sed 's|^# \{0,1\}||'
+      sed -n '2,14p' "$0" | sed 's|^# \{0,1\}||'
       exit 0
       ;;
     *)
@@ -134,11 +134,18 @@ run "tests" flutter test --coverage
 
 run "coverage thresholds" dart run tool/check_coverage.dart --verbose
 
+# The release build, run the way the release pipeline runs it, plus the
+# assertions that pipeline's later stages depend on. It replaces what used to
+# be a plain `flutter build apk --debug` here: a debug build proves Gradle is
+# configured, but it exercises neither the release build type nor the artifact
+# names and unsigned-output behaviour the pipeline reads. Those had no check
+# anywhere, so breaking them stayed green until the build host ran.
+# See scripts/check_release_contract.sh and docs/RELEASE.md.
 if [ "$FAST" -eq 1 ]; then
-  printf '\n%s━━━ apk build %s\n' "$BOLD" "$OFF"
+  printf '\n%s━━━ release contract %s\n' "$BOLD" "$OFF"
   printf '%sskipped — --fast%s\n' "$DIM" "$OFF"
 else
-  run "apk build" flutter build apk --debug
+  run "release contract" bash scripts/check_release_contract.sh
 fi
 
 summary
