@@ -3,6 +3,52 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-08-24 — リリースビルドの前提をリポジトリ側に揃え、契約を検査する
+
+配布する APK / AAB を焼くのはビルドホスト側のリリース経路（ビルド／署名／
+検証・保管の 3 段）だが、リポジトリにはそれ以前の経路の痕跡が 3 つ同時に
+残っていた。同時に、その経路が読むものを**リポジトリ側は一切検査していな
+かった**。設計判断は `docs/adr/0005-release-build-off-repository.md`。
+
+### 追加
+
+- `scripts/check_release_contract.sh` — stage 1 をリリース経路と同じ手順で
+  走らせ、stage 2 / stage 3 が探すものが揃っているかを確かめる。成果物の
+  per-app 名が AGP の出力先と Flutter CLI のコピー先の両方にあること、
+  ファイル名の版数が `pubspec.yaml` と一致すること、`NOLUMIA_SIGNING=none` が
+  実際に `signingConfig` を外していること、成果物に署名ブロックが無いこと、
+  APK の applicationId が `build.gradle` の宣言と一致すること。
+  `unzip` / `aapt2` が無い環境では末尾 2 つだけスキップする。
+- `scripts/rename_app.sh` が `docs/komodo-registration.md` を生成するように
+  した。派生アプリをビルドホストへ登録するのに要る値（applicationId・鍵の
+  別名・Secret 変数名・`repos.toml` に貼るブロック）が埋まった状態で出る。
+  **登録しないと、派生アプリは main に入れても何も焼かれない。**
+
+### 変更
+
+- `scripts/ci.sh` の最後の検査を `flutter build apk --debug` から
+  `scripts/check_release_contract.sh` へ置き換えた。debug ビルドは release
+  ビルドタイプにも成果物のリネーム処理にも未署名モードにも触れないため、
+  **そこを壊しても CI は緑**で、マージ後にビルドホストで初めて落ちていた。
+  release ビルドは APK と AAB の 2 本を焼くので CI の所要時間は伸びる
+  （`--fast` で従来どおり飛ばせる）。
+- Flutter のバージョンを固定する場所の数え方を直した。`azure-pipelines.yml`
+  を外し、**ビルダーイメージに同梱された Flutter** を入れた。3 か所のうち
+  1 つはこのリポジトリの外にあり、**そちらを先に用意しないと CI は緑のまま
+  リリースビルドだけが落ちる。**
+
+### 削除
+
+- `azure-pipelines.yml` — 一度も使われていない。存在しない `ios/` をビルドし、
+  終了したサービスへ配布し、`build.gradle` が読まない環境変数で署名しようと
+  する内容のまま、Flutter の固定値を宣言する 3 か所目として docs に
+  数えられていた。
+- `scripts/build-remote-container.sh` と
+  `scripts/build-remote-container.env.example` — ADR 0003 の dev コンテナ経路。
+  前提としていた配布ディレクトリはホスト上に作られず、ビルドを委ねるはずの
+  dev コンテナも停止したままで、**定常運用に乗らなかった**。ADR 0003 は廃止。
+  `scripts/build.sh`（手元で任意のブランチを焼く経路）は残す。
+
 ## 2026-08-23 — Flutter 3.47.1 と Android ツールチェインを更新
 
 Flutter 3.47 が Gradle / AGP / Kotlin について出していた「近く対応を打ち切る」

@@ -39,8 +39,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 # ─── Arguments ─────────────────────────────────────────────────────────────
-# The target is picked from any argument position so that callers which pass
-# extra words through (scripts/build-remote-container.sh) keep working.
+# The target is picked from any argument position, so a caller that passes
+# extra words through keeps working.
 targets=all
 out_dir=dist
 

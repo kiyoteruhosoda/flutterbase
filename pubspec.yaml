@@ -8,8 +8,9 @@ version: 1.8.3+172
 # `matcher`, `test_api`, `vector_math`, `intl`, ...), so a lockfile is only
 # ever valid for the exact SDK that produced it — `flutter pub get
 # --enforce-lockfile` fails on any other one. Keep this in sync with
-# `flutter-version` in `.github/workflows/quality.yml` and `FLUTTER_VERSION`
-# in `azure-pipelines.yml`, and regenerate the lockfile whenever it moves.
+# `flutter-version` in `.github/workflows/quality.yml` AND with the Flutter
+# inside the release builder image, and regenerate the lockfile whenever it
+# moves. See docs/OPERATIONS.md §"Flutter のバージョン固定と `pubspec.lock`".
 environment:
   sdk: ">=3.13.0 <4.0.0"
   flutter: ">=3.47.1"

@@ -131,14 +131,16 @@ Domain は UI、DB、HTTP、JSON、フレームワークの詳細に依存しな
 * migration が必要な場合は、方針に従って明示または自動で実行される
 * 重要な運用コマンドは `docs/OPERATIONS.md` に集約される
 
-配布物のビルドは 2 本のスクリプトが担います。
+配布する APK / AAB は、main に入ったものをビルドホスト側のリリース経路が焼きます。ビルド・署名・検証を 3 段に分け、署名鍵をアプリのビルドコードから隔離したうえで、宣言した証明書指紋と実測を突き合わせてから保管します。全体像は `docs/RELEASE.md`、経緯は `docs/adr/0005-release-build-off-repository.md` にあります。
+
+手元で焼く場合は次の 2 本です。
 
 ```bash
-./scripts/build.sh              # APK + AAB と manifest を dist/ へ
-./build-remote-container.sh     # 配布先ホストで: dev コンテナへビルドを委ねて取り込む
+./scripts/build.sh                        # APK + AAB と manifest を dist/ へ
+./scripts/check_release_contract.sh       # リリース経路と同じ焼き方＋その前提の検査
 ```
 
-`scripts/build.sh` は Flutter がある場所ならどこでも同じように動きます（開発機・CI・dev コンテナ）。`scripts/build-remote-container.sh` は、git も Flutter も置けないホスト（NAS 等）へ手置きして使うブートストラップで、同一ホスト上の dev コンテナへ `git pull` とビルドを委ねます。手順と設定は `docs/OPERATIONS.md`、経緯は `docs/adr/0003-build-in-dev-container.md` にあります。
+`scripts/build.sh` は Flutter がある場所ならどこでも同じように動き、手元の判断で任意のブランチを焼くための経路です。`scripts/check_release_contract.sh` は、リリース経路の後段が探すファイル名・未署名出力・applicationId が揃っているかを確かめます（`scripts/ci.sh` の最後の検査でもあります）。どちらも手順は `docs/OPERATIONS.md` にあります。
 
 手順が増えてきたら、README にすべてを書くのではなく、`docs/OPERATIONS.md` と `.claude/skills/operations.md` に分けます。
 
@@ -274,7 +276,7 @@ Domain は UI、DB、HTTP、JSON、フレームワークの詳細に依存しな
 
 ```bash
 ./scripts/ci.sh          # 全検査
-./scripts/ci.sh --fast   # APK ビルドを飛ばす（開発中はこれで十分）
+./scripts/ci.sh --fast   # release ビルドを飛ばす（開発中はこれで十分）
 ```
 
 検査の内訳と失敗時の対処は `docs/OPERATIONS.md`、規約そのものは `docs/ARCHITECTURE.md` にあります。
@@ -285,7 +287,7 @@ Domain は UI、DB、HTTP、JSON、フレームワークの詳細に依存しな
 * レイヤー依存方向、レイヤーごとの禁止 import / 禁止型、Domain での `DateTime.now()` / `print` / `debugPrint`、Domain 型の `ChangeNotifier` 継承と public setter — `tool/check_architecture.dart` が Analyzer の AST で検査します（文字列検索ではありません）
 * `pubspec.yaml` と実際の import の突き合わせ — `tool/check_dependencies.dart`
 * カバレッジ下限 — `tool/check_coverage.dart`
-* `flutter build apk --debug`
+* リリース経路と同じ焼き方の release ビルドと、その成果物が満たすべき契約 — `scripts/check_release_contract.sh`
 
 検査ツール自体も `test/tool/` でテストしています。各ルールについて、違反を含むフィクスチャで非ゼロ終了することを確認しているので、「あるのに効いていない検査」にはなりません。
 
