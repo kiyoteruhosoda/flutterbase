@@ -134,7 +134,7 @@ final class PersistentAppLogger implements AppLogger {
     if (level.index < _minLevel.index) return;
 
     final entry = LogEntry(
-      timestamp: DateTime.now(),
+      timestamp: DateTime.now().toUtc(),
       level: level,
       message: message,
       error: error,
@@ -212,8 +212,9 @@ final class PersistentAppLogger implements AppLogger {
     return dir;
   }
 
+  /// UTC so the file names line up with the timestamps inside them.
   String _fileTimestamp() {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     return '${now.year.toString().padLeft(4, '0')}'
         '${now.month.toString().padLeft(2, '0')}'
         '${now.day.toString().padLeft(2, '0')}'
