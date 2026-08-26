@@ -117,14 +117,25 @@ void main() {
   group('LogEntry', () {
     test('toLogLine includes ISO timestamp, level label, and message', () {
       final entry = LogEntry(
-        timestamp: DateTime(2026, 4, 7, 12, 0, 0),
+        timestamp: DateTime.utc(2026, 4, 7, 12, 0, 0),
         level: LogLevel.info,
         message: 'hello',
       );
       final line = entry.toLogLine();
       expect(line, contains('[I]'));
       expect(line, contains('hello'));
-      expect(line, contains('2026-04-07'));
+      expect(line, contains('2026-04-07T12:00:00.000Z'));
+    });
+
+    test('toLogLine renders a local instant in UTC', () {
+      // 契約: ソースは UTC で持つ。オフセットの無い ISO 文字列は読み手の
+      // ローカル時刻として解釈されるので、行に残す時刻は必ず Z で終わらせる。
+      final entry = LogEntry(
+        timestamp: DateTime.utc(2026, 4, 7, 3, 0, 0).toLocal(),
+        level: LogLevel.info,
+        message: 'hello',
+      );
+      expect(entry.toLogLine(), contains('2026-04-07T03:00:00.000Z'));
     });
 
     test('toLogLine appends error string when present', () {
