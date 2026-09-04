@@ -3,6 +3,28 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-09-04 — CI の action を Node 24 で動く版に上げた
+
+`Quality` の実行に `Node.js 20 is deprecated` の注釈が出ていた。ランナーが
+Node 20 を落としたので、`node20` を要求する action は Node 24 で**強制的に**
+動かされていた。互換のための猶予であって、切れれば止まる。**チェックは緑のまま
+なので、注釈にしか出ない。**
+
+- `actions/setup-java` `@v4` → `@v6`（`setup-java v4 is deprecated` の注釈も併せて消える）
+- `actions/cache` `@v4` → `@v6`
+- `actions/upload-artifact` `@v5` → `@v7`
+
+`actions/checkout@v5` と `subosito/flutter-action@v2` は触っていない（前者は元から
+`node24`、後者は composite action）。これで `node20` を要求する action は無くなった。
+
+またいだ破壊的変更はどれも該当しない —— `setup-java` v6 の Zulu → Azul API 移行は
+`distribution: temurin` なので無関係、`jdkFile` → `jdk-file` の改名は未使用。
+`cache` v6 と `upload-artifact` v7 は ESM 化と opt-in の機能追加のみ。
+
+⚠ `cache` / `upload-artifact` / `setup-java` の新しい版は **Actions Runner v2.327.1
+以降**を要求する。`ubuntu-latest` で動いているので満たしているが、セルフホストの
+ランナーへ移すときは先にランナーを更新すること。
+
 ## 2026-08-24 — リリースビルドの前提をリポジトリ側に揃え、契約を検査する
 
 配布する APK / AAB を焼くのはビルドホスト側のリリース経路（ビルド／署名／
