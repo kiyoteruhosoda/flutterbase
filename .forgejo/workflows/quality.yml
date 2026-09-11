@@ -1,0 +1,82 @@
+name: Quality
+
+# Runs the same gate as `./scripts/ci.sh` locally, so a green pull request
+# means the checks passed with the rules in this repository — not a
+# CI-only subset of them.
+#
+# This workflow is read-only: it does not tag, bump, publish, or merge.
+# Release automation stays in version_bump.yml and, for the artifacts
+# themselves, off GitHub entirely — see docs/RELEASE.md.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# 実行場所は **nolumialab のセルフホストランナー**（forge へ移したとき変えた）。
+#
+# ⚠ **`ubuntu-latest` をやめた理由は枠ではない。** このリポジトリは public なので
+#   GitHub-hosted は無料だった。移したのは**正が forge になった**からで、
+#   ミラーの上で走る CI は forge の PR に合否を返せない ——マージしてから
+#   落ちる網になる。
+#
+# ⚠ **public × セルフホストの危険は forge 側では消えている。** 素性の知れない
+#   fork から PR が来る筋が無い（登録を止めてあり、forge 側の写しは private）。
+#   ⚠ **GitHub 側は public のまま**だが、そちらの workflow は消してある。
+jobs:
+  checks:
+    runs-on: [self-hosted, nolumialab]
+    timeout-minutes: 60
+    # ⚠ **ジョブそのものをこのイメージの中で走らせる**（forge へ移したとき変えた）。
+    #   GitHub では `setup-java` ＋ `flutter-action` で毎回 SDK を取り直していたが、
+    #   act_runner では `container:` が使えるので、**リリースと同じビルダーを
+    #   digest で継いだ台**をそのまま使う。取り直しが消えるぶん速く、
+    #   何より**リリースと同じ SDK で検査される**。
+    # ⚠ **タグではなく digest で固定する。** Flutter / Android SDK の版が動くと
+    #   `pubspec.lock` がその SDK で解決できなくなり、`--enforce-lockfile` が
+    #   落ちる。上げるときは `pubspec.yaml` の `environment:` と揃えること。
+    #   いま入っているのは **Flutter 3.47.1 / OpenJDK 17**（実測）で、
+    #   `environment: flutter: ">=3.47.1"` と一致している。
+    # ⚠ **`setup-java` は要らないが、`java` は PATH に居ない。**
+    #   `JAVA_HOME=/opt/java/openjdk` は設定済みで Gradle はそこから見つけるが、
+    #   `java` を直に呼ぶ道具を足すときは PATH を自分で通すこと。
+    # ⚠ **キャッシュは `actions/cache` ではなく名前付きボリューム。**
+    #   act_runner のキャッシュ置き場はランナーのコンテナの IP で待っており、
+    #   ジョブのコンテナからは経路が無い（他のリポジトリで実測）。
+    #   台の `valid_volumes` が `flutter-pub-cache` と `flutter-gradle-cache-*`
+    #   を許している。
+    container:
+      image: hub.nolumia.com:5000/builder/ci-flutter@sha256:996f813d0ef208155bc5e967838a0009fa6ade015b7b0441d1d124c3e540de0e
+      options: >-
+        -v flutter-pub-cache:/cache/pub
+        -v flutter-gradle-cache-flutterbase-ci:/cache/gradle
+    env:
+      PUB_CACHE: /cache/pub
+      GRADLE_USER_HOME: /cache/gradle
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run the quality gate
+        run: ./scripts/ci.sh
+
+      # ⚠ **v7 を使わない。** act_runner では v4 以降が
+      #   `GHESNotSupportedError` を**警告として出したまま緑で終わり、
+      #   成果物が 1 つも上がらない**（2026-09-10 に実測）。
+      #   ⚠ 壊れたことに気付けないので、必ずこのタグで固定する。
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v3.2.2-node20
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          retention-days: 14
+          if-no-files-found: ignore
