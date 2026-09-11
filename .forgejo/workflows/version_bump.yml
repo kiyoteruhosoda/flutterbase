@@ -23,9 +23,18 @@ env:
 permissions:
   contents: write
 
+# 実行場所は nolumialab のセルフホストランナー（forge へ移したとき変えた）。
 jobs:
   bump-version:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nolumialab]
+    # ⚠ **ジョブのイメージに node が要る。** `uses:` の JS アクションは
+    #   ジョブのコンテナの中の node を呼ぶ ——素の python イメージだと
+    #   `exec: "node": executable file not found` で checkout から落ちる。
+    #   この関門は git と bash しか使わないので、軽いほうの台でよい。
+    container:
+      image: hub.nolumia.com:5000/builder/ci-python311@sha256:c6db7656b1a48195fde17e0c25c2f9e2d01dae78f09df73a74dcb1a24da53b45
+    # ⚠ 既定は 6 時間。ぶら下がったジョブが台を食い潰すので上限を置く。
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
@@ -34,8 +43,8 @@ jobs:
 
       - name: Configure git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "forge-actions[bot]"
+          git config user.email "forge-actions[bot]@nolumia.com"
 
       - name: Resolve bump type
         id: bump-type
