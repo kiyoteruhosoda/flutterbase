@@ -70,7 +70,7 @@ presentation  infrastructure
 |---|---|
 | `layer-direction` | 上表に反する package import |
 | `layer-placement` | どのレイヤーにも属さない `lib/**.dart` |
-| `banned-import` | Domain / Application からの Flutter・`dart:io`・`dart:ui` import、Infrastructure 以外からの dio・http・sqflite・shared_preferences・path_provider・package_info_plus・url_launcher などの import |
+| `banned-import` | Domain / Application からの Flutter・`dart:io`・`dart:ui` import、Infrastructure 以外からの dio・http・sqflite・shared_preferences・path_provider・package_info_plus・url_launcher・flutter_appauth・flutter_secure_storage などの import |
 | `infrastructure-only-type` | Infrastructure 以外での `File` / `Directory` / `HttpClient` / `Dio` / `MethodChannel` / `SharedPreferences` / `Database` などの使用（型注釈・コンストラクタ呼び出し・static アクセス） |
 | `concrete-adapter-dependency` | Infrastructure と合成ルート以外での具象アダプター（Repository 実装など）への参照 |
 | `domain-clock` | Domain での `DateTime.now()` |
@@ -111,6 +111,7 @@ reserved に残っていても CI が落ちます）。
 | `sqflite` | Infrastructure | `lib/infrastructure/database/`・`lib/infrastructure/repositories/` |
 | `path` | Infrastructure | DB ファイルパスの組み立て。純粋な文字列処理なのでレイヤー制限は掛けていない |
 | `url_launcher` | Infrastructure | `lib/infrastructure/links/`。`ExternalLinkLauncher` ポートの背後 |
+| `flutter_appauth` / `flutter_secure_storage` | Infrastructure | `lib/infrastructure/auth/`。任意のサインイン（ADR-0007）。`AuthSession` ポートの背後 |
 | `shared_preferences` / `path_provider` / `package_info_plus` | Infrastructure | 既存のアダプター群 |
 
 `equatable` と `riverpod_annotation`（および `riverpod_generator`）は

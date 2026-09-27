@@ -6,6 +6,7 @@ import 'package:flutterbase/domain/value_objects/app_language.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/navigation/app_routes.dart';
+import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
@@ -29,6 +30,7 @@ class _MainPageState extends ConsumerState<MainPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final debugEnabled = ref.watch(debugModeProvider);
+    final signInEnabled = ref.watch(signInSettingsProvider).isEnabled;
     final tabs = <_TabItem>[
       _TabItem(
         label: l10n.navHome,
@@ -116,6 +118,14 @@ class _MainPageState extends ConsumerState<MainPage> {
               icon: Icons.link_outlined,
               onTap: () => _leaveDrawerFor(context, AppRoutes.deepLink),
             ),
+            // The optional sign-in: absent unless the build carries it
+            // (docs/adr/0007-optional-assay-sign-in.md).
+            if (signInEnabled)
+              AppDrawerItem(
+                label: l10n.drawerAccount,
+                icon: Icons.account_circle_outlined,
+                onTap: () => _leaveDrawerFor(context, AppRoutes.account),
+              ),
             AppDrawerItem(
               label: l10n.drawerAbout,
               icon: Icons.info_outline,

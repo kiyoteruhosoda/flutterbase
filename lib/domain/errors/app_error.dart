@@ -21,3 +21,15 @@ final class UnexpectedError extends AppError {
   final Object? cause;
   final StackTrace? stackTrace;
 }
+
+/// There is no usable sign-in: never signed in, signed out, or the sign-in
+/// ran out. Only what needs a sign-in stops; the rest of the app is unaffected.
+final class SignInRequiredError extends AppError {
+  const SignInRequiredError(super.message);
+}
+
+/// The person closed the sign-in page without finishing. Not a failure to
+/// report, only a reason to stop.
+final class SignInCancelledError extends AppError {
+  const SignInCancelledError(super.message);
+}

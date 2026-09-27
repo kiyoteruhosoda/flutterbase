@@ -3,6 +3,14 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-09-28 — assay へのサインインを任意の機能として入れた（ADR-0007）
+
+`--dart-define` の `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `APP_LINK_HOST` が揃ったビルドだけ、
+ドロワーに「アカウント」が出て、assay へ PKCE でサインインできる（戻りは対の Web の
+App Link `https://<APP_LINK_HOST>/app/oauth2redirect`）。**1 つでも欠ければ何も出ない**
+ので、雛形そのものと既存の派生の挙動は変わらない。foodexpiryapp の実装を移した。
+マニフェストのホストは Gradle が同じ dart-define から読む。
+
 ## 2026-09-04 — CI の action を Node 24 で動く版に上げた
 
 `Quality` の実行に `Node.js 20 is deprecated` の注釈が出ていた。ランナーが

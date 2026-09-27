@@ -24,6 +24,26 @@ main へ push
 成果物には `SHA256SUMS` と `signing-report.txt`（alias / 証明書指紋 / applicationId /
 commit）が付く。
 
+## assay へのサインイン（任意。ADR-0007）
+
+雛形のサインインは、**ビルドに 3 つの値を渡したときだけ**有効になる（既定は無し）:
+
+```
+flutter build apk --release \
+  --dart-define=OIDC_ISSUER=https://identity.nolumia.com/<tenant> \
+  --dart-define=OIDC_CLIENT_ID=<アプリの public client> \
+  --dart-define=APP_LINK_HOST=<対の Web のホスト。例 recipebox.nolumia.com>
+```
+
+- ⚠ **1 つでも欠けるとサインインは出ない**（壊れた入口を出さないため）
+- マニフェストの戻り先（`https://<APP_LINK_HOST>/app/oauth2redirect`）のホストは、
+  Gradle が同じ `APP_LINK_HOST` を読んで埋める。`-PappLinkHost=…`
+  （`flutter build … --android-project-arg=appLinkHost=…`）があればそちらが勝つ
+- ⚠ **対の Web が `/.well-known/assetlinks.json` でこのアプリの署名の指紋を答えている
+  こと**。答えていないと App Link が検証されず、サインインの戻りがブラウザで止まる
+- deck から作ったアプリは、deploy-repo の `resources/flutter-apps.json` に値が書かれ、
+  配布（`bin/flutter-release.sh`）がこの形で渡す
+
 ## 署名鍵
 
 Play App Signing のアップロード鍵。alias は `flutterbase-upload`。

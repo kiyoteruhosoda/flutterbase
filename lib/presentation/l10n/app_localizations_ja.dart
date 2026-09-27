@@ -29,6 +29,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get drawerBookmarks => 'ブックマーク';
   @override
   String get drawerDeepLink => 'ディープリンク';
+  @override
+  String get drawerAccount => 'アカウント';
+  @override
+  String get accountTitle => 'アカウント';
+  @override
+  String get accountSignedInLabel => 'サインイン中';
+  @override
+  String get accountNotSignedIn => 'サインインしていません';
+  @override
+  String get accountSignIn => 'サインイン';
+  @override
+  String get accountSignOut => 'サインアウト';
+  @override
+  String get accountSignInFailed => 'サインインできませんでした。もう一度お試しください。';
 
   // ─── Home tab ─────────────────────────────────────────────────────────
   @override

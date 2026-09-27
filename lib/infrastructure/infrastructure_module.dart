@@ -1,10 +1,15 @@
 import 'package:flutterbase/application/ports/app_logger.dart';
+import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 import 'package:flutterbase/domain/repositories/bookmark_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
+import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
+import 'package:flutterbase/infrastructure/auth/oidc_auth_session.dart';
+import 'package:flutterbase/infrastructure/auth/oidc_client.dart';
+import 'package:flutterbase/infrastructure/auth/secret_store.dart';
 import 'package:flutterbase/infrastructure/database/app_database.dart';
 import 'package:flutterbase/infrastructure/links/url_launcher_external_link_launcher.dart';
 import 'package:flutterbase/infrastructure/logging/persistent_app_logger.dart';
@@ -33,6 +38,7 @@ final class InfrastructureModule {
     required this.appInfo,
     required this.bookmarks,
     required this.externalLinks,
+    required this.authSession,
   });
 
   /// Opens every adapter and returns them wired and ready.
@@ -41,7 +47,12 @@ final class InfrastructureModule {
   /// logger starts, so the very first log line is already filtered at the
   /// level the user chose. The database opens after the logger so that a
   /// migration failure is recorded rather than swallowed.
-  static Future<InfrastructureModule> create() async {
+  ///
+  /// [signIn] is the optional sign-in: when it is off (the template's default)
+  /// no auth adapter is built at all and [authSession] is null.
+  static Future<InfrastructureModule> create({
+    SignInSettings signIn = const SignInSettings.disabled(),
+  }) async {
     final preferences = await SharedPreferences.getInstance();
 
     final debugSettings = SharedPreferencesDebugSettingsRepository(preferences);
@@ -65,6 +76,16 @@ final class InfrastructureModule {
       appInfo: const PackageInfoAppInfoRepository(),
       bookmarks: SqfliteBookmarkRepository(database),
       externalLinks: const UrlLauncherExternalLinkLauncher(),
+      authSession: authSessionFor(signIn),
+    );
+  }
+
+  /// The sign-in adapter for [settings], or null when the sign-in is off.
+  static AuthSession? authSessionFor(SignInSettings settings) {
+    if (!settings.isEnabled) return null;
+    return OidcAuthSession(
+      FlutterAppAuthOidcClient(settings),
+      const FlutterSecureStorageSecretStore(),
     );
   }
 
@@ -75,4 +96,7 @@ final class InfrastructureModule {
   final AppInfoRepository appInfo;
   final BookmarkRepository bookmarks;
   final ExternalLinkLauncher externalLinks;
+
+  /// Null unless the build carries the sign-in settings.
+  final AuthSession? authSession;
 }

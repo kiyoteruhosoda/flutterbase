@@ -29,6 +29,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerBookmarks => 'Bookmarks';
   @override
   String get drawerDeepLink => 'Deep Links';
+  @override
+  String get drawerAccount => 'Account';
+  @override
+  String get accountTitle => 'Account';
+  @override
+  String get accountSignedInLabel => 'Signed in as';
+  @override
+  String get accountNotSignedIn => 'Not signed in';
+  @override
+  String get accountSignIn => 'Sign in';
+  @override
+  String get accountSignOut => 'Sign out';
+  @override
+  String get accountSignInFailed => 'Could not sign in. Please try again.';
 
   // ─── Home tab ─────────────────────────────────────────────────────────
   @override

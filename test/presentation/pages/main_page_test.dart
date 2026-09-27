@@ -4,6 +4,7 @@ import 'package:flutterbase/domain/value_objects/app_language.dart';
 import 'package:flutterbase/domain/value_objects/app_theme_mode.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations_en.dart';
+import 'package:flutterbase/presentation/navigation/app_routes.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
@@ -202,6 +203,29 @@ void main() {
       expect(inDrawer(l10n.navHome), findsOneWidget);
       expect(inDrawer(l10n.drawerAbout), findsOneWidget);
       expect(inDrawer(l10n.drawerLicenses), findsOneWidget);
+    });
+
+    testWidgets('hides the Account entry when the build has no sign-in', (
+      tester,
+    ) async {
+      await pumpInScope(tester, const MainPage());
+      await openDrawer(tester);
+      expect(inDrawer(l10n.drawerAccount), findsNothing);
+    });
+
+    testWidgets('offers the Account entry when the build has the sign-in', (
+      tester,
+    ) async {
+      final scope = await pumpInScope(
+        tester,
+        const MainPage(),
+        scope: TestScope(authSession: FakeAuthSession()),
+      );
+      await openDrawer(tester);
+      expect(inDrawer(l10n.drawerAccount), findsOneWidget);
+      await tester.tap(inDrawer(l10n.drawerAccount));
+      await tester.pumpAndSettle();
+      expect(scope.location, AppRoutes.account);
     });
 
     testWidgets('shows the developer entries while debug mode is on', (

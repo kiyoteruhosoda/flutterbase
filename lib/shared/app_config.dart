@@ -58,6 +58,28 @@ class AppConfig {
   /// `/bookmarks/1` survives and matches the same route the App Link does.
   static Uri customLink(String path) => Uri.parse('$customLinkScheme://$path');
 
+  // ─── Sign-in (optional; assay, OpenID Connect) ─────────────────────
+  // All three come from `--dart-define` and are empty by default. **If any is
+  // empty, the sign-in is off** — no menu entry, no screen. The release
+  // pipeline passes them for apps that pair with a web app; see
+  // `docs/adr/0007-optional-assay-sign-in.md` and `docs/RELEASE.md`.
+
+  /// assay's issuer, e.g. `https://identity.nolumia.com/<tenant>`. Must equal
+  /// the paired web app's `OIDC_ISSUER`, or its API rejects the app's tokens.
+  static const String oidcIssuer = String.fromEnvironment('OIDC_ISSUER');
+
+  /// The app's public client (PKCE) in assay. The paired web app accepts only
+  /// tokens issued to a client listed in its `APP_CLIENT_IDS`.
+  static const String oidcClientId = String.fromEnvironment('OIDC_CLIENT_ID');
+
+  /// Host of the paired web app, which serves `/.well-known/assetlinks.json`
+  /// for this app. The sign-in redirect returns through an App Link on it.
+  ///
+  /// ⚠ Not [appLinkHost]: that one is the template's own deep-link domain.
+  /// The Android side of this value is the Gradle property `appLinkHost`
+  /// (`-PappLinkHost=...`), which fills the redirect's intent filter.
+  static const String signInLinkHost = String.fromEnvironment('APP_LINK_HOST');
+
   // ─── Typography ───────────────────────────────────────────────────
   /// Must exactly match the `family:` entry in `pubspec.yaml`'s fonts
   /// section. Both values are the contract between Flutter's font loader

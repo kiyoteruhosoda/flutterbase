@@ -22,6 +22,9 @@ class AppRoutes {
   static const String debug = '/debug';
   static const String logs = '/logs';
 
+  /// The optional sign-in (only reachable when the build carries it).
+  static const String account = '/account';
+
   /// The bookmarks sample feature.
   static const String bookmarks = '/bookmarks';
 

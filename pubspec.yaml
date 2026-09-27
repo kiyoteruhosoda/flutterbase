@@ -22,11 +22,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # assay sign-in (Authorization Code + PKCE) — infrastructure only. Optional
+  # at runtime: nothing is shown unless OIDC_ISSUER / OIDC_CLIENT_ID /
+  # APP_LINK_HOST are passed as --dart-define. See docs/adr/0007-*.
+  flutter_appauth: ^12.1.0
   flutter_localizations:
     sdk: flutter
   # State management (presentation). Used without code generation — see
   # docs/adr/0002-starter-stack.md.
   flutter_riverpod: ^3.3.2
+  # Refresh token of the optional sign-in, in the Android Keystore
+  # (infrastructure).
+  flutter_secure_storage: ^11.2.0
   # Service locator — composition root only (lib/app/di).
   get_it: ^9.2.1
   # Navigation (presentation).
