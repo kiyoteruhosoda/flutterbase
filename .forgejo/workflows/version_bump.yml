@@ -71,7 +71,10 @@ jobs:
         run: |
           VERSION="v${{ steps.bump.outputs.new_version }}"
           git add pubspec.yaml
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version_full }}"
+          # ⚠ **`[skip ci]` を外さない。** actions-push の push は GITHUB_TOKEN と違って
+          #   workflow を起こす。起きると forge は同じ枝の古い run（＝この run）を打ち切り、
+          #   後ろの段が走らないまま終わる（2026-09-27 に実測）。
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version_full }} [skip ci]"
           if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
             echo "Tag $VERSION already exists, skipping tag creation."
             git push origin main
