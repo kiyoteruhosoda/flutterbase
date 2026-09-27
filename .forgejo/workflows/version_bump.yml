@@ -26,6 +26,9 @@ permissions:
 # 実行場所は nolumialab のセルフホストランナー（forge へ移したとき変えた）。
 jobs:
   bump-version:
+    # ⚠ **自分の版上げで自分を起こさない。** 下の push は実在の利用者（actions-push）で
+    #   行うので、GITHUB_TOKEN と違って次の workflow を起こす。その 1 回はここで止める。
+    if: github.actor != 'actions-push'
     runs-on: [self-hosted, nolumialab]
     # ⚠ **ジョブのイメージに node が要る。** `uses:` の JS アクションは
     #   ジョブのコンテナの中の node を呼ぶ ——素の python イメージだと
@@ -39,7 +42,11 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # ⚠ **GITHUB_TOKEN では保護された main へ push できない。** forge の
+          #   pre-receive が Actions の仮の利用者（uid -2）を引けずに 500 を返す
+          #   （上流の未解決の不具合 forgejo/forgejo#11159）。実在の利用者
+          #   actions-push のトークン（kyon の Actions の秘密）で checkout して押す。
+          token: ${{ secrets.PUSH_TOKEN }}
 
       - name: Configure git
         run: |
