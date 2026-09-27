@@ -14,6 +14,8 @@ void main() {
         DomainError() => 'domain',
         InfrastructureError() => 'infrastructure',
         UnexpectedError() => 'unexpected',
+        SignInRequiredError() => 'sign-in required',
+        SignInCancelledError() => 'sign-in cancelled',
       };
 
       expect(describe(const DomainError('a')), equals('domain'));
@@ -22,6 +24,14 @@ void main() {
         equals('infrastructure'),
       );
       expect(describe(const UnexpectedError('c')), equals('unexpected'));
+      expect(
+        describe(SignInRequiredError('d'.toString())),
+        equals('sign-in required'),
+      );
+      expect(
+        describe(SignInCancelledError('e'.toString())),
+        equals('sign-in cancelled'),
+      );
     });
   });
 

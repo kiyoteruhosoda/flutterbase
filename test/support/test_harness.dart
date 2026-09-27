@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/get_current_account_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/sign_in_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/sign_out_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/add_bookmark_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/get_bookmark_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/list_bookmarks_usecase.dart';
@@ -16,10 +19,12 @@ import 'package:flutterbase/application/usecases/language/get_language_preferenc
 import 'package:flutterbase/application/usecases/language/set_language_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
+import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/navigation/app_routes.dart';
 import 'package:flutterbase/presentation/providers/app_info_providers.dart';
 import 'package:flutterbase/presentation/providers/app_providers.dart';
+import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
@@ -48,6 +53,7 @@ class TestScope {
     FakeBookmarkRepository? bookmarkRepository,
     RecordingExternalLinkLauncher? linkLauncher,
     RecordingAppLogger? logger,
+    this.authSession,
   }) : themeRepository = themeRepository ?? FakeThemePreferenceRepository(),
        languageRepository =
            languageRepository ?? FakeLanguagePreferenceRepository(),
@@ -76,6 +82,17 @@ class TestScope {
   final FakeBookmarkRepository bookmarkRepository;
   final RecordingExternalLinkLauncher linkLauncher;
   final RecordingAppLogger logger;
+
+  /// The optional sign-in. Null (the default) is a build without it: the
+  /// settings say "off" and no auth use case is overridden — as in production.
+  final FakeAuthSession? authSession;
+
+  /// What [signInSettingsProvider] answers in this scope.
+  static const SignInSettings enabledSignIn = SignInSettings(
+    issuer: 'https://identity.example.com/tenant',
+    clientId: 'app-client',
+    linkHost: 'web.example.com',
+  );
 
   /// The Riverpod container the pumped widget tree runs on.
   ///
@@ -138,6 +155,20 @@ class TestScope {
       openBookmarkUseCaseProvider.overrideWithValue(
         OpenBookmarkUseCase(linkLauncher, logger),
       ),
+      ...signInOverrides(),
+    ];
+  }
+
+  List<Override> signInOverrides() {
+    final session = authSession;
+    if (session == null) return const <Override>[];
+    return <Override>[
+      signInSettingsProvider.overrideWithValue(enabledSignIn),
+      getCurrentAccountUseCaseProvider.overrideWithValue(
+        GetCurrentAccountUseCase(session),
+      ),
+      signInUseCaseProvider.overrideWithValue(SignInUseCase(session, logger)),
+      signOutUseCaseProvider.overrideWithValue(SignOutUseCase(session, logger)),
     ];
   }
 
@@ -205,6 +236,7 @@ class TestScope {
           builder: (context, state) => home,
           routes: <RouteBase>[
             GoRoute(path: 'about', builder: placeholder),
+            GoRoute(path: 'account', builder: placeholder),
             GoRoute(path: 'debug', builder: placeholder),
             GoRoute(path: 'logs', builder: placeholder),
             GoRoute(path: 'link', builder: placeholder),

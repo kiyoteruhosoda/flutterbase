@@ -1,4 +1,6 @@
+import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
+import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/entities/app_info.dart';
 import 'package:flutterbase/domain/entities/bookmark.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
@@ -221,4 +223,45 @@ final class RecordingExternalLinkLauncher implements ExternalLinkLauncher {
     opened.add(url);
     return result;
   }
+}
+
+/// In-memory [AuthSession]: signs in as [account] unless told to fail.
+final class FakeAuthSession implements AuthSession {
+  FakeAuthSession({
+    this.signedIn,
+    this.account = const Account(
+      displayName: 'Kyon',
+      email: 'kyon@example.com',
+    ),
+  });
+
+  /// Who is signed in right now (null = nobody).
+  Account? signedIn;
+
+  /// Who [signIn] signs in as.
+  final Account account;
+
+  /// When set, [signIn] throws it.
+  Exception? signInFailure;
+
+  int signOuts = 0;
+
+  @override
+  Future<Account?> currentAccount() async => signedIn;
+
+  @override
+  Future<Account> signIn() async {
+    final failure = signInFailure;
+    if (failure != null) throw failure;
+    return signedIn = account;
+  }
+
+  @override
+  Future<void> signOut() async {
+    signOuts++;
+    signedIn = null;
+  }
+
+  @override
+  Future<String> accessToken({bool forceRefresh = false}) async => 'token';
 }

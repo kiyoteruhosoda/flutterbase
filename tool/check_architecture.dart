@@ -120,6 +120,8 @@ const List<String> _ioPackages = [
   'package:path_provider/',
   'package:package_info_plus/',
   'package:url_launcher/',
+  'package:flutter_appauth/',
+  'package:flutter_secure_storage/',
   'package:hive/',
   'package:drift/',
   'package:firebase_',

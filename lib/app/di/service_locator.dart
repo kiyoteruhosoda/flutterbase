@@ -1,6 +1,10 @@
 import 'package:flutterbase/application/ports/app_logger.dart';
+import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/get_current_account_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/sign_in_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/sign_out_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/add_bookmark_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/get_bookmark_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/list_bookmarks_usecase.dart';
@@ -18,7 +22,9 @@ import 'package:flutterbase/domain/repositories/bookmark_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
+import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/infrastructure/infrastructure_module.dart';
+import 'package:flutterbase/shared/app_config.dart';
 import 'package:get_it/get_it.dart';
 
 /// Composition root.
@@ -36,7 +42,16 @@ Future<void> setupServiceLocator() async {
   // The module hands back Domain interfaces and Application ports only, so
   // no storage technology is named here.
 
-  final infrastructure = await InfrastructureModule.create();
+  // The optional sign-in: on only when the build carries all three
+  // `--dart-define`s (docs/adr/0007-optional-assay-sign-in.md).
+  const signIn = SignInSettings(
+    issuer: AppConfig.oidcIssuer,
+    clientId: AppConfig.oidcClientId,
+    linkHost: AppConfig.signInLinkHost,
+  );
+  sl.registerSingleton<SignInSettings>(signIn);
+
+  final infrastructure = await InfrastructureModule.create(signIn: signIn);
 
   sl
     ..registerSingleton<AppLogger>(infrastructure.appLogger)
@@ -96,6 +111,24 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerFactory<OpenBookmarkUseCase>(
     () => OpenBookmarkUseCase(sl<ExternalLinkLauncher>(), sl<AppLogger>()),
+  );
+
+  final authSession = infrastructure.authSession;
+  if (authSession != null) {
+    sl
+      ..registerSingleton<AuthSession>(authSession)
+      ..registerFactory<GetCurrentAccountUseCase>(
+        () => GetCurrentAccountUseCase(sl<AuthSession>()),
+      )
+      ..registerFactory<SignInUseCase>(
+        () => SignInUseCase(sl<AuthSession>(), sl<AppLogger>()),
+      )
+      ..registerFactory<SignOutUseCase>(
+        () => SignOutUseCase(sl<AuthSession>(), sl<AppLogger>()),
+      );
+  }
+  sl<AppLogger>().info(
+    '[DI] Sign-in ${signIn.isEnabled ? 'on (${signIn.issuer})' : 'off'}',
   );
 
   sl<AppLogger>().info('[DI] Service locator setup complete');

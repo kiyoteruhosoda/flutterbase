@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="@string/app_name"
@@ -70,6 +71,31 @@
             <meta-data
                 android:name="flutter_deeplinking_enabled"
                 android:value="true" />
+        </activity>
+
+        <!-- ── Optional sign-in: the redirect back from assay ────────
+             assay registers only http(s) redirect URIs, so the browser
+             returns through a verified App Link on the paired web app's
+             host: https://<appLinkHost>/app/oauth2redirect. The path equals
+             SignInSettings.redirectPath; the host comes from the build
+             (see android/app/build.gradle, `appLinkHost`), matching the
+             APP_LINK_HOST dart-define. tools:node="replace" drops the
+             plugin's own custom-scheme filter, so the redirect has exactly
+             one way in. docs/adr/0007-optional-assay-sign-in.md -->
+        <activity
+            android:name="net.openid.appauth.RedirectUriReceiverActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Translucent.NoTitleBar"
+            tools:node="replace">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="${appLinkHost}"
+                    android:path="/app/oauth2redirect"/>
+            </intent-filter>
         </activity>
 
         <meta-data

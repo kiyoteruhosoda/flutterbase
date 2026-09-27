@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/get_current_account_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/sign_in_usecase.dart';
+import 'package:flutterbase/application/usecases/auth/sign_out_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/add_bookmark_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/get_bookmark_usecase.dart';
 import 'package:flutterbase/application/usecases/bookmark/list_bookmarks_usecase.dart';
@@ -16,8 +19,10 @@ import 'package:flutterbase/application/usecases/language/get_language_preferenc
 import 'package:flutterbase/application/usecases/language/set_language_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
+import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/presentation/providers/app_info_providers.dart';
 import 'package:flutterbase/presentation/providers/app_providers.dart';
+import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
@@ -68,5 +73,15 @@ List<Override> buildProviderOverrides() {
       sl<RemoveBookmarkUseCase>(),
     ),
     openBookmarkUseCaseProvider.overrideWithValue(sl<OpenBookmarkUseCase>()),
+    // Optional sign-in. The use cases exist only when it is on; the screens
+    // never read them otherwise (the menu entry is hidden).
+    signInSettingsProvider.overrideWithValue(sl<SignInSettings>()),
+    if (sl<SignInSettings>().isEnabled) ...[
+      getCurrentAccountUseCaseProvider.overrideWithValue(
+        sl<GetCurrentAccountUseCase>(),
+      ),
+      signInUseCaseProvider.overrideWithValue(sl<SignInUseCase>()),
+      signOutUseCaseProvider.overrideWithValue(sl<SignOutUseCase>()),
+    ],
   ];
 }

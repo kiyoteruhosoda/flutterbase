@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/domain/entities/bookmark.dart';
+import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/shared/app_config.dart';
 
 /// Guards the half of the deep-link contract that lives outside Dart.
@@ -143,6 +144,47 @@ void main() {
             'legacy mipmap variants to emit; it has to match the real '
             'minSdk.',
       );
+    });
+  });
+
+  group('AndroidManifest — optional sign-in redirect', () {
+    late String redirect;
+
+    setUpAll(() {
+      final match = RegExp(
+        r'<activity\s+android:name="net\.openid\.appauth\.RedirectUriReceiverActivity".*?</activity>',
+        dotAll: true,
+      ).firstMatch(manifest);
+      expect(match, isNotNull, reason: 'no RedirectUriReceiverActivity');
+      redirect = match!.group(0)!;
+    });
+
+    test('replaces the plugin activity, dropping its custom scheme', () {
+      expect(redirect, contains('tools:node="replace"'));
+      expect(
+        manifest,
+        contains('xmlns:tools="http://schemas.android.com/tools"'),
+      );
+      expect(redirect, isNot(contains('appAuthRedirectScheme')));
+    });
+
+    test('returns through a verified App Link on the build-time host', () {
+      expect(redirect, contains('android:autoVerify="true"'));
+      expect(redirect, contains('android:scheme="https"'));
+      // The host is filled from the Gradle placeholder (APP_LINK_HOST or
+      // -PappLinkHost), never written by hand.
+      expect(redirect, contains(r'android:host="${appLinkHost}"'));
+      expect(
+        redirect,
+        contains('android:path="${SignInSettings.redirectPath}"'),
+      );
+    });
+
+    test('Gradle fills the placeholder from APP_LINK_HOST', () {
+      final gradle = File('android/app/build.gradle').readAsStringSync();
+      expect(gradle, contains('appLinkHost'));
+      expect(gradle, contains('dartDefines["APP_LINK_HOST"]'));
+      expect(gradle, contains('appAuthRedirectScheme'));
     });
   });
 }

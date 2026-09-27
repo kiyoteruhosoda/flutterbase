@@ -48,6 +48,15 @@ abstract class AppLocalizations {
   String get drawerLogs;
   String get drawerBookmarks;
   String get drawerDeepLink;
+  String get drawerAccount;
+
+  // ─── Account (optional sign-in) ───────────────────────────────────────
+  String get accountTitle;
+  String get accountSignedInLabel;
+  String get accountNotSignedIn;
+  String get accountSignIn;
+  String get accountSignOut;
+  String get accountSignInFailed;
 
   // ─── Home tab ─────────────────────────────────────────────────────────
   String get homeWelcomeTitle;

@@ -5,6 +5,7 @@ import 'package:flutterbase/presentation/pages/bookmarks/bookmark_detail_page.da
 import 'package:flutterbase/presentation/pages/bookmarks/bookmarks_page.dart';
 import 'package:flutterbase/presentation/pages/main_page.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
+import 'package:flutterbase/presentation/pages/system/account_page.dart';
 import 'package:flutterbase/presentation/pages/system/debug_page.dart';
 import 'package:flutterbase/presentation/pages/system/deep_link_page.dart';
 import 'package:flutterbase/presentation/pages/system/logs_page.dart';
@@ -61,6 +62,10 @@ class AppRouter {
             GoRoute(
               path: _relative(AppRoutes.about),
               builder: (context, state) => const AboutPage(),
+            ),
+            GoRoute(
+              path: _relative(AppRoutes.account),
+              builder: (context, state) => const AccountPage(),
             ),
             GoRoute(
               path: _relative(AppRoutes.debug),

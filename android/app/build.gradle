@@ -60,6 +60,30 @@ def appApplicationId = "com.nolumia.flutterbase"
 def appArchivesBase  = (project.findProperty("app.archivesBaseName")
     ?: appApplicationId.tokenize('.').last())
 
+// Host of the optional sign-in's redirect App Link
+// (docs/adr/0007-optional-assay-sign-in.md). The redirect's intent filter in
+// AndroidManifest.xml reads it as the `appLinkHost` placeholder.
+//
+// Taken from `-PappLinkHost=...` when given, otherwise from the build's own
+// `--dart-define=APP_LINK_HOST=...` — Flutter hands the dart-defines to Gradle
+// as the base64 list `dart-defines` — so a release build passes the value once
+// and Dart and the manifest cannot disagree. Without either, it falls back to
+// the template's own deep-link host (AppConfig.appLinkHost): the redirect
+// activity then claims a path on a domain the app already claims, and nothing
+// new is exposed.
+def dartDefines = [:]
+if (project.hasProperty("dart-defines")) {
+    project.property("dart-defines").toString().split(",").each { encoded ->
+        def pair = new String(encoded.decodeBase64(), "UTF-8").split("=", 2)
+        if (pair.length == 2) {
+            dartDefines[pair[0]] = pair[1]
+        }
+    }
+}
+def signInLinkHost = (project.findProperty("appLinkHost")
+    ?: dartDefines["APP_LINK_HOST"]
+    ?: "flutterbase.example.com")
+
 android {
     namespace = appNamespace
     compileSdk = 36
@@ -98,6 +122,13 @@ android {
         targetSdk = 36
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
+        // flutter_appauth's own manifest needs appAuthRedirectScheme even
+        // though AndroidManifest.xml replaces its redirect activity (the
+        // custom-scheme filter it would declare is dropped with it).
+        manifestPlaceholders += [
+            appAuthRedirectScheme: appApplicationId,
+            appLinkHost          : signInLinkHost,
+        ]
     }
 
     // Pin NDK to the highest version any plugin depends on (currently
