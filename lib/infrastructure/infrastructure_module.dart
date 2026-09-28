@@ -84,7 +84,7 @@ final class InfrastructureModule {
   static AuthSession? authSessionFor(SignInSettings settings) {
     if (!settings.isEnabled) return null;
     return OidcAuthSession(
-      FlutterAppAuthOidcClient(settings),
+      WebAuthOidcClient(settings),
       const FlutterSecureStorageSecretStore(),
     );
   }

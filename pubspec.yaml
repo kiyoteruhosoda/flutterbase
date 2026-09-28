@@ -20,12 +20,11 @@ environment:
 # from is enforced by `tool/check_dependencies.dart` — see
 # `docs/ARCHITECTURE.md` §"Package placement rules".
 dependencies:
+  # SHA-256 for the PKCE code challenge of the optional sign-in
+  # (infrastructure). Pure Dart.
+  crypto: ^3.0.6
   flutter:
     sdk: flutter
-  # assay sign-in (Authorization Code + PKCE) — infrastructure only. Optional
-  # at runtime: nothing is shown unless OIDC_ISSUER / OIDC_CLIENT_ID /
-  # APP_LINK_HOST are passed as --dart-define. See docs/adr/0007-*.
-  flutter_appauth: ^12.1.0
   flutter_localizations:
     sdk: flutter
   # State management (presentation). Used without code generation — see
@@ -34,10 +33,18 @@ dependencies:
   # Refresh token of the optional sign-in, in the Android Keystore
   # (infrastructure).
   flutter_secure_storage: ^11.2.0
+  # The browser half of the optional assay sign-in: Chrome's Auth Tab on
+  # Android, which hands the https redirect straight back to the app
+  # (infrastructure only). Nothing is shown unless OIDC_ISSUER /
+  # OIDC_CLIENT_ID / APP_LINK_HOST are passed as --dart-define. See
+  # docs/adr/0008-*.
+  flutter_web_auth_2: ^5.1.0
   # Service locator — composition root only (lib/app/di).
   get_it: ^9.2.1
   # Navigation (presentation).
   go_router: ^17.3.0
+  # Discovery and token requests of the optional sign-in (infrastructure).
+  http: ^1.5.0
   # Console/file logging backend (infrastructure).
   logger: ^2.7.0
   # Runtime package metadata (infrastructure).

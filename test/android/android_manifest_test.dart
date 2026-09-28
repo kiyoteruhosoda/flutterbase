@@ -152,20 +152,22 @@ void main() {
 
     setUpAll(() {
       final match = RegExp(
-        r'<activity\s+android:name="net\.openid\.appauth\.RedirectUriReceiverActivity".*?</activity>',
+        r'<activity\s+android:name="com\.linusu\.flutter_web_auth_2\.CallbackActivity".*?</activity>',
         dotAll: true,
       ).firstMatch(manifest);
-      expect(match, isNotNull, reason: 'no RedirectUriReceiverActivity');
+      expect(
+        match,
+        isNotNull,
+        reason: 'no flutter_web_auth_2 CallbackActivity',
+      );
       redirect = match!.group(0)!;
     });
 
-    test('replaces the plugin activity, dropping its custom scheme', () {
-      expect(redirect, contains('tools:node="replace"'));
-      expect(
-        manifest,
-        contains('xmlns:tools="http://schemas.android.com/tools"'),
-      );
-      expect(redirect, isNot(contains('appAuthRedirectScheme')));
+    test('is exported with an empty task affinity', () {
+      // flutter_web_auth_2's README: exported for SDK 31+, and taskAffinity=""
+      // so the fallback redirect does not land in the browser's task.
+      expect(redirect, contains('android:exported="true"'));
+      expect(redirect, contains('android:taskAffinity=""'));
     });
 
     test('returns through a verified App Link on the build-time host', () {
@@ -184,7 +186,7 @@ void main() {
       final gradle = File('android/app/build.gradle').readAsStringSync();
       expect(gradle, contains('appLinkHost'));
       expect(gradle, contains('dartDefines["APP_LINK_HOST"]'));
-      expect(gradle, contains('appAuthRedirectScheme'));
+      expect(gradle, isNot(contains('appAuthRedirectScheme')));
     });
   });
 }

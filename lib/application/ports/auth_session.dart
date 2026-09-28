@@ -2,10 +2,10 @@ import 'package:flutterbase/domain/entities/account.dart';
 
 /// The optional sign-in (assay, OpenID Connect).
 ///
-/// An outbound port: `infrastructure/auth/` supplies the AppAuth
-/// implementation, which keeps the refresh token in the platform keystore and
-/// hands out short-lived access tokens. Only registered when the build carries
-/// the sign-in settings (`SignInSettings.isEnabled`).
+/// An outbound port: `infrastructure/auth/` supplies the implementation
+/// (Chrome's Auth Tab + PKCE), which keeps the refresh token in the platform
+/// keystore and hands out short-lived access tokens. Only registered when the
+/// build carries the sign-in settings (`SignInSettings.isEnabled`).
 abstract interface class AuthSession {
   /// The account signed in on this device, or null.
   Future<Account?> currentAccount();

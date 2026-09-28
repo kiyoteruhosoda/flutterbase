@@ -122,12 +122,10 @@ android {
         targetSdk = 36
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
-        // flutter_appauth's own manifest needs appAuthRedirectScheme even
-        // though AndroidManifest.xml replaces its redirect activity (the
-        // custom-scheme filter it would declare is dropped with it).
+        // Host of the sign-in's fallback App Link (AndroidManifest.xml,
+        // flutter_web_auth_2's CallbackActivity). docs/adr/0008-*.
         manifestPlaceholders += [
-            appAuthRedirectScheme: appApplicationId,
-            appLinkHost          : signInLinkHost,
+            appLinkHost: signInLinkHost,
         ]
     }
 
