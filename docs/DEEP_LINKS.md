@@ -61,13 +61,15 @@ Android の Flutter embedding は受け取った URI の *path* からアプリ�
 
 いずれの場合もホーム画面が下に積まれているため、戻る操作が行き止まりになりません。
 
-## サインインの戻り道（任意。ADR-0007）
+## サインインの戻り道（任意。ADR-0007 / ADR-0008）
 
-assay へのサインインを有効にしたビルドでは、ブラウザからの戻りも App Link になる:
-`https://<APP_LINK_HOST>/app/oauth2redirect`。受けるのは AppAuth の
-`RedirectUriReceiverActivity` で、`AndroidManifest.xml` が `tools:node="replace"`
-で置き換えている（プラグイン自身の独自スキームの受け口は落とす）。ホストは
-ビルドの `APP_LINK_HOST`（Gradle の placeholder `appLinkHost`）。
+assay へのサインインを有効にしたビルドでは、戻り先は対の Web の
+`https://<APP_LINK_HOST>/app/oauth2redirect`。ブラウザは Chrome の **Auth Tab**
+（flutter_web_auth_2）で、戻り URL をブラウザが**アプリへ直接返す**ので、ふだんは
+App Link（intent）を通らない。Auth Tab の無いブラウザでは普通の Custom Tab に落ち、
+そのときだけ flutter_web_auth_2 の `CallbackActivity` がこの URL を App Link として受ける
+（`AndroidManifest.xml`。ホストはビルドの `APP_LINK_HOST`、Gradle の placeholder
+`appLinkHost`）。
 
 ⚠ **このホストは上の `appLinkHost`（ディープリンクの領域）とは別**で、対の Web の
 ホストである。検証に使う `assetlinks.json` を出すのも対の Web 側（fastapitemplate 型なら

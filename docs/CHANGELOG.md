@@ -3,6 +3,14 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-09-28 — サインインのブラウザを Chrome の Auth Tab にした（ADR-0008）
+
+flutter_appauth（Custom Tab）では、持ち主の端末（Pixel 9 Pro / Android 17 / Chrome 153）で
+サインインがアプリに戻らなかった（assay は認可コードを出すのに、戻り先の App Link が
+タブの中で止まる・Web のページとして開く）。flutter_web_auth_2 5.x で Auth Tab を開き、
+PKCE・state の照合・認可コードの引き換え・更新を Dart（`WebAuthOidcClient`）で書いた。
+`--dart-define` の 3 つと「どれか空なら何も出さない」は変わらない。
+
 ## 2026-09-28 — assay へのサインインを任意の機能として入れた（ADR-0007）
 
 `--dart-define` の `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `APP_LINK_HOST` が揃ったビルドだけ、

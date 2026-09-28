@@ -111,7 +111,7 @@ reserved に残っていても CI が落ちます）。
 | `sqflite` | Infrastructure | `lib/infrastructure/database/`・`lib/infrastructure/repositories/` |
 | `path` | Infrastructure | DB ファイルパスの組み立て。純粋な文字列処理なのでレイヤー制限は掛けていない |
 | `url_launcher` | Infrastructure | `lib/infrastructure/links/`。`ExternalLinkLauncher` ポートの背後 |
-| `flutter_appauth` / `flutter_secure_storage` | Infrastructure | `lib/infrastructure/auth/`。任意のサインイン（ADR-0007）。`AuthSession` ポートの背後 |
+| `flutter_web_auth_2` / `http` / `crypto` / `flutter_secure_storage` | Infrastructure | `lib/infrastructure/auth/`。任意のサインイン（ADR-0007 / ADR-0008。ブラウザは Auth Tab、PKCE と引き換えは `WebAuthOidcClient`）。`AuthSession` ポートの背後 |
 | `shared_preferences` / `path_provider` / `package_info_plus` | Infrastructure | 既存のアダプター群 |
 
 `equatable` と `riverpod_annotation`（および `riverpod_generator`）は

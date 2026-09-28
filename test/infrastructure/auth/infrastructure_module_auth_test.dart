@@ -11,7 +11,7 @@ void main() {
     );
   });
 
-  test('the AppAuth session is built when the sign-in is on', () {
+  test('the Auth Tab session is built when the sign-in is on', () {
     const settings = SignInSettings(
       issuer: 'https://identity.example.com/tenant',
       clientId: 'app-client',

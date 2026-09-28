@@ -5,7 +5,7 @@
 /// `--dart-define` at build time (`OIDC_ISSUER`, `OIDC_CLIENT_ID`,
 /// `APP_LINK_HOST`) and default to empty. **If any one is empty the sign-in is
 /// off**: no menu entry, no screen, no plugin call. See
-/// `docs/adr/0007-optional-assay-sign-in.md`.
+/// `docs/adr/0007-optional-assay-sign-in.md` and `0008-auth-tab-sign-in.md`.
 ///
 /// Pure Dart, like every value object here; the composition root builds one
 /// from `AppConfig` and hands it to both Infrastructure and Presentation.
@@ -22,9 +22,10 @@ final class SignInSettings {
   /// Path of the sign-in redirect on [linkHost].
   ///
   /// assay only registers http(s) redirect URIs, so the browser returns to the
-  /// app through a verified App Link on this path — never a custom scheme,
-  /// which any other app could claim. `AndroidManifest.xml` hands exactly this
-  /// path to AppAuth's `RedirectUriReceiverActivity`.
+  /// app on this path of [linkHost] — never a custom scheme, which any other
+  /// app could claim. Chrome's Auth Tab hands exactly this host + path back to
+  /// the app (docs/adr/0008-auth-tab-sign-in.md); `AndroidManifest.xml` claims
+  /// it as a verified App Link for the plain Custom Tab fallback.
   static const String redirectPath = '/app/oauth2redirect';
 
   /// The identity provider's issuer, e.g.
