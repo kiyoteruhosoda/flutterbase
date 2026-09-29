@@ -216,8 +216,22 @@ abstract class AppLocalizations {
   String get licensesTitle;
   String get licensesDetails;
 
+  // ─── Update notice (docs/adr/0009-*) ─────────────────────────────────
+  String updateAvailable(String version);
+  String get updateDownload;
+  String get updateOpenFailed;
+
+  // ─── Notices from the server (docs/adr/0009-*) ───────────────────────
+  String get noticesTitle;
+  String get noticesMarkAllRead;
+  String get noticesEmpty;
+  String get noticesLoadFailed;
+  String get noticesUnread;
+  String get noticeOpenFailed;
+
   // ─── Common ──────────────────────────────────────────────────────────
   String get commonRetry;
+  String get commonClose;
   String get commonMenu;
   String get commonNotifications;
   String get commonNotFound;

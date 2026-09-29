@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/open_update_download_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/get_current_account_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/sign_in_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/sign_out_usecase.dart';
@@ -17,6 +20,11 @@ import 'package:flutterbase/application/usecases/debug/set_debug_mode_usecase.da
 import 'package:flutterbase/application/usecases/debug/set_log_level_usecase.dart';
 import 'package:flutterbase/application/usecases/language/get_language_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/language/set_language_preference_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/dismiss_notice_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/list_notices_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
@@ -24,10 +32,12 @@ import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/navigation/app_routes.dart';
 import 'package:flutterbase/presentation/providers/app_info_providers.dart';
 import 'package:flutterbase/presentation/providers/app_providers.dart';
+import 'package:flutterbase/presentation/providers/app_update_providers.dart';
 import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
+import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
@@ -54,7 +64,15 @@ class TestScope {
     RecordingExternalLinkLauncher? linkLauncher,
     RecordingAppLogger? logger,
     this.authSession,
-  }) : themeRepository = themeRepository ?? FakeThemePreferenceRepository(),
+    FakeAppReleaseRepository? appReleaseRepository,
+    FakeAppNoticeRepository? noticeRepository,
+    FakeDismissedUpdateRepository? dismissedUpdateRepository,
+  }) : appReleaseRepository =
+           appReleaseRepository ?? FakeAppReleaseRepository(),
+       noticeRepository = noticeRepository ?? FakeAppNoticeRepository(),
+       dismissedUpdateRepository =
+           dismissedUpdateRepository ?? FakeDismissedUpdateRepository(),
+       themeRepository = themeRepository ?? FakeThemePreferenceRepository(),
        languageRepository =
            languageRepository ?? FakeLanguagePreferenceRepository(),
        debugSettingsRepository =
@@ -87,6 +105,14 @@ class TestScope {
   /// settings say "off" and no auth use case is overridden — as in production.
   final FakeAuthSession? authSession;
 
+  /// The paired web app's release and notices, read only with a sign-in.
+  final FakeAppReleaseRepository appReleaseRepository;
+  final FakeAppNoticeRepository noticeRepository;
+  final FakeDismissedUpdateRepository dismissedUpdateRepository;
+
+  /// What [clockProvider] answers; move it forward to pass a debounce.
+  DateTime now = DateTime.utc(2026, 9, 29, 12);
+
   /// What [signInSettingsProvider] answers in this scope.
   static const SignInSettings enabledSignIn = SignInSettings(
     issuer: 'https://identity.example.com/tenant',
@@ -116,6 +142,7 @@ class TestScope {
   List<Override> providerOverrides() {
     return <Override>[
       appLoggerProvider.overrideWithValue(logger),
+      clockProvider.overrideWithValue(() => now),
       getThemePreferenceUseCaseProvider.overrideWithValue(
         GetThemePreferenceUseCase(themeRepository),
       ),
@@ -169,6 +196,35 @@ class TestScope {
       ),
       signInUseCaseProvider.overrideWithValue(SignInUseCase(session, logger)),
       signOutUseCaseProvider.overrideWithValue(SignOutUseCase(session, logger)),
+      checkForUpdateUseCaseProvider.overrideWithValue(
+        CheckForUpdateUseCase(
+          appReleaseRepository,
+          appInfoRepository,
+          dismissedUpdateRepository,
+          logger,
+        ),
+      ),
+      dismissUpdateUseCaseProvider.overrideWithValue(
+        DismissUpdateUseCase(dismissedUpdateRepository, logger),
+      ),
+      openUpdateDownloadUseCaseProvider.overrideWithValue(
+        OpenUpdateDownloadUseCase(linkLauncher, logger),
+      ),
+      listNoticesUseCaseProvider.overrideWithValue(
+        ListNoticesUseCase(noticeRepository, logger),
+      ),
+      markNoticeReadUseCaseProvider.overrideWithValue(
+        MarkNoticeReadUseCase(noticeRepository, logger),
+      ),
+      markAllNoticesReadUseCaseProvider.overrideWithValue(
+        MarkAllNoticesReadUseCase(noticeRepository, logger),
+      ),
+      dismissNoticeUseCaseProvider.overrideWithValue(
+        DismissNoticeUseCase(noticeRepository, logger),
+      ),
+      openNoticeLinkUseCaseProvider.overrideWithValue(
+        OpenNoticeLinkUseCase(linkLauncher, enabledSignIn.webBaseUrl, logger),
+      ),
     ];
   }
 

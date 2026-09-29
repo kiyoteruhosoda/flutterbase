@@ -45,6 +45,11 @@ flutter build apk --release \
   「失敗（FAILED）」になる
 - deck から作ったアプリは、deploy-repo の `resources/flutter-apps.json` に値が書かれ、
   配布（`bin/flutter-release.sh`）がこの形で渡す
+- サインインがあると、アプリは対の Web の `GET /api/app-release/latest`（Web は公開済みの
+  `latest.json` を読む）で新しい版を知らせる（ADR-0009）。比べるのは **`build`** と、この
+  ビルドに焼いた `--build-number`（= `BuildInfo.buildNumber`）。⚠ `latest.json` の `build` は
+  APK の versionCode と同じ値でなければならない。ずれると、入れても知らせが消えない／
+  出るべき知らせが出ない
 
 ## 署名鍵
 

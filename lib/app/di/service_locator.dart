@@ -2,6 +2,9 @@ import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/open_update_download_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/get_current_account_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/sign_in_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/sign_out_usecase.dart';
@@ -15,11 +18,19 @@ import 'package:flutterbase/application/usecases/debug/set_debug_mode_usecase.da
 import 'package:flutterbase/application/usecases/debug/set_log_level_usecase.dart';
 import 'package:flutterbase/application/usecases/language/get_language_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/language/set_language_preference_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/dismiss_notice_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/list_notices_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
+import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
+import 'package:flutterbase/domain/repositories/app_release_repository.dart';
 import 'package:flutterbase/domain/repositories/bookmark_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
+import 'package:flutterbase/domain/repositories/dismissed_update_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
@@ -113,10 +124,60 @@ Future<void> setupServiceLocator() async {
     () => OpenBookmarkUseCase(sl<ExternalLinkLauncher>(), sl<AppLogger>()),
   );
 
-  final authSession = infrastructure.authSession;
-  if (authSession != null) {
+  sl.registerSingleton<DismissedUpdateRepository>(
+    infrastructure.dismissedUpdates,
+  );
+
+  final web = infrastructure.web;
+  if (web != null) {
     sl
-      ..registerSingleton<AuthSession>(authSession)
+      ..registerSingleton<AuthSession>(web.authSession)
+      ..registerSingleton<AppReleaseRepository>(web.appReleases)
+      ..registerSingleton<AppNoticeRepository>(web.notices)
+      // The update notice and the notices call the paired web app with the
+      // signed-in person's token (docs/adr/0009-*).
+      ..registerFactory<CheckForUpdateUseCase>(
+        () => CheckForUpdateUseCase(
+          sl<AppReleaseRepository>(),
+          sl<AppInfoRepository>(),
+          sl<DismissedUpdateRepository>(),
+          sl<AppLogger>(),
+        ),
+      )
+      ..registerFactory<DismissUpdateUseCase>(
+        () => DismissUpdateUseCase(
+          sl<DismissedUpdateRepository>(),
+          sl<AppLogger>(),
+        ),
+      )
+      ..registerFactory<OpenUpdateDownloadUseCase>(
+        () => OpenUpdateDownloadUseCase(
+          sl<ExternalLinkLauncher>(),
+          sl<AppLogger>(),
+        ),
+      )
+      ..registerFactory<ListNoticesUseCase>(
+        () => ListNoticesUseCase(sl<AppNoticeRepository>(), sl<AppLogger>()),
+      )
+      ..registerFactory<MarkNoticeReadUseCase>(
+        () => MarkNoticeReadUseCase(sl<AppNoticeRepository>(), sl<AppLogger>()),
+      )
+      ..registerFactory<MarkAllNoticesReadUseCase>(
+        () => MarkAllNoticesReadUseCase(
+          sl<AppNoticeRepository>(),
+          sl<AppLogger>(),
+        ),
+      )
+      ..registerFactory<DismissNoticeUseCase>(
+        () => DismissNoticeUseCase(sl<AppNoticeRepository>(), sl<AppLogger>()),
+      )
+      ..registerFactory<OpenNoticeLinkUseCase>(
+        () => OpenNoticeLinkUseCase(
+          sl<ExternalLinkLauncher>(),
+          signIn.webBaseUrl,
+          sl<AppLogger>(),
+        ),
+      )
       ..registerFactory<GetCurrentAccountUseCase>(
         () => GetCurrentAccountUseCase(sl<AuthSession>()),
       )

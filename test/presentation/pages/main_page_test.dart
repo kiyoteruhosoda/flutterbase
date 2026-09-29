@@ -119,11 +119,11 @@ void main() {
       expect(find.byType(NavigationDestination), findsNWidgets(3));
     });
 
-    testWidgets('renders a notifications action', (tester) async {
+    testWidgets('has no bell without the sign-in (nothing could ring it)', (
+      tester,
+    ) async {
       await pumpInScope(tester, const MainPage());
-      expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.notifications_outlined));
-      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.notifications_outlined), findsNothing);
     });
   });
 

@@ -112,6 +112,7 @@ reserved に残っていても CI が落ちます）。
 | `path` | Infrastructure | DB ファイルパスの組み立て。純粋な文字列処理なのでレイヤー制限は掛けていない |
 | `url_launcher` | Infrastructure | `lib/infrastructure/links/`。`ExternalLinkLauncher` ポートの背後 |
 | `flutter_web_auth_2` / `http` / `crypto` / `flutter_secure_storage` | Infrastructure | `lib/infrastructure/auth/`。任意のサインイン（ADR-0007 / ADR-0008。ブラウザは Auth Tab、PKCE と引き換えは `WebAuthOidcClient`）。`AuthSession` ポートの背後 |
+| `http`（対の Web の API） | Infrastructure | `lib/infrastructure/api/web_api_client.dart`。サインインした人のトークンで対の Web を呼ぶ（ADR-0009）。`WebApiAppReleaseRepository` / `WebApiAppNoticeRepository` がこれを使い、外には Domain のリポジトリの形でだけ出る |
 | `shared_preferences` / `path_provider` / `package_info_plus` | Infrastructure | 既存のアダプター群 |
 
 `equatable` と `riverpod_annotation`（および `riverpod_generator`）は
@@ -141,6 +142,12 @@ provider は手書きで書きます。
 | `debugModeProvider` / `logLevelProvider` | `Notifier<bool>` / `Notifier<LogLevel>` | デバッグ設定 |
 | `appInfoProvider` | `FutureProvider<AppInfo>` | About / Debug が共有するビルド情報 |
 | `bookmarkListProvider` / `bookmarkProvider` | `AsyncNotifierProvider` / `FutureProvider.family` | ブックマーク |
+| `availableUpdateProvider` | `Notifier<AppRelease?>` | 知らせる新しい版（ADR-0009）。サインインしていなければ常に null |
+| `noticeInboxProvider` | `Notifier<AppNoticeInbox>` | サーバーからのお知らせ（ベルの一覧と未読数、バナー。ADR-0009） |
+| `clockProvider` | `Provider<DateTime Function()>` | いまの時刻（UTC）。上 2 つの間引きを試験で進めるため |
+
+新しい版とお知らせは、メイン画面（`MainPage`）が起動時・サインイン直後・前面に
+戻ったときに読みに行く。前面に戻ったときの分は 5 分あける。
 
 書き込みを伴う状態は、**永続化が成功してから state を進めます**。
 保存に失敗した画面が、保存されていない値を表示したままになるのを防ぐためです。
