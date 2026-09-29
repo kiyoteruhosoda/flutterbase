@@ -342,9 +342,33 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get licensesDetails => '詳細は各パッケージのライセンスファイルをご参照ください。';
 
+  // ─── Update notice ───────────────────────────────────────────────────
+  @override
+  String updateAvailable(String version) => '新しい版 $version があります';
+  @override
+  String get updateDownload => 'ダウンロード';
+  @override
+  String get updateOpenFailed => 'ダウンロードのページを開けませんでした';
+
+  // ─── Notices from the server ─────────────────────────────────────────
+  @override
+  String get noticesTitle => 'お知らせ';
+  @override
+  String get noticesMarkAllRead => 'すべて既読';
+  @override
+  String get noticesEmpty => 'お知らせはありません';
+  @override
+  String get noticesLoadFailed => 'お知らせを読み込めませんでした';
+  @override
+  String get noticesUnread => '未読';
+  @override
+  String get noticeOpenFailed => 'リンクを開けませんでした';
+
   // ─── Common ──────────────────────────────────────────────────────────
   @override
   String get commonRetry => '再試行';
+  @override
+  String get commonClose => '閉じる';
   @override
   String get commonMenu => 'メニュー';
   @override

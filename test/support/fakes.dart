@@ -2,11 +2,16 @@ import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/entities/app_info.dart';
+import 'package:flutterbase/domain/entities/app_notice.dart';
+import 'package:flutterbase/domain/entities/app_release.dart';
 import 'package:flutterbase/domain/entities/bookmark.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
+import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
+import 'package:flutterbase/domain/repositories/app_release_repository.dart';
 import 'package:flutterbase/domain/repositories/bookmark_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
+import 'package:flutterbase/domain/repositories/dismissed_update_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
 import 'package:flutterbase/domain/value_objects/app_language.dart';
@@ -264,4 +269,109 @@ final class FakeAuthSession implements AuthSession {
 
   @override
   Future<String> accessToken({bool forceRefresh = false}) async => 'token';
+}
+
+/// A fixed instant for notices, so a test never reasons about the wall clock.
+final DateTime testNoticeSentAt = DateTime.utc(2026, 9, 28, 3, 4, 5);
+
+/// Builds a notice without going through a repository.
+AppNotice testNotice({
+  int id = 1,
+  String title = 'Maintenance tonight',
+  String body = 'The service stops at 23:00.',
+  String? linkUrl,
+  Set<NoticeChannel> channels = const {NoticeChannel.bell},
+  DateTime? readAt,
+  DateTime? dismissedAt,
+}) {
+  return AppNotice(
+    id: id,
+    title: title,
+    body: body,
+    linkUrl: linkUrl,
+    channels: channels,
+    sentAt: testNoticeSentAt,
+    readAt: readAt,
+    dismissedAt: dismissedAt,
+  );
+}
+
+/// In-memory [AppReleaseRepository].
+final class FakeAppReleaseRepository implements AppReleaseRepository {
+  FakeAppReleaseRepository([this.release]);
+
+  /// What [latest] answers.
+  AppRelease? release;
+
+  /// When set, [latest] throws it.
+  Exception? failure;
+
+  int calls = 0;
+
+  @override
+  Future<AppRelease?> latest() async {
+    calls++;
+    final error = failure;
+    if (error != null) throw error;
+    return release;
+  }
+}
+
+/// In-memory [DismissedUpdateRepository].
+final class FakeDismissedUpdateRepository implements DismissedUpdateRepository {
+  FakeDismissedUpdateRepository([this.build]);
+
+  int? build;
+
+  @override
+  int? get() => build;
+
+  @override
+  Future<void> save(int build) async => this.build = build;
+}
+
+/// In-memory [AppNoticeRepository]: answers [inbox] and records every write.
+final class FakeAppNoticeRepository implements AppNoticeRepository {
+  FakeAppNoticeRepository([AppNoticeInbox? inbox])
+    : inbox = inbox ?? const AppNoticeInbox.empty();
+
+  AppNoticeInbox inbox;
+
+  /// When set, every method throws it.
+  Exception? failure;
+
+  int listCalls = 0;
+  final List<int> read = <int>[];
+  final List<int> dismissed = <int>[];
+  int readAllCalls = 0;
+
+  @override
+  Future<AppNoticeInbox> list() async {
+    listCalls++;
+    _failIfAsked();
+    return inbox;
+  }
+
+  @override
+  Future<void> markRead(int id) async {
+    _failIfAsked();
+    read.add(id);
+  }
+
+  @override
+  Future<void> markAllRead() async {
+    _failIfAsked();
+    readAllCalls++;
+  }
+
+  @override
+  Future<void> dismiss(int id) async {
+    _failIfAsked();
+    dismissed.add(id);
+  }
+
+  void _failIfAsked() {
+    final error = failure;
+    if (error != null) throw error;
+  }
 }

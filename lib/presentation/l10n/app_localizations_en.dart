@@ -350,9 +350,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licensesDetails =>
       'Please refer to the package license file for details.';
 
+  // ─── Update notice ───────────────────────────────────────────────────
+  @override
+  String updateAvailable(String version) => 'Version $version is available';
+  @override
+  String get updateDownload => 'Download';
+  @override
+  String get updateOpenFailed => "Couldn't open the download page";
+
+  // ─── Notices from the server ─────────────────────────────────────────
+  @override
+  String get noticesTitle => 'Notices';
+  @override
+  String get noticesMarkAllRead => 'Mark all as read';
+  @override
+  String get noticesEmpty => 'No notices';
+  @override
+  String get noticesLoadFailed => "Couldn't load notices";
+  @override
+  String get noticesUnread => 'Unread';
+  @override
+  String get noticeOpenFailed => "Couldn't open the link";
+
   // ─── Common ──────────────────────────────────────────────────────────
   @override
   String get commonRetry => 'Retry';
+  @override
+  String get commonClose => 'Close';
   @override
   String get commonMenu => 'Menu';
   @override

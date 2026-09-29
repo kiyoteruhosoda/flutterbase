@@ -49,6 +49,10 @@ final class SignInSettings {
   /// The redirect URI registered at [issuer] for [clientId].
   String get redirectUri => 'https://${linkHost.trim()}$redirectPath';
 
+  /// Origin of the paired web app, whose API the app calls with the signed-in
+  /// person's access token (`/api/app-release/latest`, `/api/notifications`).
+  Uri get webBaseUrl => Uri.parse('https://${linkHost.trim()}');
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

@@ -18,3 +18,14 @@ String missingOverrideMessage(String providerName) =>
 final Provider<AppLogger> appLoggerProvider = Provider<AppLogger>((ref) {
   throw UnimplementedError(missingOverrideMessage('appLoggerProvider'));
 });
+
+/// The current instant in UTC.
+///
+/// A provider rather than `DateTime.now()` at the call site, so a test can
+/// move time forward (the update check's and the notices' debounce) without
+/// waiting. Defaults to the wall clock; nothing needs to override it.
+final Provider<DateTime Function()> clockProvider =
+    Provider<DateTime Function()>(
+      (ref) =>
+          () => DateTime.now().toUtc(),
+    );

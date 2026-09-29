@@ -2,20 +2,29 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/value_objects/app_language.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/navigation/app_routes.dart';
+import 'package:flutterbase/presentation/providers/app_update_providers.dart';
 import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
+import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
+import 'package:flutterbase/presentation/widgets/notices/notice_banner.dart';
+import 'package:flutterbase/presentation/widgets/notices/notice_bell_button.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 import 'package:flutterbase/shared/app_config.dart';
 import 'package:go_router/go_router.dart';
 
 /// Main screen with bottom navigation.
+///
+/// Also where the update notice and the server's notices are fetched: on
+/// start, after a sign-in, and whenever the app returns to the foreground
+/// (docs/adr/0009-update-notice-and-server-notices.md).
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
 
@@ -23,14 +32,65 @@ class MainPage extends ConsumerStatefulWidget {
   ConsumerState<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends ConsumerState<MainPage> {
+class _MainPageState extends ConsumerState<MainPage>
+    with WidgetsBindingObserver {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // After the first frame: the notifiers must not change state while the
+    // tree is still building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refreshNotices(force: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Debounced by the notifiers, so flicking between apps costs nothing.
+    if (state == AppLifecycleState.resumed) _refreshNotices();
+  }
+
+  /// Asks the paired web app for a newer build and for notices. Nothing
+  /// happens in a build without the sign-in, or while nobody is signed in.
+  void _refreshNotices({bool force = false}) {
+    if (!ref.read(signInSettingsProvider).isEnabled) return;
+    unawaited(ref.read(availableUpdateProvider.notifier).refresh(force: force));
+    unawaited(ref.read(noticeInboxProvider.notifier).refresh(force: force));
+  }
+
+  /// A sign-in fetches at once; a sign-out forgets what the last person saw.
+  void _onAccountChanged(
+    AsyncValue<Account?>? previous,
+    AsyncValue<Account?> next,
+  ) {
+    if (!next.hasValue) return;
+    final wasSignedOut =
+        previous != null && previous.hasValue && previous.value == null;
+    if (next.value != null && wasSignedOut) {
+      _refreshNotices(force: true);
+    } else if (next.value == null) {
+      ref.read(availableUpdateProvider.notifier).clear();
+      ref.read(noticeInboxProvider.notifier).clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final debugEnabled = ref.watch(debugModeProvider);
     final signInEnabled = ref.watch(signInSettingsProvider).isEnabled;
+    if (signInEnabled) {
+      ref.listen<AsyncValue<Account?>>(accountProvider, _onAccountChanged);
+    }
     final tabs = <_TabItem>[
       _TabItem(
         label: l10n.navHome,
@@ -66,13 +126,7 @@ class _MainPageState extends ConsumerState<MainPage> {
               tooltip: l10n.commonMenu,
             ),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {},
-              tooltip: l10n.commonNotifications,
-            ),
-          ],
+          actions: const [NoticeBellButton()],
         ),
         drawer: AppDrawer(
           appName: l10n.appName,
@@ -153,7 +207,12 @@ class _MainPageState extends ConsumerState<MainPage> {
             ],
           ],
         ),
-        body: _buildTabContent(),
+        body: Column(
+          children: [
+            const NoticeBanner(),
+            Expanded(child: _buildTabContent()),
+          ],
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (index) =>

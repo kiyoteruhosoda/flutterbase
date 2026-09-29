@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
+import 'package:flutterbase/application/usecases/app_update/open_update_download_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/get_current_account_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/sign_in_usecase.dart';
 import 'package:flutterbase/application/usecases/auth/sign_out_usecase.dart';
@@ -17,15 +20,22 @@ import 'package:flutterbase/application/usecases/debug/set_debug_mode_usecase.da
 import 'package:flutterbase/application/usecases/debug/set_log_level_usecase.dart';
 import 'package:flutterbase/application/usecases/language/get_language_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/language/set_language_preference_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/dismiss_notice_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/list_notices_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
+import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/presentation/providers/app_info_providers.dart';
 import 'package:flutterbase/presentation/providers/app_providers.dart';
+import 'package:flutterbase/presentation/providers/app_update_providers.dart';
 import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
+import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 
 /// Bridges the service locator to Riverpod.
@@ -82,6 +92,29 @@ List<Override> buildProviderOverrides() {
       ),
       signInUseCaseProvider.overrideWithValue(sl<SignInUseCase>()),
       signOutUseCaseProvider.overrideWithValue(sl<SignOutUseCase>()),
+      // Update notice and notices from the paired web app (docs/adr/0009-*).
+      checkForUpdateUseCaseProvider.overrideWithValue(
+        sl<CheckForUpdateUseCase>(),
+      ),
+      dismissUpdateUseCaseProvider.overrideWithValue(
+        sl<DismissUpdateUseCase>(),
+      ),
+      openUpdateDownloadUseCaseProvider.overrideWithValue(
+        sl<OpenUpdateDownloadUseCase>(),
+      ),
+      listNoticesUseCaseProvider.overrideWithValue(sl<ListNoticesUseCase>()),
+      markNoticeReadUseCaseProvider.overrideWithValue(
+        sl<MarkNoticeReadUseCase>(),
+      ),
+      markAllNoticesReadUseCaseProvider.overrideWithValue(
+        sl<MarkAllNoticesReadUseCase>(),
+      ),
+      dismissNoticeUseCaseProvider.overrideWithValue(
+        sl<DismissNoticeUseCase>(),
+      ),
+      openNoticeLinkUseCaseProvider.overrideWithValue(
+        sl<OpenNoticeLinkUseCase>(),
+      ),
     ],
   ];
 }
