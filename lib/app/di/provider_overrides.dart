@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutterbase/app/di/service_locator.dart';
 import 'package:flutterbase/application/ports/app_logger.dart';
+import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
@@ -25,6 +26,9 @@ import 'package:flutterbase/application/usecases/notices/list_notices_usecase.da
 import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
+import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
+import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
+import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
@@ -36,6 +40,7 @@ import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
+import 'package:flutterbase/presentation/providers/push_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 
 /// Bridges the service locator to Riverpod.
@@ -115,6 +120,18 @@ List<Override> buildProviderOverrides() {
       openNoticeLinkUseCaseProvider.overrideWithValue(
         sl<OpenNoticeLinkUseCase>(),
       ),
+    ],
+    // Notifications through FCM (docs/adr/0010-*): registered only when the
+    // build carries the Firebase settings and Firebase started.
+    if (sl.isRegistered<PushMessaging>()) ...[
+      pushMessagingProvider.overrideWithValue(sl<PushMessaging>()),
+      registerForPushUseCaseProvider.overrideWithValue(
+        sl<RegisterForPushUseCase>(),
+      ),
+      unregisterFromPushUseCaseProvider.overrideWithValue(
+        sl<UnregisterFromPushUseCase>(),
+      ),
+      openPushTapUseCaseProvider.overrideWithValue(sl<OpenPushTapUseCase>()),
     ],
   ];
 }

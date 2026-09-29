@@ -80,6 +80,32 @@ class AppConfig {
   /// (`-PappLinkHost=...`), which fills the redirect's intent filter.
   static const String signInLinkHost = String.fromEnvironment('APP_LINK_HOST');
 
+  // ─── Notifications through FCM (optional) ─────────────────────────
+  // All four come from `--dart-define` and are empty by default. **If any is
+  // empty, Firebase is never started** — no plugin call, no permission prompt.
+  // They are the values of the Firebase project's `google-services.json`,
+  // which is deliberately not committed. They only matter with the sign-in on
+  // (the device is registered as the signed-in person). See
+  // `docs/adr/0010-notifications-through-fcm.md`.
+
+  /// `client[].api_key[].current_key` of `google-services.json`.
+  static const String firebaseApiKey = String.fromEnvironment(
+    'FIREBASE_API_KEY',
+  );
+
+  /// `client[].client_info.mobilesdk_app_id`, e.g. `1:1234:android:abcd`.
+  static const String firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
+
+  /// `project_info.project_number`.
+  static const String firebaseMessagingSenderId = String.fromEnvironment(
+    'FIREBASE_MESSAGING_SENDER_ID',
+  );
+
+  /// `project_info.project_id`.
+  static const String firebaseProjectId = String.fromEnvironment(
+    'FIREBASE_PROJECT_ID',
+  );
+
   // ─── Typography ───────────────────────────────────────────────────
   /// Must exactly match the `family:` entry in `pubspec.yaml`'s fonts
   /// section. Both values are the contract between Flutter's font loader

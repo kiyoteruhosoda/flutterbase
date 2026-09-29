@@ -1,14 +1,17 @@
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
+import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
 import 'package:flutterbase/domain/repositories/app_release_repository.dart';
 import 'package:flutterbase/domain/repositories/bookmark_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
+import 'package:flutterbase/domain/repositories/device_registration_repository.dart';
 import 'package:flutterbase/domain/repositories/dismissed_update_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
+import 'package:flutterbase/domain/value_objects/push_settings.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/infrastructure/api/web_api_client.dart';
 import 'package:flutterbase/infrastructure/auth/oidc_auth_session.dart';
@@ -17,6 +20,7 @@ import 'package:flutterbase/infrastructure/auth/secret_store.dart';
 import 'package:flutterbase/infrastructure/database/app_database.dart';
 import 'package:flutterbase/infrastructure/links/url_launcher_external_link_launcher.dart';
 import 'package:flutterbase/infrastructure/logging/persistent_app_logger.dart';
+import 'package:flutterbase/infrastructure/push/firebase_push_messaging.dart';
 import 'package:flutterbase/infrastructure/repositories/package_info_app_info_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_debug_settings_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_dismissed_update_repository.dart';
@@ -25,6 +29,7 @@ import 'package:flutterbase/infrastructure/repositories/shared_preferences_theme
 import 'package:flutterbase/infrastructure/repositories/sqflite_bookmark_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/web_api_app_notice_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/web_api_app_release_repository.dart';
+import 'package:flutterbase/infrastructure/repositories/web_api_device_registration_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Everything Infrastructure offers the rest of the app, exposed only as
@@ -58,8 +63,14 @@ final class InfrastructureModule {
   ///
   /// [signIn] is the optional sign-in: when it is off (the template's default)
   /// no auth or web-API adapter is built at all and [web] is null.
+  ///
+  /// [push] is the optional Firebase project for notifications. Firebase is
+  /// started only when it is on *and* the sign-in is on (a device is
+  /// registered as the signed-in person); a failure to start is logged and the
+  /// app goes on without notifications (docs/adr/0010-*).
   static Future<InfrastructureModule> create({
     SignInSettings signIn = const SignInSettings.disabled(),
+    PushSettings push = const PushSettings.disabled(),
   }) async {
     final preferences = await SharedPreferences.getInstance();
 
@@ -85,7 +96,10 @@ final class InfrastructureModule {
       bookmarks: SqfliteBookmarkRepository(database),
       externalLinks: const UrlLauncherExternalLinkLauncher(),
       dismissedUpdates: SharedPreferencesDismissedUpdateRepository(preferences),
-      web: webModuleFor(signIn),
+      web: webModuleFor(
+        signIn,
+        pushMessaging: signIn.isEnabled ? await _startPush(push, logger) : null,
+      ),
     );
   }
 
@@ -99,8 +113,11 @@ final class InfrastructureModule {
   }
 
   /// The sign-in and the paired web app's API behind it, or null when the
-  /// sign-in is off.
-  static WebModule? webModuleFor(SignInSettings settings) {
+  /// sign-in is off. [pushMessaging] is FCM, when it was started.
+  static WebModule? webModuleFor(
+    SignInSettings settings, {
+    PushMessaging? pushMessaging,
+  }) {
     final session = authSessionFor(settings);
     if (session == null) return null;
     final api = WebApiClient(session, settings.webBaseUrl);
@@ -108,7 +125,25 @@ final class InfrastructureModule {
       authSession: session,
       appReleases: WebApiAppReleaseRepository(api),
       notices: WebApiAppNoticeRepository(api),
+      deviceRegistrations: WebApiDeviceRegistrationRepository(api),
+      pushMessaging: pushMessaging,
     );
+  }
+
+  /// Starts Firebase for [settings], or answers null when it is off or fails.
+  static Future<PushMessaging?> _startPush(
+    PushSettings settings,
+    AppLogger logger,
+  ) async {
+    if (!settings.isEnabled) return null;
+    try {
+      final messaging = await FirebasePushMessaging.start(settings);
+      logger.info('[Infrastructure] FCM ready — $settings');
+      return messaging;
+    } on Exception catch (e) {
+      logger.error('[Infrastructure] FCM did not start', error: e);
+      return null;
+    }
   }
 
   final AppLogger appLogger;
@@ -135,9 +170,16 @@ final class WebModule {
     required this.authSession,
     required this.appReleases,
     required this.notices,
+    required this.deviceRegistrations,
+    required this.pushMessaging,
   });
 
   final AuthSession authSession;
   final AppReleaseRepository appReleases;
   final AppNoticeRepository notices;
+  final DeviceRegistrationRepository deviceRegistrations;
+
+  /// FCM on this device; null unless the build carries the Firebase settings
+  /// and Firebase started (docs/adr/0010-notifications-through-fcm.md).
+  final PushMessaging? pushMessaging;
 }

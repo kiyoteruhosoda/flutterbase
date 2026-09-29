@@ -25,6 +25,9 @@ import 'package:flutterbase/application/usecases/notices/list_notices_usecase.da
 import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
+import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
+import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
+import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
@@ -38,6 +41,7 @@ import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
+import 'package:flutterbase/presentation/providers/push_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
@@ -67,7 +71,11 @@ class TestScope {
     FakeAppReleaseRepository? appReleaseRepository,
     FakeAppNoticeRepository? noticeRepository,
     FakeDismissedUpdateRepository? dismissedUpdateRepository,
-  }) : appReleaseRepository =
+    this.pushMessaging,
+    FakeDeviceRegistrationRepository? deviceRegistrations,
+  }) : deviceRegistrations =
+           deviceRegistrations ?? FakeDeviceRegistrationRepository(),
+       appReleaseRepository =
            appReleaseRepository ?? FakeAppReleaseRepository(),
        noticeRepository = noticeRepository ?? FakeAppNoticeRepository(),
        dismissedUpdateRepository =
@@ -83,6 +91,8 @@ class TestScope {
        logger = logger ?? RecordingAppLogger() {
     container = ProviderContainer(overrides: providerOverrides());
     addTearDown(container.dispose);
+    final push = pushMessaging;
+    if (push != null) addTearDown(push.close);
     // Build the app-wide state the way startup does, so a test that inspects
     // the log buffer sees the same init entries the app writes — and can
     // `reset()` them away before recording its own.
@@ -109,6 +119,11 @@ class TestScope {
   final FakeAppReleaseRepository appReleaseRepository;
   final FakeAppNoticeRepository noticeRepository;
   final FakeDismissedUpdateRepository dismissedUpdateRepository;
+
+  /// FCM on the device. Null (the default) is a build without the Firebase
+  /// settings; it only takes effect together with [authSession].
+  final FakePushMessaging? pushMessaging;
+  final FakeDeviceRegistrationRepository deviceRegistrations;
 
   /// What [clockProvider] answers; move it forward to pass a debounce.
   DateTime now = DateTime.utc(2026, 9, 29, 12);
@@ -224,6 +239,29 @@ class TestScope {
       ),
       openNoticeLinkUseCaseProvider.overrideWithValue(
         OpenNoticeLinkUseCase(linkLauncher, enabledSignIn.webBaseUrl, logger),
+      ),
+      ...pushOverrides(),
+    ];
+  }
+
+  List<Override> pushOverrides() {
+    final messaging = pushMessaging;
+    if (messaging == null) return const <Override>[];
+    return <Override>[
+      pushMessagingProvider.overrideWithValue(messaging),
+      registerForPushUseCaseProvider.overrideWithValue(
+        RegisterForPushUseCase(messaging, deviceRegistrations, logger),
+      ),
+      unregisterFromPushUseCaseProvider.overrideWithValue(
+        UnregisterFromPushUseCase(messaging, deviceRegistrations, logger),
+      ),
+      openPushTapUseCaseProvider.overrideWithValue(
+        OpenPushTapUseCase(
+          noticeRepository,
+          linkLauncher,
+          enabledSignIn.webBaseUrl,
+          logger,
+        ),
       ),
     ];
   }

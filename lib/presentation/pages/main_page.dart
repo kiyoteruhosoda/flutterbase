@@ -12,6 +12,7 @@ import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
+import 'package:flutterbase/presentation/providers/push_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/notices/notice_banner.dart';
@@ -43,7 +44,10 @@ class _MainPageState extends ConsumerState<MainPage>
     // After the first frame: the notifiers must not change state while the
     // tree is still building.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _refreshNotices(force: true);
+      if (!mounted) return;
+      _refreshNotices(force: true);
+      // Device notifications (docs/adr/0010-*): does nothing without FCM.
+      unawaited(ref.read(pushRegistrationProvider.notifier).start());
     });
   }
 
@@ -65,6 +69,11 @@ class _MainPageState extends ConsumerState<MainPage>
     if (!ref.read(signInSettingsProvider).isEnabled) return;
     unawaited(ref.read(availableUpdateProvider.notifier).refresh(force: force));
     unawaited(ref.read(noticeInboxProvider.notifier).refresh(force: force));
+    // On start and after a sign-in (the forced ones): FCM may have handed out
+    // a new token while the app was closed.
+    if (force) {
+      unawaited(ref.read(pushRegistrationProvider.notifier).register());
+    }
   }
 
   /// A sign-in fetches at once; a sign-out forgets what the last person saw.
