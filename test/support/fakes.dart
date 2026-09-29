@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
+import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/entities/app_info.dart';
 import 'package:flutterbase/domain/entities/app_notice.dart';
@@ -11,6 +14,7 @@ import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
 import 'package:flutterbase/domain/repositories/app_release_repository.dart';
 import 'package:flutterbase/domain/repositories/bookmark_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
+import 'package:flutterbase/domain/repositories/device_registration_repository.dart';
 import 'package:flutterbase/domain/repositories/dismissed_update_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
@@ -373,5 +377,84 @@ final class FakeAppNoticeRepository implements AppNoticeRepository {
   void _failIfAsked() {
     final error = failure;
     if (error != null) throw error;
+  }
+}
+
+/// In-memory [PushMessaging]: the test plays FCM through the controllers.
+final class FakePushMessaging implements PushMessaging {
+  FakePushMessaging({this.currentToken = 'fcm-token-1', this.allowed = true});
+
+  /// What [token] answers.
+  String? currentToken;
+
+  /// What [requestPermission] answers.
+  bool allowed;
+
+  /// What [initialTap] answers (once).
+  PushTap? launchTap;
+
+  int permissionRequests = 0;
+
+  final StreamController<String> tokenController =
+      StreamController<String>.broadcast();
+  final StreamController<PushTap> tapController =
+      StreamController<PushTap>.broadcast();
+  final StreamController<void> foregroundController =
+      StreamController<void>.broadcast();
+
+  @override
+  Future<bool> requestPermission() async {
+    permissionRequests++;
+    return allowed;
+  }
+
+  @override
+  Future<String?> token() async => currentToken;
+
+  @override
+  Stream<String> get tokenRefreshes => tokenController.stream;
+
+  @override
+  Stream<PushTap> get taps => tapController.stream;
+
+  @override
+  Future<PushTap?> initialTap() async {
+    final tap = launchTap;
+    launchTap = null;
+    return tap;
+  }
+
+  @override
+  Stream<void> get foregroundMessages => foregroundController.stream;
+
+  /// Closes the streams (the test harness calls it on tear-down).
+  Future<void> close() async {
+    await tokenController.close();
+    await tapController.close();
+    await foregroundController.close();
+  }
+}
+
+/// In-memory [DeviceRegistrationRepository]: records every call.
+final class FakeDeviceRegistrationRepository
+    implements DeviceRegistrationRepository {
+  final List<String> registered = <String>[];
+  final List<String> unregistered = <String>[];
+
+  /// When set, every method throws it.
+  Exception? failure;
+
+  @override
+  Future<void> register(String token) async {
+    final error = failure;
+    if (error != null) throw error;
+    registered.add(token);
+  }
+
+  @override
+  Future<void> unregister(String token) async {
+    final error = failure;
+    if (error != null) throw error;
+    unregistered.add(token);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
+import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
@@ -23,6 +24,9 @@ import 'package:flutterbase/application/usecases/notices/list_notices_usecase.da
 import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
+import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
+import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
+import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
@@ -30,9 +34,11 @@ import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
 import 'package:flutterbase/domain/repositories/app_release_repository.dart';
 import 'package:flutterbase/domain/repositories/bookmark_repository.dart';
 import 'package:flutterbase/domain/repositories/debug_settings_repository.dart';
+import 'package:flutterbase/domain/repositories/device_registration_repository.dart';
 import 'package:flutterbase/domain/repositories/dismissed_update_repository.dart';
 import 'package:flutterbase/domain/repositories/language_preference_repository.dart';
 import 'package:flutterbase/domain/repositories/theme_preference_repository.dart';
+import 'package:flutterbase/domain/value_objects/push_settings.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/infrastructure/infrastructure_module.dart';
 import 'package:flutterbase/shared/app_config.dart';
@@ -62,7 +68,20 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerSingleton<SignInSettings>(signIn);
 
-  final infrastructure = await InfrastructureModule.create(signIn: signIn);
+  // The optional notifications through FCM: on only when the build carries
+  // all four `FIREBASE_*` `--dart-define`s *and* the sign-in
+  // (docs/adr/0010-notifications-through-fcm.md).
+  const push = PushSettings(
+    apiKey: AppConfig.firebaseApiKey,
+    appId: AppConfig.firebaseAppId,
+    messagingSenderId: AppConfig.firebaseMessagingSenderId,
+    projectId: AppConfig.firebaseProjectId,
+  );
+
+  final infrastructure = await InfrastructureModule.create(
+    signIn: signIn,
+    push: push,
+  );
 
   sl
     ..registerSingleton<AppLogger>(infrastructure.appLogger)
@@ -187,7 +206,42 @@ Future<void> setupServiceLocator() async {
       ..registerFactory<SignOutUseCase>(
         () => SignOutUseCase(sl<AuthSession>(), sl<AppLogger>()),
       );
+
+    final pushMessaging = web.pushMessaging;
+    if (pushMessaging != null) {
+      sl
+        ..registerSingleton<PushMessaging>(pushMessaging)
+        ..registerSingleton<DeviceRegistrationRepository>(
+          web.deviceRegistrations,
+        )
+        ..registerFactory<RegisterForPushUseCase>(
+          () => RegisterForPushUseCase(
+            sl<PushMessaging>(),
+            sl<DeviceRegistrationRepository>(),
+            sl<AppLogger>(),
+          ),
+        )
+        ..registerFactory<UnregisterFromPushUseCase>(
+          () => UnregisterFromPushUseCase(
+            sl<PushMessaging>(),
+            sl<DeviceRegistrationRepository>(),
+            sl<AppLogger>(),
+          ),
+        )
+        ..registerFactory<OpenPushTapUseCase>(
+          () => OpenPushTapUseCase(
+            sl<AppNoticeRepository>(),
+            sl<ExternalLinkLauncher>(),
+            signIn.webBaseUrl,
+            sl<AppLogger>(),
+          ),
+        );
+    }
   }
+  sl<AppLogger>().info(
+    '[DI] Notifications through FCM '
+    '${sl.isRegistered<PushMessaging>() ? 'on' : 'off'}',
+  );
   sl<AppLogger>().info(
     '[DI] Sign-in ${signIn.isEnabled ? 'on (${signIn.issuer})' : 'off'}',
   );

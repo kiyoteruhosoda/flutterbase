@@ -46,14 +46,24 @@ final class WebApiClient {
     await _send('POST', path);
   }
 
-  Future<http.Response> _send(String method, String path) async {
+  /// `POST` [path] with [body] as JSON, for the endpoints that answer 204.
+  Future<void> postJson(String path, Map<String, Object?> body) async {
+    await _send('POST', path, body: body);
+  }
+
+  Future<http.Response> _send(
+    String method,
+    String path, {
+    Map<String, Object?>? body,
+  }) async {
     final url = baseUrl.resolve(path);
-    var response = await _once(method, url, await _session.accessToken());
+    var response = await _once(method, url, await _session.accessToken(), body);
     if (response.statusCode == 401) {
       response = await _once(
         method,
         url,
         await _session.accessToken(forceRefresh: true),
+        body,
       );
     }
     final status = response.statusCode;
@@ -63,10 +73,20 @@ final class WebApiClient {
     return response;
   }
 
-  Future<http.Response> _once(String method, Uri url, String token) async {
+  Future<http.Response> _once(
+    String method,
+    Uri url,
+    String token,
+    Map<String, Object?>? body,
+  ) async {
     final request = http.Request(method, url)
       ..headers['Authorization'] = 'Bearer $token'
       ..headers['Accept'] = 'application/json';
+    if (body != null) {
+      request
+        ..headers['Content-Type'] = 'application/json'
+        ..body = jsonEncode(body);
+    }
     try {
       final streamed = await _http.send(request).timeout(timeout);
       return await http.Response.fromStream(streamed).timeout(timeout);

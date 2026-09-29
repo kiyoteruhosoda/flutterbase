@@ -5,6 +5,7 @@ import 'package:flutterbase/application/usecases/auth/sign_out_usecase.dart';
 import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/presentation/providers/app_providers.dart';
+import 'package:flutterbase/presentation/providers/push_providers.dart';
 
 // ─── Settings ──────────────────────────────────────────────────────────────
 
@@ -70,6 +71,9 @@ class AccountNotifier extends AsyncNotifier<Account?> {
   }
 
   Future<void> signOut() async {
+    // Before the sign-out: taking the device off the list needs the person's
+    // token (docs/adr/0010-notifications-through-fcm.md). Never throws.
+    await ref.read(pushRegistrationProvider.notifier).unregister();
     await ref.read(signOutUseCaseProvider).execute();
     state = const AsyncData(null);
   }

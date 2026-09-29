@@ -1,13 +1,32 @@
 /// Where a notice from the server asks to be shown.
 ///
-/// The server may name channels the app does not handle (`webpush`, later
-/// `fcm`); those are dropped when reading, so they never reach this enum.
+/// The server may name channels the app does not handle (`push`: the device
+/// notification arrives through FCM instead); those are dropped when reading,
+/// so they never reach this enum.
 enum NoticeChannel {
   /// A banner at the top of the main screen until dismissed.
   banner,
 
   /// An entry in the bell's list, counted in its unread badge.
   bell,
+}
+
+/// Where a notice's link leads, or null when it leads nowhere.
+///
+/// The app has no route for the web app's paths, so a path (`/items`) is
+/// resolved against [webBaseUrl] and opened in the browser like an absolute
+/// link. Only `https` leaves the app: anything else (`javascript:`, plain
+/// `http:`, a path without the leading slash) is refused. Shared by the bell
+/// and by a tapped device notification, which carries only the link.
+Uri? noticeLinkTarget(String? linkUrl, Uri webBaseUrl) {
+  final raw = linkUrl?.trim();
+  if (raw == null || raw.isEmpty) return null;
+  if (raw.startsWith('/') && !raw.startsWith('//')) {
+    return webBaseUrl.resolve(raw);
+  }
+  final uri = Uri.tryParse(raw);
+  if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return null;
+  return uri;
 }
 
 /// One notice the paired web app sent to the signed-in person
@@ -51,22 +70,8 @@ final class AppNotice {
   /// Counted in the bell's unread badge.
   bool get countsAsUnread => isInBell && !isRead;
 
-  /// Where tapping the notice leads, or null when it leads nowhere.
-  ///
-  /// The app has no route for the web app's paths, so a path (`/items`) is
-  /// resolved against [webBaseUrl] and opened in the browser like an absolute
-  /// link. Only `https` leaves the app: anything else (`javascript:`, plain
-  /// `http:`, a path without the leading slash) is refused.
-  Uri? linkTarget(Uri webBaseUrl) {
-    final raw = linkUrl?.trim();
-    if (raw == null || raw.isEmpty) return null;
-    if (raw.startsWith('/') && !raw.startsWith('//')) {
-      return webBaseUrl.resolve(raw);
-    }
-    final uri = Uri.tryParse(raw);
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return null;
-    return uri;
-  }
+  /// Where tapping the notice leads ([noticeLinkTarget]).
+  Uri? linkTarget(Uri webBaseUrl) => noticeLinkTarget(linkUrl, webBaseUrl);
 
   /// This notice as read at [at] (unchanged when it already was).
   AppNotice markedRead(DateTime at) => isRead ? this : _copy(readAt: at);

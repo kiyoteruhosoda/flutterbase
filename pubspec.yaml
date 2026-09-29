@@ -23,6 +23,11 @@ dependencies:
   # SHA-256 for the PKCE code challenge of the optional sign-in
   # (infrastructure). Pure Dart.
   crypto: ^3.0.6
+  # Notifications from the paired web app through FCM (infrastructure only).
+  # Firebase is started only when the FIREBASE_* --dart-defines are passed;
+  # no google-services.json is committed. See docs/adr/0010-*.
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
   flutter:
     sdk: flutter
   flutter_localizations:
