@@ -32,6 +32,10 @@
 #
 # Environment:
 #   BUILD_NUMBER=<n>   Android versionCode (default: git commit count)
+#   APK_SPLIT_PER_ABI=0|1, APK_TARGET_PLATFORMS, APK_PRIMARY_ABI
+#                      as declared for this app in deploy-repo's
+#                      resources/flutter-apps.json (default: 1,
+#                      android-arm64,android-arm, arm64-v8a — one APK per ABI)
 #
 # Prerequisites: flutter on PATH and a working Android SDK. `apksigner`,
 # `unzip` and `aapt2`, when present, enable three further checks; each is
@@ -53,7 +57,7 @@ do_build=1
 for arg in "$@"; do
   case "$arg" in
     --no-build) do_build=0 ;;
-    -h | --help) sed -n '2,38p' "$self_path" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h | --help) sed -n '2,42p' "$self_path" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown argument: $arg (try --help)" ;;
   esac
 done
@@ -100,17 +104,51 @@ case "$build_number" in
   '' | *[!0-9]*) die "BUILD_NUMBER must be a positive integer: $build_number" ;;
 esac
 
+# The pipeline splits the APK per ABI when the app's declaration says so
+# (APK_SPLIT_PER_ABI). Every name below then carries the ABI, one per target.
+apk_split="${APK_SPLIT_PER_ABI:-1}"
+apk_targets="${APK_TARGET_PLATFORMS:-android-arm64,android-arm}"
+apk_primary_abi="${APK_PRIMARY_ABI:-arm64-v8a}"
+apk_args=()
+abis=('')
+if [ "$apk_split" = "1" ]; then
+  apk_args+=(--split-per-abi)
+  [ -n "$apk_targets" ] && apk_args+=("--target-platform=$apk_targets")
+  abis=()
+  IFS=',' read -r -a platforms <<<"$apk_targets"
+  for platform in "${platforms[@]}"; do
+    case "$platform" in
+      android-arm64) abis+=(arm64-v8a) ;;
+      android-arm) abis+=(armeabi-v7a) ;;
+      android-x64) abis+=(x86_64) ;;
+      *) die "unknown target platform in APK_TARGET_PLATFORMS: $platform" ;;
+    esac
+  done
+fi
+
 per_app="${archives_base}-${version}-release"
-apk_agp="build/app/outputs/apk/release/${per_app}.apk"
-apk_flutter="build/app/outputs/flutter-apk/${per_app}.apk"
 aab="build/app/outputs/bundle/release/${per_app}.aab"
-apk_unsigned_marker="build/app/outputs/apk/release/app-release-unsigned.apk"
-apk_generic="build/app/outputs/flutter-apk/app-release.apk"
+# abi_infix <abi> — "-<abi>" for a split build, nothing for a universal one.
+abi_infix() { [ -n "$1" ] && printf -- '-%s' "$1"; return 0; }
+apk_agp_of()            { printf 'build/app/outputs/apk/release/%s-%s%s-release.apk' "$archives_base" "$version" "$(abi_infix "$1")"; }
+apk_flutter_of()        { printf 'build/app/outputs/flutter-apk/%s-%s%s-release.apk' "$archives_base" "$version" "$(abi_infix "$1")"; }
+apk_unsigned_marker_of() { printf 'build/app/outputs/apk/release/app%s-release-unsigned.apk' "$(abi_infix "$1")"; }
+apk_generic_of()        { printf 'build/app/outputs/flutter-apk/app%s-release.apk' "$(abi_infix "$1")"; }
+
+# The one APK the later checks read: the primary ABI's (the one the pipeline
+# hands out as <app>.apk), or the universal APK.
+primary=''
+if [ "$apk_split" = "1" ]; then
+  for abi in "${abis[@]}"; do [ "$abi" = "$apk_primary_abi" ] && primary="$abi"; done
+  [ -n "$primary" ] || die "APK_PRIMARY_ABI ($apk_primary_abi) is not among APK_TARGET_PLATFORMS ($apk_targets)."
+fi
+apk_flutter="$(apk_flutter_of "$primary")"
 
 log "═══════════════════════════════════════════════"
 log "  applicationId : $application_id"
 log "  version       : $version+$build_number"
 log "  artifact base : $per_app"
+log "  APK per ABI   : ${abis[*]:-universal}"
 log "═══════════════════════════════════════════════"
 
 # ─── stage 1, as the pipeline runs it ──────────────────────────────────────
@@ -185,7 +223,7 @@ if [ "$do_build" -eq 1 ]; then
   # back to the debug keystore and the artifacts come out debug-signed, which
   # is the exact failure stage 3 exists to catch.
   log "building APK (release, unsigned) ..."
-  NOLUMIA_SIGNING=none flutter build apk --release --build-number="$build_number" \
+  NOLUMIA_SIGNING=none flutter build apk --release --build-number="$build_number" "${apk_args[@]}" \
     || die "flutter build apk --release failed."
 
   log "building AAB (release, unsigned) ..."
@@ -202,23 +240,29 @@ printf '\n%sRelease contract%s\n' "$BOLD" "$OFF"
 # APK out of flutter-apk/ specifically. A per-app copy has to exist in both
 # places: AGP writes one directory, the Flutter CLI copies into the other
 # after Gradle has already exited, so build.gradle seeds both itself.
-if [ -f "$apk_agp" ]; then
-  pass "per-app APK next to AGP's output — $apk_agp"
-else
-  fail "per-app APK next to AGP's output — $apk_agp" \
-    "The signing stage globs *-release.apk (excluding app-release.apk) and would" \
-    "sign nothing, failing with \"署名対象の APK が見つからない\"." \
-    "Produced by the assemble<Variant> doLast block in android/app/build.gradle."
-fi
+# With --split-per-abi each ABI needs its own name: without the ABI in it,
+# every split writes the same file and only the last one reaches the pipeline.
+for abi in "${abis[@]}"; do
+  apk_agp="$(apk_agp_of "$abi")"
+  if [ -f "$apk_agp" ]; then
+    pass "per-app APK next to AGP's output — $apk_agp"
+  else
+    fail "per-app APK next to AGP's output — $apk_agp" \
+      "The signing stage globs *-release.apk (excluding app-release.apk) and would" \
+      "sign nothing, failing with \"署名対象の APK が見つからない\"." \
+      "Produced by the assemble<Variant> doLast block in android/app/build.gradle."
+  fi
 
-if [ -f "$apk_flutter" ]; then
-  pass "per-app APK next to the Flutter CLI's copy — $apk_flutter"
-else
-  fail "per-app APK next to the Flutter CLI's copy — $apk_flutter" \
-    "The verify stage reads its APK from flutter-apk/ only, and would fail with" \
-    "\"APK が見つからない\" even though the signing stage had just succeeded." \
-    "Produced by the assemble<Variant> doLast block in android/app/build.gradle."
-fi
+  apk_flutter_abi="$(apk_flutter_of "$abi")"
+  if [ -f "$apk_flutter_abi" ]; then
+    pass "per-app APK next to the Flutter CLI's copy — $apk_flutter_abi"
+  else
+    fail "per-app APK next to the Flutter CLI's copy — $apk_flutter_abi" \
+      "The verify stage reads its APKs from flutter-apk/ only, and would fail with" \
+      "\"APK が見つからない\" even though the signing stage had just succeeded." \
+      "Produced by the assemble<Variant> doLast block in android/app/build.gradle."
+  fi
+done
 
 if [ -f "$aab" ]; then
   pass "per-app AAB — $aab"
@@ -242,6 +286,7 @@ fi
 # safely. AGP renames its output to -unsigned when a build type has no
 # signingConfig, so the marker below is a direct read of whether
 # NOLUMIA_SIGNING=none still takes effect — no external tool required.
+apk_unsigned_marker="$(apk_unsigned_marker_of "$primary")"
 if [ -f "$apk_unsigned_marker" ]; then
   pass "NOLUMIA_SIGNING=none drops the signingConfig — $apk_unsigned_marker"
 else
@@ -257,14 +302,17 @@ fi
 # The Flutter CLI looks for the default filename after Gradle exits and fails
 # the whole build without it. In unsigned mode AGP no longer writes that name,
 # so build.gradle puts a copy back.
-if [ -f "$apk_generic" ]; then
-  pass "default-named APK for the Flutter CLI — $apk_generic"
-else
-  fail "default-named APK for the Flutter CLI — $apk_generic" \
-    "In unsigned mode AGP writes app-release-unsigned.apk, but the Flutter CLI" \
-    "hard-codes app-release.apk and fails with \"Gradle build failed to produce" \
-    "an .apk file\". build.gradle copies the default name back for it."
-fi
+for abi in "${abis[@]}"; do
+  apk_generic="$(apk_generic_of "$abi")"
+  if [ -f "$apk_generic" ]; then
+    pass "default-named APK for the Flutter CLI — $apk_generic"
+  else
+    fail "default-named APK for the Flutter CLI — $apk_generic" \
+      "In unsigned mode AGP writes app[-<abi>]-release-unsigned.apk, but the Flutter" \
+      "CLI hard-codes app[-<abi>]-release.apk and fails with \"Gradle build failed" \
+      "to produce an .apk file\". build.gradle copies the default name back for it."
+  fi
+done
 
 # Locate a build-tools binary: on PATH first, then under whichever SDK root
 # the environment names. Both ANDROID_HOME and ANDROID_SDK_ROOT are in use —

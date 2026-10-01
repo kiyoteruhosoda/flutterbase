@@ -24,6 +24,13 @@ main へ push
 成果物には `SHA256SUMS` と `signing-report.txt`（alias / 証明書指紋 / applicationId /
 commit）が付く。
 
+APK は **ABI ごとに分けて**焼く（`arm64-v8a` / `armeabi-v7a`。universal は 80MB を超え、
+端末の空き容量で入らないことがある）。share.nolumia.com の入口は
+`flutterbase/flutterbase.apk`（arm64-v8a。ふつうの端末はこれ）・
+`flutterbase/flutterbase-armeabi-v7a.apk`（32bit の端末）・`flutterbase/flutterbase.aab`。
+⚠ 分割は一方通行（versionCode が +2000 されるので、戻すと既存の端末からはダウングレードになる）。
+詳しくは deploy-repo の `docs/flutter-signing.md`。
+
 ## assay へのサインイン（任意。ADR-0007 / ADR-0008）
 
 雛形のサインインは、**ビルドに 3 つの値を渡したときだけ**有効になる（既定は無し）:
@@ -48,8 +55,9 @@ flutter build apk --release \
 - サインインがあると、アプリは対の Web の `GET /api/app-release/latest`（Web は公開済みの
   `latest.json` を読む）で新しい版を知らせる（ADR-0009）。比べるのは **`build`** と、この
   ビルドに焼いた `--build-number`（= `BuildInfo.buildNumber`）。⚠ `latest.json` の `build` は
-  APK の versionCode と同じ値でなければならない。ずれると、入れても知らせが消えない／
-  出るべき知らせが出ない
+  この `--build-number` と同じ値でなければならない。ずれると、入れても知らせが消えない／
+  出るべき知らせが出ない。APK を ABI ごとに分けると Flutter が versionCode に +1000 / +2000 を
+  足すが、`BuildInfo.buildNumber` には足さないので比べる値は変わらない
 
 ## 署名鍵
 
@@ -121,6 +129,6 @@ signingConfig = unsignedRelease ? null : (hasKeystore ? signingConfigs.release :
 - **鍵が無いと debug 署名に落ちる。** ローカルで release を焼くときは
   `apksigner verify --print-certs` で署名者を自分で確認すること
 
-⚠ 署名なしモードでは AGP の出力が `app-release-unsigned.apk` になる。
-Flutter CLI が `app-release.apk` を決め打ちで探して落ちるため、
+⚠ 署名なしモードでは AGP の出力が `app[-<abi>]-release-unsigned.apk` になる。
+Flutter CLI が `app[-<abi>]-release.apk` を決め打ちで探して落ちるため、
 `build.gradle` の per-app コピー処理の中で既定名のコピーも置いている。
