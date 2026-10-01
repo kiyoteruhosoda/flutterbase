@@ -9,10 +9,20 @@
 #
 # What this script touches:
 #   - pubspec.yaml            (name: field only)
-#   - lib/**, test/**, integration_test/**  (package:flutterbase/... imports)
+#   - lib/**, test/**, integration_test/**  (package:flutterbase/... imports,
+#                                            then re-sorted — see step 2b)
 #   - android/app/build.gradle (namespace, applicationId)
 #   - android/app/src/main/kotlin/...  (MainActivity package + directory layout)
+#   - docs/deep_links/assetlinks.json, docs/DEEP_LINKS.md, docs/OPERATIONS.md
+#                              (the Android package name in samples/commands)
+#   - .forgejo/workflows/rename.yml    (removed: it checks the template's
+#                                       rename and has no job in a fork)
 #   - docs/komodo-registration.md      (generated: what the build host needs)
+#
+# The result must pass ./scripts/ci.sh unchanged — the template's own CI runs
+# this script under a throwaway name and then the full gate
+# (.forgejo/workflows/rename.yml). It must not need the Dart SDK: the project
+# creation worker that runs it has bash, GNU sed and awk, nothing else.
 #
 # What this script does NOT touch — edit these by hand:
 #   - pubspec.yaml `description` and `version`
@@ -89,6 +99,56 @@ $SED -i.bak "1s|^name: $OLD_DART_NAME$|name: $NEW_DART_NAME|" pubspec.yaml
 find lib test integration_test -type f -name '*.dart' -print0 \
     | xargs -0 $SED -i.bak "s|package:${OLD_DART_NAME}/|package:${NEW_DART_NAME}/|g"
 
+# ─── 2b. Re-sort the package imports ─────────────────────────────────────
+# `directives_ordering` (fatal under --fatal-infos) wants each run of
+# `package:` imports in alphabetical order, and the old name's place in that
+# order is not the new name's: `package:flutterbase/` sorts before
+# `package:go_router/`, `package:wbstimer/` after it. Re-sort every run of
+# consecutive single-line `import 'package:…'` (and, separately, `export`)
+# directives, the way the lint compares them: package name first, then the
+# path inside it. A run that is already in order comes out unchanged.
+# The template has no multi-line or commented import runs; if it grows one,
+# the rename check in CI is what notices.
+IMPORT_SORTER="$(cat <<'AWK'
+function sort_key(line,   uri, slash) {
+    uri = line
+    sub(/^[a-z]+ 'package:/, "", uri)
+    sub(/'.*$/, "", uri)
+    slash = index(uri, "/")
+    return substr(uri, 1, slash - 1) "\001" substr(uri, slash + 1)
+}
+function flush(   i, j, line, key) {
+    for (i = 2; i <= n; i++) {
+        line = run[i]; key = keys[i]
+        for (j = i - 1; j >= 1 && keys[j] > key; j--) {
+            run[j + 1] = run[j]; keys[j + 1] = keys[j]
+        }
+        run[j + 1] = line; keys[j + 1] = key
+    }
+    for (i = 1; i <= n; i++) print run[i]
+    n = 0
+}
+/^(import|export) 'package:[^']*'[^;]*;$/ {
+    if (n > 0 && $1 != kind) flush()
+    kind = $1
+    run[++n] = $0
+    keys[n] = sort_key($0)
+    next
+}
+{ flush(); print }
+END { flush() }
+AWK
+)"
+while IFS= read -r -d '' dart_file; do
+    LC_ALL=C awk "$IMPORT_SORTER" "$dart_file" >"$dart_file.sorted"
+    if cmp -s "$dart_file" "$dart_file.sorted"; then
+        rm -f "$dart_file.sorted"
+    else
+        cat "$dart_file.sorted" >"$dart_file"
+        rm -f "$dart_file.sorted"
+    fi
+done < <(find lib test integration_test -type f -name '*.dart' -print0)
+
 # ─── 3. android/app/build.gradle: appNamespace + appApplicationId ────────
 # Rewrites the two string constants at the top of the file; namespace and
 # applicationId inside the android { } block reference these via Groovy
@@ -126,6 +186,22 @@ fi
 MAIN_ACTIVITY="$NEW_KOTLIN_DIR/MainActivity.kt"
 [[ -f "$MAIN_ACTIVITY" ]] || die "expected $MAIN_ACTIVITY after move"
 $SED -i.bak "1s|^package $OLD_ANDROID_PKG$|package $NEW_ANDROID_PKG|" "$MAIN_ACTIVITY"
+
+# ─── 5b. The Android package in docs ─────────────────────────────────────
+# The assetlinks.json sample and the `adb shell pm …` commands name the
+# package; left alone they describe the template, not this app.
+OLD_ANDROID_PKG_RE="${OLD_ANDROID_PKG//./\\.}"
+for doc in docs/deep_links/assetlinks.json docs/DEEP_LINKS.md docs/OPERATIONS.md; do
+    [[ -f "$doc" ]] || continue
+    $SED -i "s|\b${OLD_ANDROID_PKG_RE}\b|${NEW_ANDROID_PKG}|g" "$doc"
+done
+
+# ─── 5c. Template-only CI ────────────────────────────────────────────────
+# rename.yml renames the template under a throwaway name and runs the gate.
+# A fork has nothing to rename from, so it goes.
+if [[ -f .forgejo/workflows/rename.yml ]]; then
+    git rm --quiet .forgejo/workflows/rename.yml
+fi
 
 # ─── 6. Clean up .bak files ──────────────────────────────────────────────
 # Delete the known single-file backups directly (passing a plain file path
@@ -255,10 +331,15 @@ REGISTRATION
 echo "wrote $REGISTRATION_DOC"
 
 # ─── 8. Sanity check ─────────────────────────────────────────────────────
-LEAKED="$(grep -rl "package:${OLD_DART_NAME}" lib test integration_test 2>/dev/null || true)"
+LEAKED="$(grep -rl "package:${OLD_DART_NAME}/" lib test integration_test 2>/dev/null || true)"
 if [[ -n "$LEAKED" ]]; then
     echo "warning: residual package:${OLD_DART_NAME} imports remain in:" >&2
     echo "$LEAKED" >&2
+fi
+LEAKED_PKG="$(grep -rlw "${OLD_ANDROID_PKG_RE}" android docs/deep_links 2>/dev/null || true)"
+if [[ -n "$LEAKED_PKG" ]]; then
+    echo "warning: residual ${OLD_ANDROID_PKG} remains in:" >&2
+    echo "$LEAKED_PKG" >&2
 fi
 
 cat <<MSG
@@ -279,8 +360,10 @@ next steps (manual):
        - the autoVerify intent filter's android:host, and the custom
          scheme's android:scheme — both must match
          AppConfig.appLinkHost / AppConfig.customLinkScheme in
-         lib/shared/app_config.dart.  Then publish the new
-         .well-known/assetlinks.json for the domain: see docs/DEEP_LINKS.md.
+         lib/shared/app_config.dart.  Then publish
+         docs/deep_links/assetlinks.json (package name already rewritten;
+         fill in the fingerprints) as the domain's
+         .well-known/assetlinks.json: see docs/DEEP_LINKS.md.
   4. replace assets/icon/app_icon.png and app_icon_foreground.png,
      then run:  dart run flutter_launcher_icons
      remember to update the brand colour in

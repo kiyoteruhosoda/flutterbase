@@ -10,8 +10,12 @@
 //   dart run tool/check_architecture.dart [--root=<dir>] [--package=<name>]
 //                                         [--verbose]
 //
-// `--root` defaults to `lib` and `--package` to `flutterbase`; both exist so
-// the checker's own tests can run it against fixture trees.
+// `--root` defaults to `lib` and `--package` to the `name:` in
+// `pubspec.yaml`; both exist so the checker's own tests can run it against
+// fixture trees. The package name is read rather than written down so that an
+// app made with `scripts/rename_app.sh` checks its own imports: a fixed name
+// stays the template's after the rename, matches no import, and every layer
+// rule then passes without looking at anything.
 //
 // Exits 0 when clean, 1 when any rule is violated, 2 on a usage error.
 
@@ -184,7 +188,7 @@ class Violation {
 
 void main(List<String> args) {
   var root = 'lib';
-  var package = 'flutterbase';
+  String? packageArg;
   var verbose = false;
   for (final arg in args) {
     if (arg == '--verbose') {
@@ -192,7 +196,7 @@ void main(List<String> args) {
     } else if (arg.startsWith('--root=')) {
       root = arg.substring('--root='.length);
     } else if (arg.startsWith('--package=')) {
-      package = arg.substring('--package='.length);
+      packageArg = arg.substring('--package='.length);
     } else {
       stderr.writeln(
         'usage: dart run tool/check_architecture.dart '
@@ -200,6 +204,15 @@ void main(List<String> args) {
       );
       exit(2);
     }
+  }
+
+  final package = packageArg ?? _pubspecName();
+  if (package == null) {
+    stderr.writeln(
+      'check_architecture: no `name:` in pubspec.yaml here — '
+      'run from the repository root or pass --package=<name>.',
+    );
+    exit(2);
   }
 
   final rootDir = Directory(root);
@@ -632,4 +645,15 @@ void _report(
     stderr.writeln('\nSee docs/ARCHITECTURE.md for the rationale per rule.');
   }
   exit(1);
+}
+
+/// The package name declared by `pubspec.yaml` in the working directory, or
+/// null when there is no such file or it has no `name:`.
+String? _pubspecName() {
+  final pubspec = File('pubspec.yaml');
+  if (!pubspec.existsSync()) return null;
+  return RegExp(
+    r'^name:\s*(\S+)',
+    multiLine: true,
+  ).firstMatch(pubspec.readAsStringSync())?.group(1);
 }

@@ -111,6 +111,8 @@ dart run tool/check_coverage.dart --verbose       # 下限割れ時に低い順�
 
 `tool/check_architecture.dart` は `--root` / `--package` を受け取ります。
 テスト用フィクスチャに対して走らせるためのもので、通常は不要です。
+`--package` の既定は `pubspec.yaml` の `name:` です（`scripts/rename_app.sh` で
+名前を変えたアプリでも、そのまま自分の import を検査します）。
 
 ### 検査ツール自体のテスト
 

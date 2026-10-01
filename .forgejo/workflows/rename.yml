@@ -1,0 +1,79 @@
+name: Rename
+
+# 雛形の `scripts/rename_app.sh` で作った派生アプリが、**作った直後の main で
+# Quality を通る**ことを、雛形の側で確かめる（task #169）。
+#
+# deck のプロジェクト作成（android 型）は、雛形の履歴の上に rename_app.sh の
+# 1 コミットを積んで新しいリポジトリへ push する。2026-10-01 に wbstimer を作ったら
+# その main が赤かった（import の並び・設計の検査の既定のパッケージ名・
+# assetlinks.json）。雛形の CI は雛形の名前のままでしか回らないので、
+# 置き換えが壊れても雛形では気付けなかった。
+#
+# ⚠ **deck と同じ形で置き換える**: 一時の名前で rename_app.sh を走らせ、
+#   `git add --all` してコミットしてから、Quality と同じ `./scripts/ci.sh` を回す。
+# ⚠ **rename_app.sh は派生ではこのファイルを消す**（派生には置き換える元が無い）。
+#   派生が雛形の直しを取り込んでこれが戻ってきたときは、下の判定で何もせず終わる。
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: rename-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  renamed:
+    runs-on: [self-hosted, nolumialab]
+    timeout-minutes: 60
+    # 台とキャッシュは quality.yml と同じ（理由もそちらに書いてある）。
+    container:
+      image: hub.nolumia.com:5000/builder/ci-flutter@sha256:996f813d0ef208155bc5e967838a0009fa6ade015b7b0441d1d124c3e540de0e
+      options: >-
+        -v flutter-pub-cache:/cache/pub
+        -v flutter-gradle-cache-flutterbase-ci:/cache/gradle
+    env:
+      PUB_CACHE: /cache/pub
+      GRADLE_USER_HOME: /cache/gradle
+      TRIAL_DART_NAME: renametrial
+      TRIAL_ANDROID_PKG: com.nolumia.renametrial
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Is this the template?
+        id: template
+        run: |
+          name="$(awk '/^name:/ {print $2; exit}' pubspec.yaml)"
+          if [ "$name" = flutterbase ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pubspec の name は $name ——雛形ではないので何もしない。"
+          fi
+
+      - name: Rename the way deck's project creation does
+        if: steps.template.outputs.run == 'true'
+        run: |
+          bash scripts/rename_app.sh "$TRIAL_DART_NAME" "$TRIAL_ANDROID_PKG"
+          git add --all
+          git -c user.name=rename-check -c user.email=rename-check@nolumia.com \
+            commit --quiet -m "rename to $TRIAL_DART_NAME"
+          git show --stat --format='%s' HEAD | tail -5
+
+      - name: Nothing of the template's name is left
+        if: steps.template.outputs.run == 'true'
+        run: |
+          if git grep -n -e 'package:flutterbase/' -e 'com\.nolumia\.flutterbase' \
+               -- ':!docs/CHANGELOG.md' ':!scripts/rename_app.sh'; then
+            echo "置き換えの漏れがある（上の行）。scripts/rename_app.sh を直す。" >&2
+            exit 1
+          fi
+
+      - name: Run the quality gate on the renamed app
+        if: steps.template.outputs.run == 'true'
+        run: ./scripts/ci.sh
