@@ -139,19 +139,25 @@ import 'package:flutterbase/shared/build_info.dart';
 
 void main() {
   test('every library under lib/ is imported by this file', () {
+    // The package name comes from pubspec.yaml, not from a literal here, so
+    // `scripts/rename_app.sh` (which rewrites `package:<old>/` text) has
+    // nothing to change in these lines — a name of another length would
+    // otherwise re-wrap them and fail `dart format`.
+    final package = RegExp(
+      r'^name:\s*(\S+)',
+      multiLine: true,
+    ).firstMatch(File('pubspec.yaml').readAsStringSync())!.group(1)!;
     final onDisk = Directory('lib')
         .listSync(recursive: true)
         .whereType<File>()
         .map((f) => f.path.replaceAll(r'\', '/'))
         .where((p) => p.endsWith('.dart'))
-        .map(
-          (p) => "import 'package:flutterbase/${p.substring('lib/'.length)}';",
-        )
+        .map((p) => "import 'package:$package/${p.substring('lib/'.length)}';")
         .toSet();
 
     final declared = File('test/coverage_surface_test.dart')
         .readAsLinesSync()
-        .where((l) => l.startsWith("import 'package:flutterbase/"))
+        .where((l) => l.startsWith("import 'package:$package/"))
         .toSet();
 
     expect(

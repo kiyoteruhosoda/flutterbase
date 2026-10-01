@@ -3,6 +3,21 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-10-01 — `rename_app.sh` で作った直後のアプリが CI を通るようにした（task #169）
+
+deck で wbstimer を作った直後、その main の Quality が赤だった。直したのは雛形の側。
+
+- 名前を置き換えたあと、`package:` の import を並べ直す（`directives_ordering`）。
+  `package:flutterbase/` と新しい名前とでは、`package:go_router/` などとの前後が変わる
+- `tool/check_architecture.dart` の `--package` の既定を `pubspec.yaml` の `name:` にした。
+  `flutterbase` と書いてあったので、名前を変えたアプリでは層の検査が何も見ていなかった
+- `test/coverage_surface_test.dart` もパッケージ名を `pubspec.yaml` から読む（名前の長さで
+  行の折り返しが変わり、`dart format` で落ちていた）
+- `docs/deep_links/assetlinks.json`・`docs/DEEP_LINKS.md`・`docs/OPERATIONS.md` の
+  Android のパッケージ名も置き換える
+- `.forgejo/workflows/rename.yml` を足した。雛形を一時の名前（`renametrial`）で置き換えて
+  コミットし、`./scripts/ci.sh` を回す。派生では `rename_app.sh` がこのファイルを消す
+
 ## 2026-09-29 — 端末への通知を FCM で受けるようにした（ADR-0010）
 
 - `FIREBASE_*` の `--dart-define` 4 つとサインインが揃うときだけ Firebase を始める
