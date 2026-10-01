@@ -32,12 +32,15 @@ jobs:
   renamed:
     runs-on: [self-hosted, nolumialab]
     timeout-minutes: 60
-    # 台とキャッシュは quality.yml と同じ（理由もそちらに書いてある）。
+    # 台は quality.yml と同じ（理由もそちらに書いてある）。
+    # ⚠ **Gradle のキャッシュは quality.yml と分ける。** 同じ PR で同時に走るので、
+    #   共有すると `journal-1.lock` の取り合いで release build が落ちる
+    #   （コンテナが違うと PID が見えず、持ち主に譲ってもらえない。2026-10-01 に実測）。
     container:
       image: hub.nolumia.com:5000/builder/ci-flutter@sha256:996f813d0ef208155bc5e967838a0009fa6ade015b7b0441d1d124c3e540de0e
       options: >-
         -v flutter-pub-cache:/cache/pub
-        -v flutter-gradle-cache-flutterbase-ci:/cache/gradle
+        -v flutter-gradle-cache-flutterbase-rename:/cache/gradle
     env:
       PUB_CACHE: /cache/pub
       GRADLE_USER_HOME: /cache/gradle
