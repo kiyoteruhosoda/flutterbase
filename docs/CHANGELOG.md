@@ -3,6 +3,18 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-10-01 — APK を ABI ごとに分けて配る
+
+photonestapp と同じく、配布の APK を `arm64-v8a` / `armeabi-v7a` の 2 本に分けた
+（universal は約 86MB）。宣言は deploy-repo の `resources/flutter-apps.json`。
+
+- `android/app/build.gradle` の per-app コピーが ABI を名前に入れる
+  （`flutterbase-<version>-<abi>-release.apk`）。入れないと分割した APK が同じ名前を上書きし合う
+- 署名なしモードの既定名のコピーも ABI ごとに置く（`app-<abi>-release.apk`。Flutter の CLI が探す名前）
+- `scripts/check_release_contract.sh` は既定で分割して焼き、ABI ごとの名前を確かめる
+  （`APK_SPLIT_PER_ABI=0` で従来の 1 本）
+- 入口の名前は `latest.apk` から `flutterbase.apk` に変わった（deploy-repo 側の変更）
+
 ## 2026-10-01 — `rename_app.sh` で作った直後のアプリが CI を通るようにした（task #169）
 
 deck で wbstimer を作った直後、その main の Quality が赤だった。直したのは雛形の側。

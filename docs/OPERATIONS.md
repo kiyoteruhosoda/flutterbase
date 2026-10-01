@@ -242,17 +242,22 @@ debug 鍵になった場合は警告を出し、`manifest.env` の `signing` に
 
 | 契約 | 破れると |
 |---|---|
-| `build/app/outputs/apk/release/<base>-<version>-release.apk` がある | 段 2 が署名対象を 1 つも拾えず「署名対象の APK が見つからない」で落ちる |
-| `build/app/outputs/flutter-apk/<base>-<version>-release.apk` がある | 段 2 は成功するのに、段 3 が「APK が見つからない」で落ちる |
+| `build/app/outputs/apk/release/<base>-<version>-<abi>-release.apk` が ABI ごとにある | 段 2 が署名対象を 1 つも拾えず「署名対象の APK が見つからない」で落ちる。ABI が名前に無いと分割した APK が同じ名前を上書きし合い、最後の 1 本しか配られない |
+| `build/app/outputs/flutter-apk/<base>-<version>-<abi>-release.apk` が ABI ごとにある | 段 2 は成功するのに、段 3 が「APK が見つからない」で落ちる |
 | `build/app/outputs/bundle/release/<base>-<version>-release.aab` がある | 段 2・段 3 とも「署名対象の AAB が見つからない」で落ちる |
 | ファイル名の版数が `pubspec.yaml` の `version` と一致する | 段 3 が「前回ビルドの残骸を拾っている」と判断して落ちる |
-| `app-release-unsigned.apk` がある（＝ `NOLUMIA_SIGNING=none` が効いている） | Gradle が debug 鍵で署名してしまい、段 3 が「debug 鍵で署名されている」で落ちる |
-| `flutter-apk/app-release.apk` がある | Flutter CLI が「Gradle build failed to produce an .apk file」でビルドごと落ちる |
+| `app-<abi>-release-unsigned.apk` がある（＝ `NOLUMIA_SIGNING=none` が効いている） | Gradle が debug 鍵で署名してしまい、段 3 が「debug 鍵で署名されている」で落ちる |
+| `flutter-apk/app-<abi>-release.apk` が ABI ごとにある | Flutter CLI が「Gradle build failed to produce an .apk file」でビルドごと落ちる |
 | 成果物が署名されていない | 段 1 の中で何かが署名している。鍵がアプリのコードから届く位置にある疑い |
 | APK の applicationId が `build.gradle` の宣言と一致する | 段 3 が「applicationId が宣言と一致しない」で落ちる |
 
 `<base>` は `android/app/build.gradle` の `appApplicationId` の末尾
 （`android/gradle.properties` に `app.archivesBaseName` があればそちら）です。
+
+`<abi>` は `arm64-v8a` と `armeabi-v7a`。配布は APK を ABI ごとに分けて焼く
+（deploy-repo の `resources/flutter-apps.json` の `APK_SPLIT_PER_ABI=1`。photonestapp と同じ形）ので、
+検査も同じ形で焼きます。分けない宣言のアプリでは `APK_SPLIT_PER_ABI=0` で回すと、
+名前から `-<abi>` が落ちます。
 
 最後の 2 つは外部ツールが要ります。APK の署名判定は `apksigner`、AAB の署名判定は
 `unzip`、applicationId の照合は `aapt2` です。無い環境ではその検査だけスキップされ、
