@@ -3,6 +3,11 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-10-17（Komodo の名残りを消す。task #455）
+
+- 手順書・コメント・設定の説明に残っていた Komodo（2026-09-08 に停止）の言及を、deck の配る段と deploy-repo の
+  `resources/flutter-apps.json` を基準にした今の形に直した。
+
 ## 2026-10-01 — APK を ABI ごとに分けて配る
 
 photonestapp と同じく、配布の APK を `arm64-v8a` / `armeabi-v7a` の 2 本に分けた
