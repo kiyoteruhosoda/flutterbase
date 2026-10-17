@@ -1,22 +1,20 @@
 # リリースビルドと署名
 
-release の AAB / APK は **GitHub Actions ではなく nolumialab の Komodo が作る。**
-2026-08-23 に移設した（それ以前は Azure Container Instances を起動する
-`.github/workflows/build.yml` + GitHub Secrets）。
+release の AAB / APK は **CI ではなく deck の配る段（nolumiadeck ADR-0063）が作る。**
+起動は forge の push の知らせ（nolumiadeck ADR-0119）。
 
 ## 流れ
 
 ```
-main へ push
-  └─ Version Bump (GitHub Actions) が pubspec のバージョンを上げて main へ commit
-       └─ その push を Komodo の webhook が拾う
-            └─ Komodo Repo リソース "flutterbase" が pull して
-               /etc/komodo/bin/flutter-release.sh を実行
-                 stage 1  ビルド    鍵を渡さない → 未署名の APK / AAB
-                 stage 2  署名      成果物と鍵だけを渡した別コンテナで
-                                    apksigner / jarsigner
-                 stage 3  検証保管  宣言した証明書指紋と実測を突合して
-                                    /mnt/labbackup/artifacts/flutterbase/ へ
+merge → quality（品質ゲート。緑でなければ main へ入らない）
+      → Version Bump … pubspec のバージョンを上げて main へ commit
+forge の push の知らせ → deck /api/release/hooks/push/app/flutterbase
+      └─ deck の配る段（deploy-repo の bin/flutter-release.sh）
+           stage 1  ビルド    鍵を渡さない → 未署名の APK / AAB
+           stage 2  署名      成果物と鍵だけを渡した別コンテナで
+                              apksigner / jarsigner
+           stage 3  検証保管  宣言した証明書指紋と実測を突合して保管
+           stage 4  配布      share.nolumia.com へ
 ```
 
 `pubspec.yaml` の `version` が前回ビルドから変わっていなければスキップされる。
@@ -67,8 +65,8 @@ Play App Signing のアップロード鍵。alias は `flutterbase-upload`。
 |---|---|
 | 保管（正） | naso `/volume1/labbackup/android-signing/flutterbase/` |
 | 稼働用 | nolumialab `/srv/signing/flutterbase/upload-keystore.jks` (0400 root) |
-| パスワード | Komodo Secret Variable `SIGN_FLUTTERBASE_STORE_PASS` / `_KEY_PASS` |
-| 紐付けの宣言 | `deploy-repo` の `resources/repos.toml` |
+| パスワード | deck の worker の `/srv/secrets/nolumiadeck/release/signing/flutterbase/`（正は naso の `CREDENTIALS.txt`） |
+| 紐付けの宣言 | `deploy-repo` の `resources/flutter-apps.json` |
 
 ## リポジトリ側が守る契約
 
@@ -108,12 +106,14 @@ nolumialab で初めて落ちる。**
 scripts/rename_app.sh <dart_name> com.nolumia.<app>
 ```
 
-これは `docs/komodo-registration.md` を生成する。**登録が済むまで、その派生
-アプリは main に入れても何も焼かれない。**必要な値（applicationId・鍵の別名・
-Secret 変数名・`repos.toml` に貼るブロック）はこのアプリの分が埋まった形で
-そこに入っているので、順に片付けて、済んだらファイルを消す。
+**deck の画面からプロジェクトを作ったなら、鍵・宣言・連携は作成の手順が済ませる**
+（deck が作成の途中でこれを流す）。手で起こしたときは、これが生成する
+`docs/release-registration.md` を順に片付ける。**登録が済むまで、その派生アプリは
+main に入れても何も焼かれない。**必要な値（applicationId・鍵の別名・
+`flutter-apps.json` に足す 1 件）はこのアプリの分が埋まった形で入っている。
+済んだらファイルを消す。
 
-鍵の発行そのものは nolumialab 側の作業。手順は
+鍵の発行そのものは nolumialab 側の作業。手順の正本は
 `deploy-repo/docs/flutter-signing.md` の「新しいアプリを追加する」。
 
 ## `build.gradle` の署名まわり

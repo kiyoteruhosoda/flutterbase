@@ -17,7 +17,7 @@
 #                              (the Android package name in samples/commands)
 #   - .forgejo/workflows/rename.yml    (removed: it checks the template's
 #                                       rename and has no job in a fork)
-#   - docs/komodo-registration.md      (generated: what the build host needs)
+#   - docs/release-registration.md     (generated: what the release side needs)
 #
 # The result must pass ./scripts/ci.sh unchanged — the template's own CI runs
 # this script under a throwaway name and then the full gate
@@ -225,8 +225,7 @@ find lib test integration_test "$NEW_KOTLIN_DIR" \
 # cannot be filled in yet is the fingerprint: it does not exist until the key
 # does.
 APP_SLUG="$NEW_DART_NAME"
-APP_ENV_PREFIX="$(echo "$APP_SLUG" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9' '_' | $SED 's/_*$//')"
-REGISTRATION_DOC="docs/komodo-registration.md"
+REGISTRATION_DOC="docs/release-registration.md"
 
 cat >"$REGISTRATION_DOC" <<REGISTRATION
 # リリースビルドの登録メモ（$APP_SLUG）
@@ -234,97 +233,75 @@ cat >"$REGISTRATION_DOC" <<REGISTRATION
 \`scripts/rename_app.sh\` が生成しました。**登録が済んだらこのファイルは
 消して構いません**（残す場合は指紋を埋めてから）。
 
-配布する APK / AAB を焼くのはこのリポジトリの CI ではなく、ビルドホスト側の
-リリース経路です（仕組みは \`docs/RELEASE.md\`）。そこに**このアプリを登録する
-までは、main に入れても何も焼かれません。**
+配布する APK / AAB を焼くのはこのリポジトリの CI ではなく、deck の配る段
+（\`app/$APP_SLUG\`。仕組みは \`docs/RELEASE.md\`）です。そこに**このアプリを
+登録するまでは、main に入れても何も焼かれません。**
 
-## 1. 署名鍵を作る
+⚠ **deck の画面からプロジェクトを作ったなら、ここに書いたことは作成の手順
+（鍵の依頼 → 鍵 → 宣言 → 連携）が済ませています。** 手でリポジトリを起こした
+ときだけ、次を順に行います。手順の正本は deploy-repo の
+\`docs/flutter-signing.md\`「新しいアプリを追加する」です。
 
-ビルドホストで、このアプリ専用のアップロード鍵を 1 つ発行します。鍵の実体は
-リポジトリには入りません。既存アプリの手順に合わせてください。
+## 1. 署名鍵を作る（nolumialab で）
+
+\`\`\`
+~/server-setup/signing/new-key.sh $APP_SLUG
+\`\`\`
 
 - 鍵の別名（alias）: \`$APP_SLUG-upload\`
-- 稼働用の置き場: ビルドホストの署名鍵ディレクトリ配下 \`$APP_SLUG/\`
-- 保管の正: NAS 側の署名鍵ディレクトリ（**バックアップはここ 1 箇所**）
+- 表示される証明書指紋（SHA-256）を控える（手順 3 の \`cert_sha256\`）
 
 ⚠ Play App Signing を使うならこれは「アップロード鍵」で、紛失しても Play
 Console からリセットを申請できます。**Play に出さないアプリではこの鍵が
 そのまま配布鍵になり、紛失すると更新を配れなくなります。**
 
-## 2. パスワードを Secret として登録する
-
-| 変数名 | 中身 |
-|---|---|
-| \`SIGN_${APP_ENV_PREFIX}_STORE_PASS\` | キーストアのパスワード |
-| \`SIGN_${APP_ENV_PREFIX}_KEY_PASS\` | 鍵のパスワード |
-
-## 3. 証明書指紋を測る
-
-作った鍵から SHA-256 指紋を取り出し、下のブロックの \`CERT_SHA256\` に
-書き写します。
+## 2. 合言葉を deck の worker の置き場へ入れる（nolumialab で）
 
 \`\`\`
-keytool -list -v -keystore upload-keystore.jks -alias $APP_SLUG-upload \\
-  | sed -n 's/.*SHA256: *//p' | head -1
+sudo bash ~/server-setup/signing/deck-secrets.sh $APP_SLUG
+sudo bash ~/server-setup/signing/deck-secrets-verify.sh $APP_SLUG   # 値は出さない
 \`\`\`
 
-⚠ **これは「このアプリはこの鍵で署名される」という宣言です。**ビルドのたびに
-実測の指紋と突き合わされ、一致しなければ保管されません。**鍵を作り直したら
-ここも更新してください。**
+## 3. 宣言に 1 件足す（deploy-repo の PR）
 
-## 4. リポジトリ定義を足す
+\`resources/flutter-apps.json\` の \`apps\` に次を足します（形は
+\`bin/check-flutter-apps.py\` が PR で見る）。
 
-ビルドホストのリポジトリ定義（\`repos.toml\`）へ、次のブロックを追加します。
-\`environment\` の値は 3 連引用符で囲む TOML の複数行文字列です。
-
-\`\`\`toml
-[[repo]]
-name = "$APP_SLUG"
-tags = ["managed"]
-[repo.config]
-server = "<ビルドホスト名>"
-repo = "<owner>/$APP_SLUG"
-git_provider = "github.com"
-git_account = "<git アカウント>"
-branch = "main"
-environment = '''
-APP             = $APP_SLUG
-APPLICATION_ID  = $NEW_ANDROID_PKG
-KEY_ALIAS       = $APP_SLUG-upload
-CERT_SHA256     = <手順 3 で測った指紋>
-STORE_PASS      = [[SIGN_${APP_ENV_PREFIX}_STORE_PASS]]
-KEY_PASS        = [[SIGN_${APP_ENV_PREFIX}_KEY_PASS]]
-PUB_ARGS        = --enforce-lockfile
-'''
-
-[repo.config.on_pull]
-path = "."
-shell_mode = true
-command = "<リリーススクリプトのパス>"
+\`\`\`json
+{
+  "name": "$APP_SLUG",
+  "title": "<deck の画面に出す名前>",
+  "distribution": "share.nolumia.com",
+  "repo": "kyon/<forge のリポジトリ名>",
+  "branch": "main",
+  "application_id": "$NEW_ANDROID_PKG",
+  "key_alias": "$APP_SLUG-upload",
+  "cert_sha256": "<手順 1 で控えた指紋>",
+  "env": {"PUB_ARGS": "--enforce-lockfile"}
+}
 \`\`\`
 
-⚠ 既存アプリの定義は \`environment\` を 3 連ダブルクォートで書いています。
-どちらでも構いませんが、**周りに合わせてください。**
-
-⚠ **\`on_clone\` は書かないこと。** clone は on_clone と on_pull を両方走らせる
-ため、両方に書くと 1 回のクローンでビルドが 2 周します。しかもリリース
-スクリプトは読み終えた設定を即座に消す（アプリのコードから署名パスワードが
-読めないようにするため）ので、2 周目は必ず失敗します。
+⚠ **\`cert_sha256\` は「このアプリはこの鍵で署名される」という宣言です。**
+ビルドのたびに実測の指紋と突き合わされ、一致しなければ保管されません。
+**鍵を作り直したらここも更新してください。**
 
 ⚠ \`PUB_ARGS = --enforce-lockfile\` は、\`pubspec.lock\` がビルダーの Flutter で
 解決できるときだけ付けてください。落ちる場合は、その Flutter で
 \`pubspec.lock\` を作り直してコミットするのが正しい直し方です
 （\`docs/OPERATIONS.md\`）。
 
-## 5. main への push で発火するようにする
+同じ PR で \`resources/projects.json\` の \`apps\` にも足します（deck の画面に出すため）。
 
-このリポジトリの GitHub webhook を、ビルドホストの受け口へ向けます。
-これが無いと、登録だけしても push でビルドが始まりません。
+## 4. main への push で配られるようにする
 
-## 6. 確認
+宣言が main に入ると、ホストの係（\`nolumia-forge-links\`、2 分ごと）が forge の
+このリポジトリに関門と deck への push の知らせを付けます。手で webhook を張る必要は
+ありません。
+
+## 5. 確認
 
 - \`./scripts/check_release_contract.sh\` が手元で通ること
-- ビルドホストで 1 回ビルドが完走し、成果物と署名レポートが保管されること
+- deck の \`/apps\` に \`app/$APP_SLUG\` が出て、1 回配り終えて成果物と署名レポートが保管されること
 - 署名レポートの証明書 DN が **Android Debug ではない**こと
 REGISTRATION
 
@@ -381,9 +358,10 @@ next steps (manual):
      applicationId, which rename_app.sh has just rewritten.
   7. update README.md line 1
   8. run: flutter clean && flutter pub get && dart analyze && flutter test
-  9. register this app with the release build host — nothing is built for
-     it until that is done.  The values it needs, with this app's already
-     filled in, are in the generated docs/komodo-registration.md.
+  9. register this app with the release side (deck) — nothing is built for
+     it until that is done.  A project created from deck's screen already is.
+     Otherwise the values it needs, with this app's already filled in, are in
+     the generated docs/release-registration.md.
      Delete that file once the registration is in place.
 
 MSG
