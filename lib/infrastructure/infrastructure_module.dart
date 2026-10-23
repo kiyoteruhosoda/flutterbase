@@ -2,6 +2,7 @@ import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
+import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
 import 'package:flutterbase/domain/repositories/app_release_repository.dart';
@@ -126,6 +127,7 @@ final class InfrastructureModule {
       appReleases: WebApiAppReleaseRepository(api),
       notices: WebApiAppNoticeRepository(api),
       deviceRegistrations: WebApiDeviceRegistrationRepository(api),
+      serviceStatus: api,
       pushMessaging: pushMessaging,
     );
   }
@@ -171,6 +173,7 @@ final class WebModule {
     required this.appReleases,
     required this.notices,
     required this.deviceRegistrations,
+    required this.serviceStatus,
     required this.pushMessaging,
   });
 
@@ -178,6 +181,10 @@ final class WebModule {
   final AppReleaseRepository appReleases;
   final AppNoticeRepository notices;
   final DeviceRegistrationRepository deviceRegistrations;
+
+  /// The edge's `503` on the calls above, and the recheck behind the
+  /// maintenance screen (docs/adr/0011-in-app-maintenance-screen.md).
+  final ServiceStatus serviceStatus;
 
   /// FCM on this device; null unless the build carries the Firebase settings
   /// and Firebase started (docs/adr/0010-notifications-through-fcm.md).

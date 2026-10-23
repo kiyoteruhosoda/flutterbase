@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
@@ -28,6 +29,8 @@ import 'package:flutterbase/application/usecases/notices/open_notice_link_usecas
 import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
 import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
+import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
+import 'package:flutterbase/application/usecases/service_status/watch_service_outages_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
@@ -42,8 +45,10 @@ import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/providers/push_providers.dart';
+import 'package:flutterbase/presentation/providers/service_status_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
+import 'package:flutterbase/presentation/widgets/maintenance/service_outage_gate.dart';
 import 'package:go_router/go_router.dart';
 
 import 'fakes.dart';
@@ -73,7 +78,9 @@ class TestScope {
     FakeDismissedUpdateRepository? dismissedUpdateRepository,
     this.pushMessaging,
     FakeDeviceRegistrationRepository? deviceRegistrations,
-  }) : deviceRegistrations =
+    ServiceStatus? serviceStatus,
+  }) : serviceStatus = serviceStatus ?? FakeServiceStatus(),
+       deviceRegistrations =
            deviceRegistrations ?? FakeDeviceRegistrationRepository(),
        appReleaseRepository =
            appReleaseRepository ?? FakeAppReleaseRepository(),
@@ -93,6 +100,8 @@ class TestScope {
     addTearDown(container.dispose);
     final push = pushMessaging;
     if (push != null) addTearDown(push.close);
+    final status = this.serviceStatus;
+    if (status is FakeServiceStatus) addTearDown(status.close);
     // Build the app-wide state the way startup does, so a test that inspects
     // the log buffer sees the same init entries the app writes — and can
     // `reset()` them away before recording its own.
@@ -124,6 +133,11 @@ class TestScope {
   /// settings; it only takes effect together with [authSession].
   final FakePushMessaging? pushMessaging;
   final FakeDeviceRegistrationRepository deviceRegistrations;
+
+  /// The edge's `503` and the maintenance screen's recheck, used only with
+  /// [authSession]. A [FakeServiceStatus] unless the test passes a real
+  /// `WebApiClient` to play the wire format.
+  final ServiceStatus serviceStatus;
 
   /// What [clockProvider] answers; move it forward to pass a debounce.
   DateTime now = DateTime.utc(2026, 9, 29, 12);
@@ -240,6 +254,12 @@ class TestScope {
       openNoticeLinkUseCaseProvider.overrideWithValue(
         OpenNoticeLinkUseCase(linkLauncher, enabledSignIn.webBaseUrl, logger),
       ),
+      watchServiceOutagesUseCaseProvider.overrideWithValue(
+        WatchServiceOutagesUseCase(serviceStatus, logger),
+      ),
+      checkServiceUseCaseProvider.overrideWithValue(
+        CheckServiceUseCase(serviceStatus, logger),
+      ),
       ...pushOverrides(),
     ];
   }
@@ -284,8 +304,9 @@ class TestScope {
     );
   }
 
-  /// The same scope, theme, localisations, and provider overrides as [wrap],
-  /// driven by [config] instead of the placeholder route table.
+  /// The same scope, theme, localisations, provider overrides, and
+  /// maintenance screen as [wrap], driven by [config] instead of the
+  /// placeholder route table.
   ///
   /// For tests that exercise the app's real router — a deep link resolving to
   /// a real screen, for instance.
@@ -307,6 +328,8 @@ class TestScope {
             GlobalCupertinoLocalizations.delegate,
           ],
           routerConfig: config,
+          builder: (context, child) =>
+              ServiceOutageGate(child: child ?? const SizedBox.shrink()),
         ),
       ),
     );

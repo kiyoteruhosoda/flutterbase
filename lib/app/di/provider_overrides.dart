@@ -29,6 +29,8 @@ import 'package:flutterbase/application/usecases/notices/open_notice_link_usecas
 import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
 import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
+import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
+import 'package:flutterbase/application/usecases/service_status/watch_service_outages_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
@@ -41,6 +43,7 @@ import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/providers/push_providers.dart';
+import 'package:flutterbase/presentation/providers/service_status_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 
 /// Bridges the service locator to Riverpod.
@@ -120,6 +123,11 @@ List<Override> buildProviderOverrides() {
       openNoticeLinkUseCaseProvider.overrideWithValue(
         sl<OpenNoticeLinkUseCase>(),
       ),
+      // The maintenance screen (docs/adr/0011-*).
+      watchServiceOutagesUseCaseProvider.overrideWithValue(
+        sl<WatchServiceOutagesUseCase>(),
+      ),
+      checkServiceUseCaseProvider.overrideWithValue(sl<CheckServiceUseCase>()),
     ],
     // Notifications through FCM (docs/adr/0010-*): registered only when the
     // build carries the Firebase settings and Firebase started.
