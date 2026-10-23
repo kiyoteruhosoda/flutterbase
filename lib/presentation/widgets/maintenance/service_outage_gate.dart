@@ -29,6 +29,16 @@ class _ServiceOutageGateState extends ConsumerState<ServiceOutageGate> {
   Timer? _recheck;
 
   @override
+  void initState() {
+    super.initState();
+    ref.listenManual<ServiceOutage?>(
+      serviceOutageProvider,
+      (_, outage) => _follow(outage),
+      fireImmediately: true,
+    );
+  }
+
+  @override
   void dispose() {
     _recheck?.cancel();
     super.dispose();
@@ -51,11 +61,6 @@ class _ServiceOutageGateState extends ConsumerState<ServiceOutageGate> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<ServiceOutage?>(
-      serviceOutageProvider,
-      (_, outage) => _follow(outage),
-      fireImmediately: true,
-    );
     final outage = ref.watch(serviceOutageProvider);
     return Stack(
       fit: StackFit.expand,
