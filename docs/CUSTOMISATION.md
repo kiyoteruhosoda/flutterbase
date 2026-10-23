@@ -13,6 +13,10 @@
 対の Web に `/api/app-release/latest` と `/api/notifications`（fastapitemplate ADR-0047 /
 ADR-0048）が無ければ、何も出ない。
 
+メンテナンス画面（ADR-0011）も、サインインがあれば**そのまま動く**。`WebApiClient` を通した呼び出しが
+edge の 503（`reason: maintenance` / `stopped`）を受けると全体にかぶさり、戻ると消える。
+派生アプリの API も `WebApiClient` を通せば同じになる。
+
 ## 端末への通知（FCM。任意）
 
 対の Web アプリの「端末への通知」を、このアプリでも受け取る（ADR-0010）。既定では Firebase を

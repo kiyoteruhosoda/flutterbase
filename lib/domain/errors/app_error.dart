@@ -1,3 +1,5 @@
+import 'package:flutterbase/domain/entities/service_outage.dart';
+
 /// Base class for all typed application errors.
 sealed class AppError implements Exception {
   const AppError(this.message);
@@ -13,6 +15,14 @@ final class DomainError extends AppError {
 final class InfrastructureError extends AppError {
   const InfrastructureError(super.message, {this.cause});
   final Object? cause;
+}
+
+/// The paired web app answered `503` with the edge's JSON: it is closed for
+/// maintenance or stopped. Every screen gives way to the maintenance screen
+/// until it answers again (docs/adr/0011-in-app-maintenance-screen.md).
+final class ServiceUnavailableError extends AppError {
+  const ServiceUnavailableError(super.message, this.outage);
+  final ServiceOutage outage;
 }
 
 /// An unexpected / unclassified runtime error.

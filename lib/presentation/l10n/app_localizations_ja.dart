@@ -364,6 +364,24 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get noticeOpenFailed => 'リンクを開けませんでした';
 
+  // ─── Maintenance screen ──────────────────────────────────────────────
+  @override
+  String get maintenanceTitle => 'メンテナンス中';
+  @override
+  String get maintenanceBody => 'ただいまメンテナンスのため止めています。終わるまでしばらくお待ちください。';
+  @override
+  String get serviceStoppedTitle => '停止中';
+  @override
+  String get serviceStoppedBody => 'サービスが止まっています。しばらくしてからもう一度お試しください。';
+  @override
+  String maintenanceReason(String reason) => '理由: $reason';
+  @override
+  String maintenanceUntil(String when) => '戻りの見込み: $when';
+  @override
+  String get maintenanceAutoCheck => '1〜2 分ごとに確かめ直し、戻ったら元の画面に戻ります。';
+  @override
+  String get maintenanceCheckNow => '今すぐ確かめる';
+
   // ─── Common ──────────────────────────────────────────────────────────
   @override
   String get commonRetry => '再試行';

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutterbase/domain/entities/service_outage.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
 
 void main() {
@@ -16,6 +17,7 @@ void main() {
         UnexpectedError() => 'unexpected',
         SignInRequiredError() => 'sign-in required',
         SignInCancelledError() => 'sign-in cancelled',
+        ServiceUnavailableError() => 'service unavailable',
       };
 
       expect(describe(const DomainError('a')), equals('domain'));
@@ -31,6 +33,15 @@ void main() {
       expect(
         describe(SignInCancelledError('e'.toString())),
         equals('sign-in cancelled'),
+      );
+      expect(
+        describe(
+          ServiceUnavailableError(
+            'f'.toString(),
+            const ServiceOutage(reason: ServiceOutageReason.stopped),
+          ),
+        ),
+        equals('service unavailable'),
       );
     });
   });

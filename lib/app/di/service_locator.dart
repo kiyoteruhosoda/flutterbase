@@ -2,6 +2,7 @@ import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
+import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
@@ -27,6 +28,8 @@ import 'package:flutterbase/application/usecases/notices/open_notice_link_usecas
 import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
 import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
+import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
+import 'package:flutterbase/application/usecases/service_status/watch_service_outages_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
@@ -153,6 +156,15 @@ Future<void> setupServiceLocator() async {
       ..registerSingleton<AuthSession>(web.authSession)
       ..registerSingleton<AppReleaseRepository>(web.appReleases)
       ..registerSingleton<AppNoticeRepository>(web.notices)
+      ..registerSingleton<ServiceStatus>(web.serviceStatus)
+      // Any call above that meets the edge's 503 brings up the maintenance
+      // screen (docs/adr/0011-*).
+      ..registerFactory<WatchServiceOutagesUseCase>(
+        () => WatchServiceOutagesUseCase(sl<ServiceStatus>(), sl<AppLogger>()),
+      )
+      ..registerFactory<CheckServiceUseCase>(
+        () => CheckServiceUseCase(sl<ServiceStatus>(), sl<AppLogger>()),
+      )
       // The update notice and the notices call the paired web app with the
       // signed-in person's token (docs/adr/0009-*).
       ..registerFactory<CheckForUpdateUseCase>(

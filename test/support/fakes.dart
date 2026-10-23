@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
+import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/entities/app_info.dart';
 import 'package:flutterbase/domain/entities/app_notice.dart';
 import 'package:flutterbase/domain/entities/app_release.dart';
 import 'package:flutterbase/domain/entities/bookmark.dart';
+import 'package:flutterbase/domain/entities/service_outage.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
@@ -457,4 +459,33 @@ final class FakeDeviceRegistrationRepository
     if (error != null) throw error;
     unregistered.add(token);
   }
+}
+
+/// In-memory [ServiceStatus]: the test plays the edge through
+/// [outageController] and [checkAnswer].
+final class FakeServiceStatus implements ServiceStatus {
+  final StreamController<ServiceOutage> outageController =
+      StreamController<ServiceOutage>.broadcast();
+
+  /// What [check] answers: null is "back in service".
+  ServiceOutage? checkAnswer;
+
+  /// When set, [check] throws it.
+  Exception? checkFailure;
+
+  int checks = 0;
+
+  @override
+  Stream<ServiceOutage> get outages => outageController.stream;
+
+  @override
+  Future<ServiceOutage?> check() async {
+    checks++;
+    final failure = checkFailure;
+    if (failure != null) throw failure;
+    return checkAnswer;
+  }
+
+  /// Closes the stream (the test harness calls it on tear-down).
+  Future<void> close() => outageController.close();
 }

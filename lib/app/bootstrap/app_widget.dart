@@ -8,6 +8,7 @@ import 'package:flutterbase/presentation/providers/app_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
+import 'package:flutterbase/presentation/widgets/maintenance/service_outage_gate.dart';
 import 'package:go_router/go_router.dart';
 
 /// Root widget.
@@ -72,6 +73,10 @@ class _AppWidgetState extends ConsumerState<AppWidget>
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: _router,
+      // The maintenance screen covers every route while the paired web app
+      // is out of service (docs/adr/0011-in-app-maintenance-screen.md).
+      builder: (context, child) =>
+          ServiceOutageGate(child: child ?? const SizedBox.shrink()),
     );
   }
 }

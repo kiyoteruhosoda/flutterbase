@@ -372,6 +372,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noticeOpenFailed => "Couldn't open the link";
 
+  // ─── Maintenance screen ──────────────────────────────────────────────
+  @override
+  String get maintenanceTitle => 'Under maintenance';
+  @override
+  String get maintenanceBody =>
+      'The service is closed for maintenance. Please wait a little while.';
+  @override
+  String get serviceStoppedTitle => 'Service stopped';
+  @override
+  String get serviceStoppedBody =>
+      'The service is not running right now. Please try again later.';
+  @override
+  String maintenanceReason(String reason) => 'Reason: $reason';
+  @override
+  String maintenanceUntil(String when) => 'Expected back: $when';
+  @override
+  String get maintenanceAutoCheck =>
+      'The app checks again every minute or two and takes you back to where '
+      'you were.';
+  @override
+  String get maintenanceCheckNow => 'Check now';
+
   // ─── Common ──────────────────────────────────────────────────────────
   @override
   String get commonRetry => 'Retry';

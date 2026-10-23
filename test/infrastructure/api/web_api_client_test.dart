@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/domain/entities/account.dart';
+import 'package:flutterbase/domain/entities/service_outage.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
 import 'package:flutterbase/infrastructure/api/web_api_client.dart';
 import 'package:http/http.dart' as http;
@@ -33,6 +34,23 @@ final class _TokenSession implements AuthSession {
 }
 
 final Uri base = Uri.parse('https://web.example.com');
+
+/// What the edge answers while a maintenance is declared (with the title and
+/// body #663 added).
+http.Response maintenance503() => http.Response.bytes(
+  utf8.encode(
+    jsonEncode({
+      'error': 'service_unavailable',
+      'reason': 'maintenance',
+      'until': '2026-10-28T19:30:00Z',
+      'message': 'DB の作り直し',
+      'title': 'Scheduled maintenance',
+      'body': 'We are moving the database.',
+    }),
+  ),
+  503,
+  headers: {'content-type': 'application/json', 'retry-after': '300'},
+);
 
 void main() {
   late _TokenSession session;
@@ -137,5 +155,159 @@ void main() {
       throwsA(isA<SignInRequiredError>()),
     );
     expect(requests, isEmpty);
+  });
+
+  group('the edge\'s 503 (docs/adr/0011-*)', () {
+    test('maintenance is a ServiceUnavailableError with every field', () async {
+      final api = client((_) async => maintenance503());
+      final seen = <ServiceOutage>[];
+      final subscription = api.outages.listen(seen.add);
+      addTearDown(subscription.cancel);
+
+      await expectLater(
+        api.getJson('/api/x'),
+        throwsA(
+          isA<ServiceUnavailableError>().having(
+            (e) => e.outage,
+            'outage',
+            ServiceOutage(
+              reason: ServiceOutageReason.maintenance,
+              title: 'Scheduled maintenance',
+              body: 'We are moving the database.',
+              message: 'DB の作り直し',
+              until: DateTime.utc(2026, 10, 28, 19, 30),
+            ),
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(seen.single.reason, ServiceOutageReason.maintenance);
+      // Not retried: a 503 is not a stale token.
+      expect(requests, hasLength(1));
+    });
+
+    test('stopped carries no text, and a missing title/body is null', () async {
+      final api = client(
+        (_) async => http.Response(
+          '{"error":"service_unavailable","reason":"stopped",'
+          '"host":"web.example.com"}',
+          503,
+        ),
+      );
+      await expectLater(
+        api.post('/api/y'),
+        throwsA(
+          isA<ServiceUnavailableError>().having(
+            (e) => e.outage,
+            'outage',
+            const ServiceOutage(reason: ServiceOutageReason.stopped),
+          ),
+        ),
+      );
+    });
+
+    test('an older edge without title/body still counts', () async {
+      final api = client(
+        (_) async => http.Response(
+          '{"error":"service_unavailable","reason":"maintenance",'
+          '"until":"2026-10-28T19:30:00Z","message":"","title":null}',
+          503,
+        ),
+      );
+      await expectLater(
+        api.getJson('/api/x'),
+        throwsA(
+          isA<ServiceUnavailableError>().having(
+            (e) => e.outage,
+            'outage',
+            ServiceOutage(
+              reason: ServiceOutageReason.maintenance,
+              until: DateTime.utc(2026, 10, 28, 19, 30),
+            ),
+          ),
+        ),
+      );
+    });
+
+    for (final (name, body) in [
+      ('HTML', '<html>Maintenance</html>'),
+      ('empty', ''),
+      ('another JSON shape', '{"detail":"Service Unavailable"}'),
+      ('an unknown reason', '{"error":"service_unavailable","reason":"x"}'),
+    ]) {
+      test('a 503 with $name is an ordinary InfrastructureError', () async {
+        final api = client((_) async => http.Response(body, 503));
+        final seen = <ServiceOutage>[];
+        final subscription = api.outages.listen(seen.add);
+        addTearDown(subscription.cancel);
+
+        await expectLater(
+          api.getJson('/api/x'),
+          throwsA(
+            isA<InfrastructureError>().having(
+              (e) => e.message,
+              'message',
+              contains('503'),
+            ),
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(seen, isEmpty);
+      });
+    }
+
+    test('maintenance JSON with another status is not an outage', () async {
+      final api = client(
+        (_) async => http.Response(
+          '{"error":"service_unavailable","reason":"maintenance"}',
+          500,
+        ),
+      );
+      await expectLater(
+        api.getJson('/api/x'),
+        throwsA(
+          isA<InfrastructureError>().having(
+            (e) => e.message,
+            'message',
+            contains('500'),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('check', () {
+    test('asks without a token and answers the outage', () async {
+      final api = client((_) async => maintenance503());
+      expect(
+        await api.check(),
+        isA<ServiceOutage>().having(
+          (o) => o.reason,
+          'reason',
+          ServiceOutageReason.maintenance,
+        ),
+      );
+      final request = requests.single;
+      expect(request.url, base.resolve(WebApiClient.checkPath));
+      expect(request.headers, isNot(contains('Authorization')));
+    });
+
+    test('any other answer is "back in service"', () async {
+      final api = client((_) async => http.Response('', 401));
+      expect(await api.check(), isNull);
+    });
+
+    test('a network failure is an InfrastructureError', () async {
+      final api = client((_) async => throw http.ClientException('offline'));
+      await expectLater(api.check(), throwsA(isA<InfrastructureError>()));
+    });
+
+    test('close stops the outage stream', () async {
+      final api = client((_) async => http.Response('', 204));
+      final done = Completer<void>();
+      api.outages.listen(null, onDone: done.complete);
+      await api.close();
+      await done.future;
+    });
   });
 }

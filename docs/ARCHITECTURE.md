@@ -112,7 +112,7 @@ reserved に残っていても CI が落ちます）。
 | `path` | Infrastructure | DB ファイルパスの組み立て。純粋な文字列処理なのでレイヤー制限は掛けていない |
 | `url_launcher` | Infrastructure | `lib/infrastructure/links/`。`ExternalLinkLauncher` ポートの背後 |
 | `flutter_web_auth_2` / `http` / `crypto` / `flutter_secure_storage` | Infrastructure | `lib/infrastructure/auth/`。任意のサインイン（ADR-0007 / ADR-0008。ブラウザは Auth Tab、PKCE と引き換えは `WebAuthOidcClient`）。`AuthSession` ポートの背後 |
-| `http`（対の Web の API） | Infrastructure | `lib/infrastructure/api/web_api_client.dart`。サインインした人のトークンで対の Web を呼ぶ（ADR-0009）。`WebApiAppReleaseRepository` / `WebApiAppNoticeRepository` がこれを使い、外には Domain のリポジトリの形でだけ出る |
+| `http`（対の Web の API） | Infrastructure | `lib/infrastructure/api/web_api_client.dart`。サインインした人のトークンで対の Web を呼ぶ（ADR-0009）。`WebApiAppReleaseRepository` / `WebApiAppNoticeRepository` がこれを使い、外には Domain のリポジトリの形でだけ出る。edge の 503（メンテナンス・停止）を見分けて `ServiceStatus` ポートに流す（ADR-0011） |
 | `shared_preferences` / `path_provider` / `package_info_plus` | Infrastructure | 既存のアダプター群 |
 
 `equatable` と `riverpod_annotation`（および `riverpod_generator`）は
@@ -144,6 +144,7 @@ provider は手書きで書きます。
 | `bookmarkListProvider` / `bookmarkProvider` | `AsyncNotifierProvider` / `FutureProvider.family` | ブックマーク |
 | `availableUpdateProvider` | `Notifier<AppRelease?>` | 知らせる新しい版（ADR-0009）。サインインしていなければ常に null |
 | `noticeInboxProvider` | `Notifier<AppNoticeInbox>` | サーバーからのお知らせ（ベルの一覧と未読数、バナー。ADR-0009） |
+| `serviceOutageProvider` | `Notifier<ServiceOutage?>` | 対の Web が止まっている間の中身（ADR-0011）。`ServiceOutageGate` が全体にメンテナンス画面をかぶせ、90 秒ごとに確かめ直す |
 | `clockProvider` | `Provider<DateTime Function()>` | いまの時刻（UTC）。上 2 つの間引きを試験で進めるため |
 
 新しい版とお知らせは、メイン画面（`MainPage`）が起動時・サインイン直後・前面に

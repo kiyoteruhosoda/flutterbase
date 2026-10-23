@@ -229,6 +229,16 @@ abstract class AppLocalizations {
   String get noticesUnread;
   String get noticeOpenFailed;
 
+  // ─── Maintenance screen (docs/adr/0011-*) ────────────────────────────
+  String get maintenanceTitle;
+  String get maintenanceBody;
+  String get serviceStoppedTitle;
+  String get serviceStoppedBody;
+  String maintenanceReason(String reason);
+  String maintenanceUntil(String when);
+  String get maintenanceAutoCheck;
+  String get maintenanceCheckNow;
+
   // ─── Common ──────────────────────────────────────────────────────────
   String get commonRetry;
   String get commonClose;
