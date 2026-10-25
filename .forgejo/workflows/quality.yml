@@ -44,7 +44,7 @@ jobs:
     # ⚠ **タグではなく digest で固定する。** Flutter / Android SDK の版が動くと
     #   `pubspec.lock` がその SDK で解決できなくなり、`--enforce-lockfile` が
     #   落ちる。上げるときは `pubspec.yaml` の `environment:` と揃えること。
-    #   いま入っているのは **Flutter 3.47.1 / OpenJDK 17**（実測）で、
+    #   いま入っているのは **Flutter 3.47.1 / OpenJDK 21**（実測。task #689 で 17 から上げた）で、
     #   `environment: flutter: ">=3.47.1"` と一致している。
     # ⚠ **`setup-java` は要らないが、`java` は PATH に居ない。**
     #   `JAVA_HOME=/opt/java/openjdk` は設定済みで Gradle はそこから見つけるが、

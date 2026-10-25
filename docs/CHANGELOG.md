@@ -3,6 +3,12 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-10-25 — Android の Java の版を 17 から 21 に上げる（task #689）
+
+- `android/app/build.gradle` の `sourceCompatibility` / `targetCompatibility` / `jvmTarget` を 21 にした。
+  CI と配る段の台（deploy-repo の `builder/flutter-android`・`ci-flutter`）も同じ日に JDK 21 へ上げてある。
+  deck が新しいアプリをこの雛形から写すので、新しいアプリは最初から 21 になる
+
 ## 2026-10-23 — 対の Web の 503 でアプリ内のメンテナンス画面に切り替える（task #665）
 
 - `WebApiClient` が edge の 503 JSON（`reason: maintenance` / `stopped`）を見分け、アプリ全体の上に
