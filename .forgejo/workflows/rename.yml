@@ -37,7 +37,7 @@ jobs:
     #   共有すると `journal-1.lock` の取り合いで release build が落ちる
     #   （コンテナが違うと PID が見えず、持ち主に譲ってもらえない。2026-10-01 に実測）。
     container:
-      image: hub.nolumia.com:5000/builder/ci-flutter@sha256:5c2c5942a6e77dca2d3a0fc7d2b08d96d0a9aa89bfc1c01ada48eea1fcc82aee
+      image: hub.nolumia.com:5000/builder/ci-flutter@sha256:15f3a44967d256e7e79b9344de432a268d69f026c2ef4f7e22178b1145801f3d
       options: >-
         -v flutter-pub-cache:/cache/pub
         -v flutter-gradle-cache-flutterbase-rename:/cache/gradle
