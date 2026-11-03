@@ -47,7 +47,7 @@ dependencies:
   # Service locator — composition root only (lib/app/di).
   get_it: ^9.2.1
   # Navigation (presentation).
-  go_router: ^17.3.0
+  go_router: ^18.0.0
   # Discovery and token requests of the optional sign-in (infrastructure).
   http: ^1.5.0
   # Google Play's in-app updates: tells the person a newer build is out and
