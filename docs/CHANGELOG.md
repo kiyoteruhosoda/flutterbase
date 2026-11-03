@@ -3,6 +3,12 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-11-03 — Google Play のアプリ内アップデートで新しい版を知らせる（task #854）
+
+- 起動時と前面に戻ったときに Play に聞き、新しい版があればメイン画面の上にバナー。「更新」で
+  裏でダウンロード、済んだら「再起動」で入れる。閉じる口は無い。Play 以外から入れた版では何も
+  出さない。対の Web の「新しい版」バナー（ADR-0009）より先に出し、2 本は出さない（ADR-0012）
+
 ## 2026-10-25 — Android の Java の版を 17 から 21 に上げる（task #689）
 
 - `android/app/build.gradle` の `sourceCompatibility` / `targetCompatibility` / `jvmTarget` を 21 にした。

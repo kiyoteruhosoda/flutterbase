@@ -31,6 +31,9 @@ import 'package:flutterbase/application/usecases/push/register_for_push_usecase.
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
 import 'package:flutterbase/application/usecases/service_status/watch_service_outages_usecase.dart';
+import 'package:flutterbase/application/usecases/store_update/check_store_update_usecase.dart';
+import 'package:flutterbase/application/usecases/store_update/download_store_update_usecase.dart';
+import 'package:flutterbase/application/usecases/store_update/install_store_update_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
@@ -46,6 +49,7 @@ import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/providers/push_providers.dart';
 import 'package:flutterbase/presentation/providers/service_status_providers.dart';
+import 'package:flutterbase/presentation/providers/store_update_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/app_theme.dart';
 import 'package:flutterbase/presentation/widgets/maintenance/service_outage_gate.dart';
@@ -79,7 +83,9 @@ class TestScope {
     this.pushMessaging,
     FakeDeviceRegistrationRepository? deviceRegistrations,
     ServiceStatus? serviceStatus,
-  }) : serviceStatus = serviceStatus ?? FakeServiceStatus(),
+    FakeStoreUpdateGateway? storeUpdates,
+  }) : storeUpdates = storeUpdates ?? FakeStoreUpdateGateway(),
+       serviceStatus = serviceStatus ?? FakeServiceStatus(),
        deviceRegistrations =
            deviceRegistrations ?? FakeDeviceRegistrationRepository(),
        appReleaseRepository =
@@ -138,6 +144,10 @@ class TestScope {
   /// [authSession]. A [FakeServiceStatus] unless the test passes a real
   /// `WebApiClient` to play the wire format.
   final ServiceStatus serviceStatus;
+
+  /// Google Play's in-app updates, asked with or without a sign-in. Nothing
+  /// to offer by default, as for a copy Play did not install.
+  final FakeStoreUpdateGateway storeUpdates;
 
   /// What [clockProvider] answers; move it forward to pass a debounce.
   DateTime now = DateTime.utc(2026, 9, 29, 12);
@@ -210,6 +220,15 @@ class TestScope {
       ),
       openBookmarkUseCaseProvider.overrideWithValue(
         OpenBookmarkUseCase(linkLauncher, logger),
+      ),
+      checkStoreUpdateUseCaseProvider.overrideWithValue(
+        CheckStoreUpdateUseCase(storeUpdates, logger),
+      ),
+      downloadStoreUpdateUseCaseProvider.overrideWithValue(
+        DownloadStoreUpdateUseCase(storeUpdates, logger),
+      ),
+      installStoreUpdateUseCaseProvider.overrideWithValue(
+        InstallStoreUpdateUseCase(storeUpdates, logger),
       ),
       ...signInOverrides(),
     ];

@@ -4,6 +4,7 @@ import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/ports/service_status.dart';
+import 'package:flutterbase/application/ports/store_update_gateway.dart';
 import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/entities/app_info.dart';
 import 'package:flutterbase/domain/entities/app_notice.dart';
@@ -488,4 +489,39 @@ final class FakeServiceStatus implements ServiceStatus {
 
   /// Closes the stream (the test harness calls it on tear-down).
   Future<void> close() => outageController.close();
+}
+
+/// [StoreUpdateGateway] that answers what the test set and records what it
+/// was asked to do. By default there is nothing to offer, as for a copy not
+/// installed from Google Play.
+final class FakeStoreUpdateGateway implements StoreUpdateGateway {
+  StoreUpdateStatus status = StoreUpdateStatus.none;
+
+  /// What [download] answers: false is a person who declined Play's prompt.
+  bool downloadSucceeds = true;
+
+  /// When set, [download] waits for it instead of answering
+  /// [downloadSucceeds] at once — a download still in flight.
+  Completer<bool>? pendingDownload;
+
+  int checks = 0;
+  int downloads = 0;
+  int installs = 0;
+
+  @override
+  Future<StoreUpdateStatus> check() async {
+    checks++;
+    return status;
+  }
+
+  @override
+  Future<bool> download() async {
+    downloads++;
+    final pending = pendingDownload;
+    if (pending != null) return pending.future;
+    return downloadSucceeds;
+  }
+
+  @override
+  Future<void> install() async => installs++;
 }

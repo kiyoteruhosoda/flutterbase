@@ -350,6 +350,18 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get updateOpenFailed => 'ダウンロードのページを開けませんでした';
 
+  // ─── Update through Google Play ──────────────────────────────────────
+  @override
+  String get storeUpdateAvailable => 'アプリの新しい版があります。';
+  @override
+  String get storeUpdateDownload => '更新';
+  @override
+  String get storeUpdateDownloading => '新しい版をダウンロードしています…';
+  @override
+  String get storeUpdateDownloaded => '新しい版の準備ができました。入れるとアプリが再起動します。';
+  @override
+  String get storeUpdateInstall => '再起動';
+
   // ─── Notices from the server ─────────────────────────────────────────
   @override
   String get noticesTitle => 'お知らせ';

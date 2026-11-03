@@ -50,6 +50,10 @@ dependencies:
   go_router: ^17.3.0
   # Discovery and token requests of the optional sign-in (infrastructure).
   http: ^1.5.0
+  # Google Play's in-app updates: tells the person a newer build is out and
+  # installs it (infrastructure only, behind `StoreUpdateGateway`). A copy
+  # Play did not install hears nothing. See docs/adr/0012-*.
+  in_app_update: ^5.0.0
   # Console/file logging backend (infrastructure).
   logger: ^2.7.0
   # Runtime package metadata (infrastructure).

@@ -221,6 +221,13 @@ abstract class AppLocalizations {
   String get updateDownload;
   String get updateOpenFailed;
 
+  // ─── Update through Google Play (docs/adr/0012-*) ────────────────────
+  String get storeUpdateAvailable;
+  String get storeUpdateDownload;
+  String get storeUpdateDownloading;
+  String get storeUpdateDownloaded;
+  String get storeUpdateInstall;
+
   // ─── Notices from the server (docs/adr/0009-*) ───────────────────────
   String get noticesTitle;
   String get noticesMarkAllRead;

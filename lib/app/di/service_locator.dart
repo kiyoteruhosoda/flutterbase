@@ -3,6 +3,7 @@ import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/ports/service_status.dart';
+import 'package:flutterbase/application/ports/store_update_gateway.dart';
 import 'package:flutterbase/application/usecases/app_info/get_app_info_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/check_for_update_usecase.dart';
 import 'package:flutterbase/application/usecases/app_update/dismiss_update_usecase.dart';
@@ -30,6 +31,9 @@ import 'package:flutterbase/application/usecases/push/register_for_push_usecase.
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
 import 'package:flutterbase/application/usecases/service_status/watch_service_outages_usecase.dart';
+import 'package:flutterbase/application/usecases/store_update/check_store_update_usecase.dart';
+import 'package:flutterbase/application/usecases/store_update/download_store_update_usecase.dart';
+import 'package:flutterbase/application/usecases/store_update/install_store_update_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/get_theme_preference_usecase.dart';
 import 'package:flutterbase/application/usecases/theme/set_theme_preference_usecase.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
@@ -149,6 +153,21 @@ Future<void> setupServiceLocator() async {
   sl.registerSingleton<DismissedUpdateRepository>(
     infrastructure.dismissedUpdates,
   );
+
+  // Updates through Google Play (docs/adr/0012-*), with or without a sign-in.
+  sl
+    ..registerSingleton<StoreUpdateGateway>(infrastructure.storeUpdates)
+    ..registerFactory<CheckStoreUpdateUseCase>(
+      () => CheckStoreUpdateUseCase(sl<StoreUpdateGateway>(), sl<AppLogger>()),
+    )
+    ..registerFactory<DownloadStoreUpdateUseCase>(
+      () =>
+          DownloadStoreUpdateUseCase(sl<StoreUpdateGateway>(), sl<AppLogger>()),
+    )
+    ..registerFactory<InstallStoreUpdateUseCase>(
+      () =>
+          InstallStoreUpdateUseCase(sl<StoreUpdateGateway>(), sl<AppLogger>()),
+    );
 
   final web = infrastructure.web;
   if (web != null) {

@@ -358,6 +358,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get updateOpenFailed => "Couldn't open the download page";
 
+  // ─── Update through Google Play ──────────────────────────────────────
+  @override
+  String get storeUpdateAvailable => 'A new version of the app is out.';
+  @override
+  String get storeUpdateDownload => 'Update';
+  @override
+  String get storeUpdateDownloading => 'Downloading the new version…';
+  @override
+  String get storeUpdateDownloaded =>
+      'The new version is ready. Installing it restarts the app.';
+  @override
+  String get storeUpdateInstall => 'Restart';
+
   // ─── Notices from the server ─────────────────────────────────────────
   @override
   String get noticesTitle => 'Notices';

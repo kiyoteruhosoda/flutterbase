@@ -13,6 +13,10 @@
 対の Web に `/api/app-release/latest` と `/api/notifications`（fastapitemplate ADR-0047 /
 ADR-0048）が無ければ、何も出ない。
 
+Google Play のアプリ内アップデート（ADR-0012）は、サインインが無くても**そのまま動く**。
+Play から入れた版だけに出て、Web の「新しい版」より先に出る（バナーは 1 本）。
+Play Console 側の設定は要らない。
+
 メンテナンス画面（ADR-0011）も、サインインがあれば**そのまま動く**。`WebApiClient` を通した呼び出しが
 edge の 503（`reason: maintenance` / `stopped`）を受けると全体にかぶさり、戻ると消える。
 派生アプリの API も `WebApiClient` を通せば同じになる。
