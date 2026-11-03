@@ -13,6 +13,7 @@ import 'package:flutterbase/presentation/providers/debug_providers.dart';
 import 'package:flutterbase/presentation/providers/language_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/providers/push_providers.dart';
+import 'package:flutterbase/presentation/providers/store_update_providers.dart';
 import 'package:flutterbase/presentation/providers/theme_providers.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/notices/notice_banner.dart';
@@ -25,7 +26,9 @@ import 'package:go_router/go_router.dart';
 ///
 /// Also where the update notice and the server's notices are fetched: on
 /// start, after a sign-in, and whenever the app returns to the foreground
-/// (docs/adr/0009-update-notice-and-server-notices.md).
+/// (docs/adr/0009-update-notice-and-server-notices.md). Google Play is asked
+/// for a newer build on start and on every return to the foreground, with or
+/// without a sign-in (docs/adr/0012-offer-updates-through-google-play.md).
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
 
@@ -45,6 +48,7 @@ class _MainPageState extends ConsumerState<MainPage>
     // tree is still building.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      unawaited(ref.read(storeUpdateProvider.notifier).check());
       _refreshNotices(force: true);
       // Device notifications (docs/adr/0010-*): does nothing without FCM.
       unawaited(ref.read(pushRegistrationProvider.notifier).start());
@@ -59,8 +63,11 @@ class _MainPageState extends ConsumerState<MainPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    // Play answers from the device, so it is asked every time.
+    unawaited(ref.read(storeUpdateProvider.notifier).check());
     // Debounced by the notifiers, so flicking between apps costs nothing.
-    if (state == AppLifecycleState.resumed) _refreshNotices();
+    _refreshNotices();
   }
 
   /// Asks the paired web app for a newer build and for notices. Nothing

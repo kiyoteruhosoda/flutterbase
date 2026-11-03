@@ -7,18 +7,30 @@ import 'package:flutterbase/domain/entities/app_release.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/providers/app_update_providers.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
+import 'package:flutterbase/presentation/providers/store_update_providers.dart';
+import 'package:flutterbase/presentation/widgets/notices/store_update_banner.dart';
 
 /// The banner at the top of the main screen
-/// (docs/adr/0009-update-notice-and-server-notices.md).
+/// (docs/adr/0009-update-notice-and-server-notices.md,
+/// docs/adr/0012-offer-updates-through-google-play.md).
 ///
-/// At most one banner shows: a newer build of the app wins over a notice from
-/// the server, because an old build may be the reason a notice cannot be
-/// acted on. With neither, this takes no space.
+/// At most one banner shows, first of:
+///
+/// 1. Google Play's newer build ([StoreUpdateBanner]) — it can be installed
+///    from right here, so it wins over the paired web app's word of the same
+///    build;
+/// 2. the paired web app's newer build;
+/// 3. a notice from the server.
+///
+/// A newer build wins over a notice because an old build may be the reason a
+/// notice cannot be acted on. With none of them, this takes no space.
 class NoticeBanner extends ConsumerWidget {
   const NoticeBanner({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final storeUpdate = ref.watch(storeUpdateProvider);
+    if (storeUpdate != StoreUpdateStage.none) return const StoreUpdateBanner();
     final update = ref.watch(availableUpdateProvider);
     if (update != null) return _UpdateBanner(release: update);
     final notice = ref.watch(noticeInboxProvider.select((i) => i.banner));

@@ -129,6 +129,7 @@ const List<String> _ioPackages = [
   'package:hive/',
   'package:drift/',
   'package:firebase_',
+  'package:in_app_update/',
 ];
 
 /// Type names that may only be named outside of a comment in Infrastructure.

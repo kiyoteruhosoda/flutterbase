@@ -3,6 +3,7 @@ import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/ports/service_status.dart';
+import 'package:flutterbase/application/ports/store_update_gateway.dart';
 import 'package:flutterbase/domain/repositories/app_info_repository.dart';
 import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
 import 'package:flutterbase/domain/repositories/app_release_repository.dart';
@@ -31,6 +32,7 @@ import 'package:flutterbase/infrastructure/repositories/sqflite_bookmark_reposit
 import 'package:flutterbase/infrastructure/repositories/web_api_app_notice_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/web_api_app_release_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/web_api_device_registration_repository.dart';
+import 'package:flutterbase/infrastructure/store/play_store_update_gateway.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Everything Infrastructure offers the rest of the app, exposed only as
@@ -52,6 +54,7 @@ final class InfrastructureModule {
     required this.bookmarks,
     required this.externalLinks,
     required this.dismissedUpdates,
+    required this.storeUpdates,
     required this.web,
   });
 
@@ -97,6 +100,7 @@ final class InfrastructureModule {
       bookmarks: SqfliteBookmarkRepository(database),
       externalLinks: const UrlLauncherExternalLinkLauncher(),
       dismissedUpdates: SharedPreferencesDismissedUpdateRepository(preferences),
+      storeUpdates: PlayStoreUpdateGateway(logger),
       web: webModuleFor(
         signIn,
         pushMessaging: signIn.isEnabled ? await _startPush(push, logger) : null,
@@ -156,6 +160,10 @@ final class InfrastructureModule {
   final BookmarkRepository bookmarks;
   final ExternalLinkLauncher externalLinks;
   final DismissedUpdateRepository dismissedUpdates;
+
+  /// Google Play's in-app updates (docs/adr/0012-*). Always present: a copy
+  /// Play did not install simply hears "nothing" from it.
+  final StoreUpdateGateway storeUpdates;
 
   /// Null unless the build carries the sign-in settings.
   final WebModule? web;
