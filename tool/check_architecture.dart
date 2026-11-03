@@ -302,8 +302,7 @@ Map<String, Layer> _indexDeclarations(
         final ClassDeclaration d => d.namePart.typeName.lexeme,
         final MixinDeclaration d => d.name.lexeme,
         final EnumDeclaration d => d.namePart.typeName.lexeme,
-        final ExtensionTypeDeclaration d =>
-          d.primaryConstructor.typeName.lexeme,
+        final ExtensionTypeDeclaration d => d.namePart.typeName.lexeme,
         final ClassTypeAlias d => d.name.lexeme,
         _ => null,
       };
