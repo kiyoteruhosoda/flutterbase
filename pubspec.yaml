@@ -71,7 +71,7 @@ dependencies:
 
 dev_dependencies:
   # Powers the AST-based checks in tool/check_architecture.dart.
-  analyzer: ^12.1.0
+  analyzer: ^14.0.0
   build_runner: ^2.15.1
   # 0.13.x fails on Dart SDK ≥ 3.3 during adaptive-icon generation
   # (silently skips mipmap-anydpi-v26 output). 0.14+ also unlocks the
