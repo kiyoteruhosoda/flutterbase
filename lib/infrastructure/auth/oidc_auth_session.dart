@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/domain/entities/account.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
+import 'package:flutterbase/infrastructure/auth/dpop/dpop_proof_signer.dart';
 import 'package:flutterbase/infrastructure/auth/oidc_client.dart';
 import 'package:flutterbase/infrastructure/auth/secret_store.dart';
 
@@ -14,9 +15,18 @@ import 'package:flutterbase/infrastructure/auth/secret_store.dart';
 /// Refreshes are serialised: assay rotates the refresh token on every use
 /// and treats a reused one as theft, revoking the whole family — so two
 /// concurrent refreshes with the same token would sign the person out.
+///
+/// With [dpop] (docs/adr/0015-dpop-device-key.md) the tokens assay binds to
+/// this phone's key go out as `Authorization: DPoP` with a proof per request,
+/// together with the ID token the web app reads on a first visit.
 final class OidcAuthSession implements AuthSession {
-  OidcAuthSession(this._client, this._secrets, {DateTime Function()? now})
-    : _now = now ?? DateTime.now;
+  OidcAuthSession(
+    this._client,
+    this._secrets, {
+    DateTime Function()? now,
+    DpopProofSigner? dpop,
+  }) : _now = now ?? DateTime.now,
+       _dpop = dpop;
 
   static const String refreshTokenKey = 'oidc.refresh_token';
   static const String accountKey = 'oidc.account';
@@ -27,9 +37,12 @@ final class OidcAuthSession implements AuthSession {
   final OidcClient _client;
   final SecretStore _secrets;
   final DateTime Function() _now;
+  final DpopProofSigner? _dpop;
 
   String? _accessToken;
   DateTime? _expiresAt;
+  bool _boundToKey = false;
+  String? _idToken;
   Future<String>? _refreshing;
 
   @override
@@ -70,8 +83,37 @@ final class OidcAuthSession implements AuthSession {
   Future<void> signOut() async {
     _accessToken = null;
     _expiresAt = null;
+    _boundToKey = false;
+    _idToken = null;
     await _secrets.delete(refreshTokenKey);
     await _secrets.delete(accountKey);
+    // The next sign-in binds to a new key.
+    await _dpop?.forgetKey();
+  }
+
+  @override
+  Future<Map<String, String>> requestHeaders(
+    String method,
+    Uri url, {
+    bool forceRefresh = false,
+  }) async {
+    final token = await accessToken(forceRefresh: forceRefresh);
+    final dpop = _dpop;
+    if (!_boundToKey || dpop == null) {
+      return {'Authorization': 'Bearer $token'};
+    }
+    final proof = await dpop.proof(method, url, accessToken: token);
+    if (proof == null) {
+      // The Keystore is gone for now: without a proof the server refuses the
+      // token, and the 401 asks for a refresh, which fails the same way.
+      throw const InfrastructureError('The device key is unavailable.');
+    }
+    final idToken = _idToken;
+    return {
+      'Authorization': 'DPoP $token',
+      'DPoP': proof,
+      'X-ID-Token': ?idToken,
+    };
   }
 
   @override
@@ -108,6 +150,8 @@ final class OidcAuthSession implements AuthSession {
   void _remember(OidcTokens tokens) {
     _accessToken = tokens.accessToken;
     _expiresAt = tokens.expiresAt;
+    _boundToKey = tokens.boundToKey;
+    _idToken = tokens.idToken ?? _idToken;
   }
 }
 

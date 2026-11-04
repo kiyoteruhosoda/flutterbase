@@ -5,15 +5,18 @@ import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/domain/entities/service_outage.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
+import 'package:flutterbase/infrastructure/auth/dpop/server_clock.dart';
 import 'package:http/http.dart' as http;
 
 /// Calls the paired web app's API as the signed-in person.
 ///
-/// Every request carries `Authorization: Bearer <assay access token>` from
-/// [AuthSession.accessToken] — the same token the web app's `/api/app/me`
-/// accepts (the web app admits it by `client_id`, `APP_CLIENT_IDS`). A 401 is
-/// answered once by forcing a refresh and retrying: the token is short-lived
-/// (300 s) and the server's clock is the one that counts.
+/// Every request carries the headers from [AuthSession.requestHeaders]:
+/// `Authorization: Bearer <assay access token>`, or `Authorization: DPoP`
+/// with a proof made by this phone's key (docs/adr/0015-dpop-device-key.md)
+/// — the token the web app's `/api/app/me` accepts (the web app admits it by
+/// `client_id`, `APP_CLIENT_IDS`). A 401 is answered once by forcing a
+/// refresh and retrying with a fresh proof: the token is short-lived (300 s)
+/// and the server's clock is the one that counts ([clock] learns it).
 ///
 /// Failures reach the caller as [AppError]s: [SignInRequiredError] when there
 /// is no usable sign-in, [ServiceUnavailableError] when the edge answered
@@ -26,6 +29,7 @@ final class WebApiClient implements ServiceStatus {
     this.baseUrl, {
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 15),
+    this.clock,
   }) : _http = httpClient ?? http.Client();
 
   final AuthSession _session;
@@ -34,6 +38,9 @@ final class WebApiClient implements ServiceStatus {
   /// Origin of the web app, e.g. `https://recipebox.nolumia.com`.
   final Uri baseUrl;
   final Duration timeout;
+
+  /// The DPoP proofs' clock, corrected from every answer's `Date`.
+  final ServerClock? clock;
 
   /// What [check] asks. Any path would do while the edge is closed (it answers
   /// every request on the host). Once open, any answer means "back": this
@@ -86,12 +93,17 @@ final class WebApiClient implements ServiceStatus {
     Map<String, Object?>? body,
   }) async {
     final url = baseUrl.resolve(path);
-    var response = await _once(method, url, await _session.accessToken(), body);
+    var response = await _once(
+      method,
+      url,
+      await _session.requestHeaders(method, url),
+      body,
+    );
     if (response.statusCode == 401) {
       response = await _once(
         method,
         url,
-        await _session.accessToken(forceRefresh: true),
+        await _session.requestHeaders(method, url, forceRefresh: true),
         body,
       );
     }
@@ -113,12 +125,12 @@ final class WebApiClient implements ServiceStatus {
   Future<http.Response> _once(
     String method,
     Uri url,
-    String? token,
+    Map<String, String>? authorization,
     Map<String, Object?>? body,
   ) async {
     final request = http.Request(method, url)
       ..headers['Accept'] = 'application/json';
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    if (authorization != null) request.headers.addAll(authorization);
     if (body != null) {
       request
         ..headers['Content-Type'] = 'application/json'
@@ -126,7 +138,10 @@ final class WebApiClient implements ServiceStatus {
     }
     try {
       final streamed = await _http.send(request).timeout(timeout);
-      return await http.Response.fromStream(streamed).timeout(timeout);
+      final response = await http.Response.fromStream(streamed)
+          .timeout(timeout);
+      clock?.observe(response.headers);
+      return response;
     } on TimeoutException catch (e) {
       throw InfrastructureError('$method ${url.path} timed out.', cause: e);
     } on http.ClientException catch (e) {

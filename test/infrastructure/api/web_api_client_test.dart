@@ -24,6 +24,15 @@ final class _TokenSession implements AuthSession {
   }
 
   @override
+  Future<Map<String, String>> requestHeaders(
+    String method,
+    Uri url, {
+    bool forceRefresh = false,
+  }) async => {
+    'Authorization': 'Bearer ${await accessToken(forceRefresh: forceRefresh)}',
+  };
+
+  @override
   Future<Account?> currentAccount() async => null;
 
   @override

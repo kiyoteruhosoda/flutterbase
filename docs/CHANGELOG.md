@@ -3,6 +3,13 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-11-04 — assay のトークンを Keystore の鍵に DPoP で結び付ける
+
+- アプリごとに Android Keystore の P-256 の鍵（`MainActivity` の `nolumia/dpop_key`）を作り、assay のトークンの口と
+  Web アプリへの呼び出しのたびに DPoP の証明を付ける。assay が `token_type: DPoP` で返したら
+  `Authorization: DPoP`・`DPoP`・`X-ID-Token` を送る。時計は応答の `Date` で直す。Keystore が使えなければ今までどおり
+  Bearer。⚠ 対の Web アプリが fastapitemplate ADR-0103 を取り込んでから配る（ADR-0015）
+
 ## 2026-11-04 — 通知の分類（チャンネル）をアプリ名のまとまりに入れる
 
 - 端末の通知の設定で、通知が見出しの無い「その他」の「Miscellaneous」（FCM の予備の分類）に

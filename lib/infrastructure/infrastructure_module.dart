@@ -17,6 +17,9 @@ import 'package:flutterbase/domain/repositories/theme_preference_repository.dart
 import 'package:flutterbase/domain/value_objects/push_settings.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
 import 'package:flutterbase/infrastructure/api/web_api_client.dart';
+import 'package:flutterbase/infrastructure/auth/dpop/device_key.dart';
+import 'package:flutterbase/infrastructure/auth/dpop/dpop_proof_signer.dart';
+import 'package:flutterbase/infrastructure/auth/dpop/server_clock.dart';
 import 'package:flutterbase/infrastructure/auth/oidc_auth_session.dart';
 import 'package:flutterbase/infrastructure/auth/oidc_client.dart';
 import 'package:flutterbase/infrastructure/auth/secret_store.dart';
@@ -113,13 +116,25 @@ final class InfrastructureModule {
   }
 
   /// The sign-in adapter for [settings], or null when the sign-in is off.
-  static AuthSession? authSessionFor(SignInSettings settings) {
+  ///
+  /// [dpop] binds the tokens to this phone's key
+  /// (docs/adr/0015-dpop-device-key.md); the Keystore's when not given.
+  static AuthSession? authSessionFor(
+    SignInSettings settings, {
+    DpopProofSigner? dpop,
+  }) {
     if (!settings.isEnabled) return null;
+    final signer = dpop ?? keystoreDpopSigner();
     return OidcAuthSession(
-      WebAuthOidcClient(settings),
+      WebAuthOidcClient(settings, dpop: signer),
       const FlutterSecureStorageSecretStore(),
+      dpop: signer,
     );
   }
+
+  /// The app's DPoP signer over its own Android Keystore key.
+  static DpopProofSigner keystoreDpopSigner() =>
+      DpopProofSigner(const KeystoreDeviceKey(), ServerClock());
 
   /// The sign-in and the paired web app's API behind it, or null when the
   /// sign-in is off. [pushMessaging] is FCM, when it was started.
@@ -127,9 +142,10 @@ final class InfrastructureModule {
     SignInSettings settings, {
     PushMessaging? pushMessaging,
   }) {
-    final session = authSessionFor(settings);
+    final dpop = keystoreDpopSigner();
+    final session = authSessionFor(settings, dpop: dpop);
     if (session == null) return null;
-    final api = WebApiClient(session, settings.webBaseUrl);
+    final api = WebApiClient(session, settings.webBaseUrl, clock: dpop.clock);
     return WebModule._(
       authSession: session,
       appReleases: WebApiAppReleaseRepository(api),
