@@ -30,6 +30,9 @@ dependencies:
   firebase_messaging: ^17.0.0
   flutter:
     sdk: flutter
+  # The device's notification channels, gathered in named groups, for what
+  # FCM shows (infrastructure only). See docs/adr/0014-*.
+  flutter_local_notifications: ^22.3.1
   flutter_localizations:
     sdk: flutter
   # State management (presentation). Used without code generation — see

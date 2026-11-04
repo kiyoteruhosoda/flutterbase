@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
+import 'package:flutterbase/application/usecases/push/prepare_notification_channels_usecase.dart';
 import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/presentation/providers/app_update_providers.dart';
@@ -26,6 +27,11 @@ final Provider<UnregisterFromPushUseCase?> unregisterFromPushUseCaseProvider =
 
 final Provider<OpenPushTapUseCase?> openPushTapUseCaseProvider =
     Provider<OpenPushTapUseCase?>((ref) => null);
+
+/// Creates the notification channels and their groups (docs/adr/0014-*).
+final Provider<PrepareNotificationChannelsUseCase?>
+prepareNotificationChannelsUseCaseProvider =
+    Provider<PrepareNotificationChannelsUseCase?>((ref) => null);
 
 // ─── State ─────────────────────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
+import 'package:flutterbase/application/ports/notification_channels.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/application/ports/store_update_gateway.dart';
@@ -524,4 +525,28 @@ final class FakeStoreUpdateGateway implements StoreUpdateGateway {
 
   @override
   Future<void> install() async => installs++;
+}
+
+/// [NotificationChannels] that records each [prepare] (docs/adr/0014-*).
+final class FakeNotificationChannels implements NotificationChannels {
+  /// The groups of each call, oldest first.
+  final List<List<DeviceNotificationChannelGroup>> prepared =
+      <List<DeviceNotificationChannelGroup>>[];
+
+  /// The retired ids of each call, oldest first.
+  final List<List<String>> retired = <List<String>>[];
+
+  /// Thrown by [prepare] when set.
+  Exception? failure;
+
+  @override
+  Future<void> prepare(
+    List<DeviceNotificationChannelGroup> groups, {
+    List<String> retiredChannelIds = const <String>[],
+  }) async {
+    final error = failure;
+    if (error != null) throw error;
+    prepared.add(groups);
+    retired.add(retiredChannelIds);
+  }
 }

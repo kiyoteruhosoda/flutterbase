@@ -91,6 +91,12 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+        // Required because flutter_local_notifications' own module enables
+        // it: AGP refuses to link an app without desugaring against a
+        // library that was built with it. The app needs none of the
+        // desugared APIs itself, so this costs a small library on the
+        // classpath and nothing at runtime (docs/adr/0014-*).
+        coreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -239,4 +245,12 @@ project.afterEvaluate {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Backfills the java.time APIs that flutter_local_notifications compiles
+    // against (the notification channels, docs/adr/0014-*). Version tracks
+    // the one that plugin's own build.gradle asks for; a lower one fails the
+    // link.
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
 }

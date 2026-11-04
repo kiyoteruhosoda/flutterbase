@@ -1,6 +1,7 @@
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
+import 'package:flutterbase/application/ports/notification_channels.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/application/ports/store_update_gateway.dart';
@@ -22,6 +23,7 @@ import 'package:flutterbase/infrastructure/auth/secret_store.dart';
 import 'package:flutterbase/infrastructure/database/app_database.dart';
 import 'package:flutterbase/infrastructure/links/url_launcher_external_link_launcher.dart';
 import 'package:flutterbase/infrastructure/logging/persistent_app_logger.dart';
+import 'package:flutterbase/infrastructure/notifications/local_notification_channels.dart';
 import 'package:flutterbase/infrastructure/push/firebase_push_messaging.dart';
 import 'package:flutterbase/infrastructure/repositories/package_info_app_info_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_debug_settings_repository.dart';
@@ -55,6 +57,7 @@ final class InfrastructureModule {
     required this.externalLinks,
     required this.dismissedUpdates,
     required this.storeUpdates,
+    required this.notificationChannels,
     required this.web,
   });
 
@@ -101,6 +104,7 @@ final class InfrastructureModule {
       externalLinks: const UrlLauncherExternalLinkLauncher(),
       dismissedUpdates: SharedPreferencesDismissedUpdateRepository(preferences),
       storeUpdates: PlayStoreUpdateGateway(logger),
+      notificationChannels: LocalNotificationChannels(),
       web: webModuleFor(
         signIn,
         pushMessaging: signIn.isEnabled ? await _startPush(push, logger) : null,
@@ -164,6 +168,11 @@ final class InfrastructureModule {
   /// Google Play's in-app updates (docs/adr/0012-*). Always present: a copy
   /// Play did not install simply hears "nothing" from it.
   final StoreUpdateGateway storeUpdates;
+
+  /// The device's notification channels and their groups
+  /// (docs/adr/0014-*). Always present; the template creates its channels
+  /// only when FCM is on (see the service locator).
+  final NotificationChannels notificationChannels;
 
   /// Null unless the build carries the sign-in settings.
   final WebModule? web;

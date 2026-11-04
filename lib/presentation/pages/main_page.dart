@@ -7,6 +7,7 @@ import 'package:flutterbase/domain/value_objects/app_language.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/navigation/app_routes.dart';
+import 'package:flutterbase/presentation/notifications/notification_channel_catalog.dart';
 import 'package:flutterbase/presentation/providers/app_update_providers.dart';
 import 'package:flutterbase/presentation/providers/auth_providers.dart';
 import 'package:flutterbase/presentation/providers/debug_providers.dart';
@@ -40,6 +41,9 @@ class _MainPageState extends ConsumerState<MainPage>
     with WidgetsBindingObserver {
   int _selectedIndex = 0;
 
+  /// The language the notification channels were last named in.
+  String? _channelsLocale;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +57,33 @@ class _MainPageState extends ConsumerState<MainPage>
       // Device notifications (docs/adr/0010-*): does nothing without FCM.
       unawaited(ref.read(pushRegistrationProvider.notifier).start());
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _prepareNotificationChannels();
+  }
+
+  /// Creates the notification channels in their named groups, so the system
+  /// settings list them under the app's name rather than under "Other" — on
+  /// start, and again when the language changes, which renames them
+  /// (docs/adr/0014-*). Does nothing without FCM.
+  void _prepareNotificationChannels() {
+    final useCase = ref.read(prepareNotificationChannelsUseCaseProvider);
+    if (useCase == null) return;
+    // Both reads make this State depend on the locale, so a change of
+    // language calls didChangeDependencies again.
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    if (locale == _channelsLocale) return;
+    _channelsLocale = locale;
+    unawaited(
+      useCase.execute(
+        NotificationChannelCatalog.groupsFor(l10n),
+        retiredChannelIds: NotificationChannelCatalog.retiredChannelIds,
+      ),
+    );
   }
 
   @override

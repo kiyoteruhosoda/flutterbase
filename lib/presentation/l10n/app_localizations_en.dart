@@ -385,6 +385,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noticeOpenFailed => "Couldn't open the link";
 
+  // ─── Device notification channels ────────────────────────────────────
+  @override
+  String get notificationChannelNotices => 'Notices';
+  @override
+  String get notificationChannelNoticesDescription =>
+      'Notices from the web version';
+
   // ─── Maintenance screen ──────────────────────────────────────────────
   @override
   String get maintenanceTitle => 'Under maintenance';

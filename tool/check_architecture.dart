@@ -129,6 +129,7 @@ const List<String> _ioPackages = [
   'package:hive/',
   'package:drift/',
   'package:firebase_',
+  'package:flutter_local_notifications/',
   'package:in_app_update/',
 ];
 

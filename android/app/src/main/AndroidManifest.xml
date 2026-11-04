@@ -107,6 +107,14 @@
         <meta-data
             android:name="firebase_messaging_installation_id_enabled"
             android:value="true" />
+        <!-- The channel FCM shows a notification in when the server names
+             none (the template's server does not): the app creates it at
+             start, inside a group headed by the app's name
+             (NotificationChannelCatalog, docs/adr/0014-notification-channel-groups.md).
+             Without it FCM uses its own "Miscellaneous", listed under "Other". -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="server_notices" />
     </application>
     <queries>
         <intent>

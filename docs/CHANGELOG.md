@@ -3,6 +3,13 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-11-04 — 通知の分類（チャンネル）をアプリ名のまとまりに入れる
+
+- 端末の通知の設定で、通知が見出しの無い「その他」の「Miscellaneous」（FCM の予備の分類）に
+  並んでいた。アプリ名の見出し（まとまり `app`）の下に分類「お知らせ」（`server_notices`）を作り、
+  manifest の `default_notification_channel_id` をそこへ向けた。予備の分類は消す。名前はアプリ内の
+  言語に合わせる。派生アプリの分類は `NotificationChannelCatalog` に足す（ADR-0014）
+
 ## 2026-11-04 — Android の compileSdk を 37 に上げる
 
 - `android/app/build.gradle` の `compileSdk` を 36 から 37 にした（`targetSdk` は 36 のまま）。
