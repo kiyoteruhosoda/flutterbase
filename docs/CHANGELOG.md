@@ -3,6 +3,12 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-11-04 — 通知のあて先を Firebase Installation ID（FID）へ（firebase_messaging 17）
+
+- firebase_core 5 ＋ firebase_messaging 17 に上げ、非推奨の `getToken`／`onTokenRefresh` から
+  `register()`／`onRegistered` へ移した。manifest に `firebase_messaging_installation_id_enabled`。
+  サーバーへの登録に `kind: "fid"` を足した（ADR-0013）
+
 ## 2026-11-03 — Google Play のアプリ内アップデートで新しい版を知らせる（task #854）
 
 - 起動時と前面に戻ったときに Play に聞き、新しい版があればメイン画面の上にバナー。「更新」で

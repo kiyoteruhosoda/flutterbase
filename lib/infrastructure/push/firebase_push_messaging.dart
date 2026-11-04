@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/domain/value_objects/push_settings.dart';
+import 'package:flutterbase/infrastructure/push/fid_registrations.dart';
 
 /// [PushMessaging] on `firebase_messaging`
 /// (docs/adr/0010-notifications-through-fcm.md).
@@ -14,10 +15,19 @@ import 'package:flutterbase/domain/value_objects/push_settings.dart';
 /// shows by itself while the app is in the background — no background handler
 /// is needed. In the foreground Android shows nothing; [foregroundMessages]
 /// lets the app refresh its bell instead.
+///
+/// The device is addressed by its Firebase Installation ID (FID), not by a
+/// registration token (docs/adr/0013-notify-by-installation-id.md): the
+/// manifest turns the FID mode on, which makes `getToken()` unusable.
 final class FirebasePushMessaging implements PushMessaging {
-  FirebasePushMessaging._(this._messaging);
+  FirebasePushMessaging._(this._messaging)
+    : _fids = FidRegistrations(
+        registered: _messaging.onRegistered,
+        register: _messaging.register,
+      );
 
   final FirebaseMessaging _messaging;
+  final FidRegistrations _fids;
 
   /// Starts Firebase with [settings]. Throws what the plugin throws; the
   /// caller decides whether the app goes on without notifications.
@@ -44,11 +54,12 @@ final class FirebasePushMessaging implements PushMessaging {
     };
   }
 
+  /// The FID (see [PushMessaging.token]).
   @override
-  Future<String?> token() => _messaging.getToken();
+  Future<String?> token() => _fids.current();
 
   @override
-  Stream<String> get tokenRefreshes => _messaging.onTokenRefresh;
+  Stream<String> get tokenRefreshes => _fids.changes;
 
   @override
   Stream<PushTap> get taps => FirebaseMessaging.onMessageOpenedApp.map(tapOf);

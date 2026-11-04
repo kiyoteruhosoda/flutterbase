@@ -14,9 +14,18 @@ final class WebApiDeviceRegistrationRepository
 
   final WebApiClient _api;
 
+  /// What [register] says the address is: a Firebase Installation ID, not a
+  /// registration token (docs/adr/0013-notify-by-installation-id.md). A
+  /// server that does not know `kind` yet ignores it and still reaches the
+  /// device (FCM's `token` target accepts an FID during the migration).
+  static const String kind = 'fid';
+
   @override
-  Future<void> register(String token) =>
-      _api.postJson('$path/register', {'token': token, 'platform': platform});
+  Future<void> register(String token) => _api.postJson('$path/register', {
+    'token': token,
+    'platform': platform,
+    'kind': kind,
+  });
 
   @override
   Future<void> unregister(String token) =>

@@ -101,6 +101,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- FCM addresses this app by its Firebase Installation ID (FID) instead
+             of a registration token: enables register()/onRegistered and makes
+             the deprecated getToken() throw (docs/adr/0013-notify-by-installation-id.md). -->
+        <meta-data
+            android:name="firebase_messaging_installation_id_enabled"
+            android:value="true" />
     </application>
     <queries>
         <intent>

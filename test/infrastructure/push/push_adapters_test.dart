@@ -47,7 +47,7 @@ void main() {
       );
     });
 
-    test('registers the token as an android device', () async {
+    test('registers the FID as an android device', () async {
       await repository.register('fcm-token-1');
       final request = requests.single;
       expect(request.method, 'POST');
@@ -60,6 +60,7 @@ void main() {
       expect(jsonDecode(request.body), {
         'token': 'fcm-token-1',
         'platform': 'android',
+        'kind': 'fid',
       });
     });
 
