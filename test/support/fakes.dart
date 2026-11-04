@@ -277,6 +277,13 @@ final class FakeAuthSession implements AuthSession {
 
   @override
   Future<String> accessToken({bool forceRefresh = false}) async => 'token';
+
+  @override
+  Future<Map<String, String>> requestHeaders(
+    String method,
+    Uri url, {
+    bool forceRefresh = false,
+  }) async => {'Authorization': 'Bearer ${await accessToken()}'};
 }
 
 /// A fixed instant for notices, so a test never reasons about the wall clock.

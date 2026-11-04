@@ -22,4 +22,15 @@ abstract interface class AuthSession {
   /// server answered 401). Throws `SignInRequiredError` when there is no
   /// sign-in or it has run out.
   Future<String> accessToken({bool forceRefresh = false});
+
+  /// The headers that authorize one [method] request to [url] on the paired
+  /// web app: `Authorization: Bearer …`, or — when the sign-in is bound to
+  /// this phone's key — `Authorization: DPoP …` with a fresh proof and the ID
+  /// token (docs/adr/0015-dpop-device-key.md). [forceRefresh] as for
+  /// [accessToken].
+  Future<Map<String, String>> requestHeaders(
+    String method,
+    Uri url, {
+    bool forceRefresh = false,
+  });
 }

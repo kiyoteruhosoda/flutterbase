@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
+import 'package:flutterbase/infrastructure/auth/dpop/dpop_proof_signer.dart';
 import 'package:http/http.dart' as http;
 
 /// The tokens one sign-in or refresh produced.
@@ -16,9 +17,17 @@ final class OidcTokens {
     required this.expiresAt,
     this.refreshToken,
     this.idToken,
+    this.tokenType = 'Bearer',
   });
 
   final String accessToken;
+
+  /// `DPoP` when assay bound the tokens to this phone's key (RFC 9449 §5),
+  /// `Bearer` otherwise.
+  final String tokenType;
+
+  /// Whether the access token must travel with a DPoP proof.
+  bool get boundToKey => tokenType.toLowerCase() == 'dpop';
 
   /// UTC.
   final DateTime expiresAt;
@@ -76,6 +85,7 @@ final class WebAuthOidcClient implements OidcClient {
     this.browser = openAuthTab,
     Random? random,
     this.timeout = const Duration(seconds: 20),
+    this.dpop,
   }) : _http = httpClient ?? http.Client(),
        _random = random ?? Random.secure();
 
@@ -87,6 +97,10 @@ final class WebAuthOidcClient implements OidcClient {
   final BrowserSignIn browser;
   final Random _random;
   final Duration timeout;
+
+  /// Binds the tokens to this phone's key (docs/adr/0015-dpop-device-key.md).
+  /// Null, or a phone without a usable Keystore, keeps plain Bearer tokens.
+  final DpopProofSigner? dpop;
 
   _Endpoints? _endpoints;
 
@@ -158,20 +172,28 @@ final class WebAuthOidcClient implements OidcClient {
     _Endpoints endpoints,
     Map<String, String> form,
   ) async {
-    final body = await _json(
-      () => _http.post(
-        endpoints.token,
-        headers: const {'Accept': 'application/json'},
-        body: form,
-      ),
-      'token',
-      oauthErrors: true,
-    );
+    Map<String, Object?> body;
+    try {
+      body = await _tokenRequest(endpoints, form);
+    } on _DpopProofRejected {
+      // Most likely the phone's clock: the answer's `Date` has corrected the
+      // signer's clock by now, so one fresh proof is worth a try. A second
+      // refusal is a failure worth retrying later, not a reason to sign out.
+      try {
+        body = await _tokenRequest(endpoints, form);
+      } on _DpopProofRejected catch (e) {
+        throw InfrastructureError(
+          'assay refused the DPoP proof.',
+          cause: e.body,
+        );
+      }
+    }
     final accessToken = body['access_token'];
     if (accessToken is! String || accessToken.isEmpty) {
       throw const SignInRequiredError('The sign-in returned no access token.');
     }
     final expiresIn = body['expires_in'];
+    final tokenType = body['token_type'];
     return OidcTokens(
       accessToken: accessToken,
       expiresAt: DateTime.now().toUtc().add(
@@ -179,6 +201,23 @@ final class WebAuthOidcClient implements OidcClient {
       ),
       refreshToken: body['refresh_token'] as String?,
       idToken: body['id_token'] as String?,
+      tokenType: tokenType is String ? tokenType : 'Bearer',
+    );
+  }
+
+  Future<Map<String, Object?>> _tokenRequest(
+    _Endpoints endpoints,
+    Map<String, String> form,
+  ) async {
+    final proof = await dpop?.proof('POST', endpoints.token);
+    return _json(
+      () => _http.post(
+        endpoints.token,
+        headers: {'Accept': 'application/json', 'DPoP': ?proof},
+        body: form,
+      ),
+      'token',
+      oauthErrors: true,
     );
   }
 
@@ -200,6 +239,7 @@ final class WebAuthOidcClient implements OidcClient {
     } on http.ClientException catch (e) {
       throw InfrastructureError('The $what request failed.', cause: e);
     }
+    dpop?.clock.observe(response.headers);
     Object? decoded;
     try {
       decoded = jsonDecode(response.body);
@@ -209,6 +249,9 @@ final class WebAuthOidcClient implements OidcClient {
     final body = decoded is Map<String, Object?> ? decoded : null;
     if (response.statusCode == 200 && body != null) return body;
     final error = body?['error'];
+    if (oauthErrors && error == 'invalid_dpop_proof') {
+      throw _DpopProofRejected(response.body);
+    }
     if (oauthErrors && error is String) throw oidcFailure(error, response.body);
     throw InfrastructureError(
       'The $what request answered ${response.statusCode}.',
@@ -280,4 +323,12 @@ AppError oidcFailure(String? oauthError, Object cause) {
       cause: cause,
     ),
   };
+}
+
+/// assay refused the DPoP proof (RFC 9449 §5): usually the phone's clock, so
+/// the token request is made again once with a fresh proof.
+final class _DpopProofRejected implements Exception {
+  const _DpopProofRejected(this.body);
+
+  final String body;
 }
