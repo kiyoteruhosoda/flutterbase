@@ -9,11 +9,13 @@ import 'dart:async';
 /// (a new FID). The stream drops what arrives before anyone listens, so this
 /// listens from the start and before the first `register()`.
 final class FidRegistrations {
-  FidRegistrations({
-    required Stream<String> registered,
-    required Future<void> Function() register,
+  /// Listens to [registered] (FCM's `onRegistered`) from now on; [_register]
+  /// is FCM's `register()`.
+  FidRegistrations(
+    Stream<String> registered,
+    this._register, {
     this.timeout = const Duration(seconds: 20),
-  }) : _register = register {
+  }) {
     _subscription = registered.listen(_onRegistered);
   }
 
