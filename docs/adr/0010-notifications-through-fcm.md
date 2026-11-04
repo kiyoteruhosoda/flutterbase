@@ -1,7 +1,7 @@
 # ADR-0010: 端末への通知は FCM で受け、Firebase の値は --dart-define で渡す
 
 - 日付: 2026-09-29
-- 状態: 承認
+- 状態: 承認（端末のあて先は [0013](0013-notify-by-installation-id.md) で登録トークンから FID へ）
 - 関連: [ADR-0007](0007-optional-assay-sign-in.md) / [ADR-0009](0009-update-notice-and-server-notices.md) /
   fastapitemplate ADR-0049 / 課題 task.nolumia.com #59
 

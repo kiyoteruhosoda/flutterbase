@@ -2,8 +2,8 @@ import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/domain/repositories/device_registration_repository.dart';
 
-/// Hands this device's FCM token to the paired web app as the signed-in
-/// person's (docs/adr/0010-notifications-through-fcm.md).
+/// Hands this device's FCM address (its FID, docs/adr/0013) to the paired
+/// web app as the signed-in person's (docs/adr/0010-notifications-through-fcm.md).
 ///
 /// Run on every start and after a sign-in, and again whenever FCM replaces the
 /// token: registering is idempotent on the server, and "only when it changed"

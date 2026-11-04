@@ -33,10 +33,13 @@ abstract interface class PushMessaging {
   /// Answers whether notifications may be shown.
   Future<bool> requestPermission();
 
-  /// This device's FCM registration token, or null when there is none yet.
+  /// This device's address on FCM — its Firebase Installation ID (FID), not
+  /// a registration token (docs/adr/0013-notify-by-installation-id.md) — or
+  /// null when there is none yet. Asking registers the device with FCM.
   Future<String?> token();
 
-  /// New tokens FCM hands out later (reinstalls, restores, rotations).
+  /// New addresses FCM hands out later (reinstalls, restores,
+  /// re-registrations).
   Stream<String> get tokenRefreshes;
 
   /// Notifications tapped while the app was running or in the background.

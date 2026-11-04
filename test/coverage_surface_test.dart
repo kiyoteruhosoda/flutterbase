@@ -88,6 +88,7 @@ import 'package:flutterbase/infrastructure/database/app_database.dart';
 import 'package:flutterbase/infrastructure/infrastructure_module.dart';
 import 'package:flutterbase/infrastructure/links/url_launcher_external_link_launcher.dart';
 import 'package:flutterbase/infrastructure/logging/persistent_app_logger.dart';
+import 'package:flutterbase/infrastructure/push/fid_registrations.dart';
 import 'package:flutterbase/infrastructure/push/firebase_push_messaging.dart';
 import 'package:flutterbase/infrastructure/repositories/package_info_app_info_repository.dart';
 import 'package:flutterbase/infrastructure/repositories/shared_preferences_debug_settings_repository.dart';
