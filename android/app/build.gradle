@@ -86,7 +86,7 @@ def signInLinkHost = (project.findProperty("appLinkHost")
 
 android {
     namespace = appNamespace
-    compileSdk = 36
+    compileSdk = 37
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21

@@ -3,6 +3,13 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-11-04 — Android の compileSdk を 37 に上げる
+
+- `android/app/build.gradle` の `compileSdk` を 36 から 37 にした（`targetSdk` は 36 のまま）。
+  部品が `compileSdk = 37` を求め始めたため。CI の台（`ci-flutter` r4）と配る段の台
+  （deploy-repo の `builder/flutter-android` r3）は、Android 37.0 に別名 `android-37` を付けてある
+  （deploy-repo の docs/flutter-signing.md「Android 37 の別名」）
+
 ## 2026-11-04 — 通知のあて先を Firebase Installation ID（FID）へ（firebase_messaging 17）
 
 - firebase_core 5 ＋ firebase_messaging 17 に上げ、非推奨の `getToken`／`onTokenRefresh` から
