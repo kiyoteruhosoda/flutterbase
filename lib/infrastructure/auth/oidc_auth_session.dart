@@ -24,9 +24,8 @@ final class OidcAuthSession implements AuthSession {
     this._client,
     this._secrets, {
     DateTime Function()? now,
-    DpopProofSigner? dpop,
-  }) : _now = now ?? DateTime.now,
-       _dpop = dpop;
+    this._dpop,
+  }) : _now = now ?? DateTime.now;
 
   static const String refreshTokenKey = 'oidc.refresh_token';
   static const String accountKey = 'oidc.account';

@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 
 /// The P-256 public key of a [DeviceKey]: x and y, 32 bytes each.
