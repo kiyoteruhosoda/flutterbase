@@ -21,10 +21,7 @@ import 'package:flutterbase/infrastructure/push/fid_registrations.dart';
 /// manifest turns the FID mode on, which makes `getToken()` unusable.
 final class FirebasePushMessaging implements PushMessaging {
   FirebasePushMessaging._(this._messaging)
-    : _fids = FidRegistrations(
-        registered: _messaging.onRegistered,
-        register: _messaging.register,
-      );
+    : _fids = FidRegistrations(_messaging.onRegistered, _messaging.register);
 
   final FirebaseMessaging _messaging;
   final FidRegistrations _fids;

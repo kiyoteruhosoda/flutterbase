@@ -13,16 +13,12 @@ void main() {
     registered = StreamController<String>.broadcast();
     registerCalls = 0;
     answer = 'fid-1';
-    fids = FidRegistrations(
-      registered: registered.stream,
-      register: () async {
-        registerCalls++;
-        final fid = answer;
-        // FCM answers on the stream after register() returns.
-        if (fid != null) scheduleMicrotask(() => registered.add(fid));
-      },
-      timeout: const Duration(milliseconds: 50),
-    );
+    fids = FidRegistrations(registered.stream, () async {
+      registerCalls++;
+      final fid = answer;
+      // FCM answers on the stream after register() returns.
+      if (fid != null) scheduleMicrotask(() => registered.add(fid));
+    }, timeout: const Duration(milliseconds: 50));
   });
 
   tearDown(() async {
@@ -76,8 +72,8 @@ void main() {
 
   test('a failing register() reaches the caller', () async {
     final failing = FidRegistrations(
-      registered: registered.stream,
-      register: () async => throw StateError('flag not set'),
+      registered.stream,
+      () async => throw StateError('flag not set'),
     );
     await expectLater(failing.current(), throwsStateError);
     await failing.close();
