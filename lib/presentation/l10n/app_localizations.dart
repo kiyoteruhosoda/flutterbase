@@ -236,6 +236,11 @@ abstract class AppLocalizations {
   String get noticesUnread;
   String get noticeOpenFailed;
 
+  // ─── Device notification channels (docs/adr/0014-*) ─────────────────
+  // The group they sit in is named [appName].
+  String get notificationChannelNotices;
+  String get notificationChannelNoticesDescription;
+
   // ─── Maintenance screen (docs/adr/0011-*) ────────────────────────────
   String get maintenanceTitle;
   String get maintenanceBody;

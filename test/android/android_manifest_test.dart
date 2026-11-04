@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/domain/entities/bookmark.dart';
 import 'package:flutterbase/domain/value_objects/sign_in_settings.dart';
+import 'package:flutterbase/presentation/notifications/notification_channel_catalog.dart';
 import 'package:flutterbase/shared/app_config.dart';
 
 /// Guards the half of the deep-link contract that lives outside Dart.
@@ -187,6 +188,20 @@ void main() {
       expect(gradle, contains('appLinkHost'));
       expect(gradle, contains('dartDefines["APP_LINK_HOST"]'));
       expect(gradle, isNot(contains('appAuthRedirectScheme')));
+    });
+  });
+
+  group('AndroidManifest — notification channel (docs/adr/0014-*)', () {
+    test('FCM shows the notices in the channel the app creates', () {
+      // The server names no channel, so FCM takes this one; were it a
+      // channel the app never creates, FCM would fall back to its own
+      // "Miscellaneous", listed under a nameless "Other".
+      final meta = RegExp(
+        r'<meta-data\s+android:name="com\.google\.firebase\.messaging\.'
+        r'default_notification_channel_id"\s+android:value="([^"]+)"',
+      ).firstMatch(manifest);
+      expect(meta, isNotNull, reason: 'no default_notification_channel_id');
+      expect(meta!.group(1), NotificationChannelCatalog.serverNoticesChannelId);
     });
   });
 }

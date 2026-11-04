@@ -27,6 +27,7 @@ import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_u
 import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
 import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
+import 'package:flutterbase/application/usecases/push/prepare_notification_channels_usecase.dart';
 import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
@@ -156,5 +157,9 @@ List<Override> buildProviderOverrides() {
       ),
       openPushTapUseCaseProvider.overrideWithValue(sl<OpenPushTapUseCase>()),
     ],
+    if (sl.isRegistered<PrepareNotificationChannelsUseCase>())
+      prepareNotificationChannelsUseCaseProvider.overrideWithValue(
+        sl<PrepareNotificationChannelsUseCase>(),
+      ),
   ];
 }

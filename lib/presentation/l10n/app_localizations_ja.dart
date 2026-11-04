@@ -376,6 +376,12 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get noticeOpenFailed => 'リンクを開けませんでした';
 
+  // ─── Device notification channels ────────────────────────────────────
+  @override
+  String get notificationChannelNotices => 'お知らせ';
+  @override
+  String get notificationChannelNoticesDescription => 'Web 版から届くお知らせ';
+
   // ─── Maintenance screen ──────────────────────────────────────────────
   @override
   String get maintenanceTitle => 'メンテナンス中';

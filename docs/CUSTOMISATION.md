@@ -42,3 +42,21 @@ edge の 503（`reason: maintenance` / `stopped`）を受けると全体にか�
 3. サインインすると、初回だけ通知の許可を聞かれる。許可すると端末が登録され、Web の管理画面で
    「端末への通知」を選んだお知らせが届く。押すと既読になり、行き先がブラウザで開く。
 
+### 通知の分類（チャンネル）を足す
+
+端末の「設定 → アプリ → 通知」では、通知が**アプリ名の見出し（まとまり＝チャンネルグループ）**の下に
+**分類（チャンネル）**ごとに並び、人が分類ごとに切ったり静かにしたりできる（ADR-0014）。雛形が持つのは
+まとまり `app`（見出しは `appName`）と、その中の分類 `server_notices`（「お知らせ」）だけ。
+
+- 足すときは `lib/presentation/notifications/notification_channel_catalog.dart` の `groupsFor` に
+  書き足す。名前は `AppLocalizations` に足して ja / en の両方に訳す（言語を替えると端末の名前も替わる）
+- **id は一度出したら変えない**（端末は人の設定を id で覚えている）。使わなくなった id は
+  `retiredChannelIds` に入れると消える
+- **名前は中身が分かるものにし、他の分類の名前を流用しない**（「注意」「情報」のような重さの名前を
+  別の意味に使い回さない）
+- まとまりの見出しはアプリ名が既定。分類が多いなら、まとまりを分けて名前を付けてよい
+- サーバーが分類を指定しない通知は、AndroidManifest の `default_notification_channel_id`
+  （`server_notices`）に出る。変えるなら `serverNoticesChannelId` と一緒に（試験が見張る）
+- 雛形は FCM が有効なときだけ分類を作る。FCM なしで自前の通知を出すアプリは、
+  `PrepareNotificationChannelsUseCase` の登録をサービスロケーターの `if` の外へ出す
+

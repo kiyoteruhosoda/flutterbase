@@ -27,6 +27,7 @@ import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_u
 import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
 import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
+import 'package:flutterbase/application/usecases/push/prepare_notification_channels_usecase.dart';
 import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
@@ -84,7 +85,10 @@ class TestScope {
     FakeDeviceRegistrationRepository? deviceRegistrations,
     ServiceStatus? serviceStatus,
     FakeStoreUpdateGateway? storeUpdates,
+    FakeNotificationChannels? notificationChannels,
   }) : storeUpdates = storeUpdates ?? FakeStoreUpdateGateway(),
+       notificationChannels =
+           notificationChannels ?? FakeNotificationChannels(),
        serviceStatus = serviceStatus ?? FakeServiceStatus(),
        deviceRegistrations =
            deviceRegistrations ?? FakeDeviceRegistrationRepository(),
@@ -139,6 +143,10 @@ class TestScope {
   /// settings; it only takes effect together with [authSession].
   final FakePushMessaging? pushMessaging;
   final FakeDeviceRegistrationRepository deviceRegistrations;
+
+  /// The device's notification channels, created only together with
+  /// [pushMessaging], as in production (docs/adr/0014-*).
+  final FakeNotificationChannels notificationChannels;
 
   /// The edge's `503` and the maintenance screen's recheck, used only with
   /// [authSession]. A [FakeServiceStatus] unless the test passes a real
@@ -301,6 +309,9 @@ class TestScope {
           enabledSignIn.webBaseUrl,
           logger,
         ),
+      ),
+      prepareNotificationChannelsUseCaseProvider.overrideWithValue(
+        PrepareNotificationChannelsUseCase(notificationChannels, logger),
       ),
     ];
   }

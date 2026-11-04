@@ -1,6 +1,7 @@
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/application/ports/auth_session.dart';
 import 'package:flutterbase/application/ports/external_link_launcher.dart';
+import 'package:flutterbase/application/ports/notification_channels.dart';
 import 'package:flutterbase/application/ports/push_messaging.dart';
 import 'package:flutterbase/application/ports/service_status.dart';
 import 'package:flutterbase/application/ports/store_update_gateway.dart';
@@ -27,6 +28,7 @@ import 'package:flutterbase/application/usecases/notices/mark_all_notices_read_u
 import 'package:flutterbase/application/usecases/notices/mark_notice_read_usecase.dart';
 import 'package:flutterbase/application/usecases/notices/open_notice_link_usecase.dart';
 import 'package:flutterbase/application/usecases/push/open_push_tap_usecase.dart';
+import 'package:flutterbase/application/usecases/push/prepare_notification_channels_usecase.dart';
 import 'package:flutterbase/application/usecases/push/register_for_push_usecase.dart';
 import 'package:flutterbase/application/usecases/push/unregister_from_push_usecase.dart';
 import 'package:flutterbase/application/usecases/service_status/check_service_usecase.dart';
@@ -157,6 +159,9 @@ Future<void> setupServiceLocator() async {
   // Updates through Google Play (docs/adr/0012-*), with or without a sign-in.
   sl
     ..registerSingleton<StoreUpdateGateway>(infrastructure.storeUpdates)
+    ..registerSingleton<NotificationChannels>(
+      infrastructure.notificationChannels,
+    )
     ..registerFactory<CheckStoreUpdateUseCase>(
       () => CheckStoreUpdateUseCase(sl<StoreUpdateGateway>(), sl<AppLogger>()),
     )
@@ -264,6 +269,16 @@ Future<void> setupServiceLocator() async {
             sl<AppNoticeRepository>(),
             sl<ExternalLinkLauncher>(),
             signIn.webBaseUrl,
+            sl<AppLogger>(),
+          ),
+        )
+        // The channels FCM shows the notices in (docs/adr/0014-*): only with
+        // FCM, so a build without it lists no empty channel in the settings.
+        // A derived app that posts notifications of its own registers this
+        // outside the `if`.
+        ..registerFactory<PrepareNotificationChannelsUseCase>(
+          () => PrepareNotificationChannelsUseCase(
+            sl<NotificationChannels>(),
             sl<AppLogger>(),
           ),
         );
