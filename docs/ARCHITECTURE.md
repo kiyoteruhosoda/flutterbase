@@ -77,6 +77,7 @@ presentation  infrastructure
 | `domain-console-output` | Domain での `print()` / `debugPrint()` |
 | `domain-purity` | Domain 型の `ChangeNotifier` / `ValueNotifier` / `Widget` などからの継承・実装 |
 | `domain-public-setter` | Domain 型の public setter、および public な可変フィールド（暗黙の setter を持つため） |
+| `local-time-format` | `lib/presentation/formatting/local_time.dart` 以外での `toLocal()` / `formatTimeOfDay()`。画面の時刻は `formatLocalDateTime` で書き、後ろに時間帯（`UTC+9`）を付ける（ADR-0016） |
 
 `tool/check_dependencies.dart` は package グラフ側を見ます。
 

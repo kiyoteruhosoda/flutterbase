@@ -317,6 +317,36 @@ final class OrderHelper {
     expect(result.stderr, contains('layer-placement'));
   });
 
+  test('local time written outside local_time.dart is rejected', () {
+    write('local_time_elsewhere', 'presentation/pages/order_page.dart', '''
+String shown(DateTime utc) => utc.toLocal().toString();
+''');
+
+    final result = runChecker('local_time_elsewhere');
+    expect(result.exitCode, 1);
+    expect(result.stderr, contains('local-time-format'));
+  });
+
+  test('formatTimeOfDay outside local_time.dart is rejected', () {
+    write('time_of_day_elsewhere', 'presentation/pages/order_page.dart', '''
+String shown(Object material, Object time) =>
+    (material as dynamic).formatTimeOfDay(time) as String;
+''');
+
+    final result = runChecker('time_of_day_elsewhere');
+    expect(result.exitCode, 1);
+    expect(result.stderr, contains('local-time-format'));
+  });
+
+  test('local_time.dart itself may turn times into local text', () {
+    write('local_time_home', 'presentation/formatting/local_time.dart', '''
+String shown(DateTime utc) => utc.toLocal().toString();
+''');
+
+    final result = runChecker('local_time_home');
+    expect(result.exitCode, 0, reason: '${result.stderr}');
+  });
+
   test('an unknown flag exits with the usage code', () {
     final result = Process.runSync('dart', [_snapshot, '--nope']);
     expect(result.exitCode, 2);

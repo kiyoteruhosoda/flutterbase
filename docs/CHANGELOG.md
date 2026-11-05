@@ -3,6 +3,18 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-11-05 — 「このアプリについて」と「ライセンス」にアプリ自身のアイコンを出す
+
+- アプリ名の下の汎用の絵（青い窓の形）をやめ、ホーム画面のアイコンの元の絵（`assets/icon/app_icon.png`）を出す。
+  派生アプリはアイコンを差し替えるだけで 2 つの画面も揃う（ADR-0017）
+
+## 2026-11-05 — 画面の時刻に時間帯（UTC+9 など）を付け、時刻を文字にする所を 1 か所にした
+
+- お知らせ・メンテナンス画面・見本の詳細画面の時刻の後ろに、端末の時間帯を `UTC+9`（分があれば `UTC+5:30`、
+  ずれが無ければ `UTC`）で付ける。書き方は `lib/presentation/formatting/local_time.dart` の `formatLocalDateTime` だけ
+- `tool/check_architecture.dart` の規則 `local-time-format` が、そのファイルの外の `toLocal()`・`formatTimeOfDay()` を落とす。
+  派生アプリは取り込むと自前の時刻の箇所が落ちるので、`formatLocalDateTime` へ置き換える（ADR-0016）
+
 ## 2026-11-04 — assay のトークンを Keystore の鍵に DPoP で結び付ける
 
 - アプリごとに Android Keystore の P-256 の鍵（`MainActivity` の `nolumia/dpop_key`）を作り、assay のトークンの口と

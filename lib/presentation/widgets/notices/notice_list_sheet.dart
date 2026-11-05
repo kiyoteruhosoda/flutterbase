@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutterbase/domain/entities/app_notice.dart';
+import 'package:flutterbase/presentation/formatting/local_time.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/providers/notice_providers.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
@@ -193,16 +194,7 @@ class _NoticeTile extends StatelessWidget {
   }
 }
 
-/// [utc] in the device's time zone, in the locale's short date and time.
-///
-/// The server and the app keep UTC; only here, at the screen, does it become
-/// local time (CLAUDE.md §基本方針 8).
-String formatNoticeTime(BuildContext context, DateTime utc) {
-  final local = utc.toLocal();
-  final material = MaterialLocalizations.of(context);
-  final time = material.formatTimeOfDay(
-    TimeOfDay.fromDateTime(local),
-    alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-  );
-  return '${material.formatShortDate(local)} $time';
-}
+/// [utc] in the device's time zone, in the locale's short date and time,
+/// with the zone (`UTC+9`) after it.
+String formatNoticeTime(BuildContext context, DateTime utc) =>
+    formatLocalDateTime(context, utc);

@@ -71,21 +71,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
       padding: const EdgeInsets.all(AppSpacing.pageMargin),
       children: [
         const SizedBox(height: AppSpacing.xl),
-        Center(
-          child: Container(
-            width: AppSpacing.aboutIconContainer,
-            height: AppSpacing.aboutIconContainer,
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              borderRadius: AppRadius.xlBorder,
-            ),
-            child: Icon(
-              Icons.web_asset,
-              size: AppSpacing.aboutIconSize,
-              color: colorScheme.primary,
-            ),
-          ),
-        ),
+        const Center(child: AppIdentityIcon()),
         const SizedBox(height: AppSpacing.xl),
         Center(
           child: Text(
