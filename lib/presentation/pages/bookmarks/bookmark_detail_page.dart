@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutterbase/domain/entities/bookmark.dart';
 import 'package:flutterbase/domain/errors/app_error.dart';
 import 'package:flutterbase/domain/value_objects/bookmark_id.dart';
+import 'package:flutterbase/presentation/formatting/local_time.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/navigation/app_routes.dart';
 import 'package:flutterbase/presentation/providers/bookmark_providers.dart';
@@ -112,17 +113,9 @@ class _Details extends ConsumerWidget {
     );
   }
 
-  /// Renders a UTC instant in the viewer's own time zone.
-  ///
-  /// Storage and Domain keep UTC; the conversion happens here, at the edge,
-  /// using the locale's own date and time formats.
-  static String _formatLocal(BuildContext context, DateTime utc) {
-    final local = utc.toLocal();
-    final materialL10n = MaterialLocalizations.of(context);
-    final date = materialL10n.formatFullDate(local);
-    final time = materialL10n.formatTimeOfDay(TimeOfDay.fromDateTime(local));
-    return '$date $time';
-  }
+  /// Renders a UTC instant in the viewer's own time zone, with the zone.
+  static String _formatLocal(BuildContext context, DateTime utc) =>
+      formatLocalDateTime(context, utc, date: LocalDateLength.full);
 
   Future<void> _open(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);

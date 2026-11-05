@@ -30,6 +30,5 @@ class AppSpacing {
 
   // Component sizes
   static const double aboutIconContainer = 80.0;
-  static const double aboutIconSize = 40.0;
   static const double levelBadgeSize = 20.0;
 }

@@ -158,6 +158,14 @@ const Set<String> _infrastructureOnlyTypes = {
 /// write to a console, both of which make domain rules untestable.
 const Set<String> _domainBannedCalls = {'print', 'debugPrint'};
 
+/// Calls that turn an instant into the viewer's local time on screen. Only
+/// [_localTimeFile] may make them, so every time shown carries its zone
+/// (`UTC+9`) — docs/adr/0016-local-times-carry-their-zone.md.
+const Set<String> _localTimeCalls = {'toLocal', 'formatTimeOfDay'};
+
+/// The one file allowed to make [_localTimeCalls].
+const String _localTimeFile = 'presentation/formatting/local_time.dart';
+
 /// Base types a Domain type must not inherit from — Domain must not know
 /// about Flutter's change-notification machinery.
 const Set<String> _domainBannedSupertypes = {
@@ -496,6 +504,7 @@ class _RuleVisitor extends RecursiveAstVisitor<void> {
   @override
   void visitMethodInvocation(MethodInvocation node) {
     final target = node.target;
+    _checkLocalTime(node);
     if (target is SimpleIdentifier) {
       _checkInfrastructureOnlyType(target.name, node.offset);
       _checkConcreteDependency(target.name, node.offset);
@@ -530,6 +539,20 @@ class _RuleVisitor extends RecursiveAstVisitor<void> {
       }
     }
     super.visitMethodInvocation(node);
+  }
+
+  // ── Rule: local time is written in one place, with its zone ────────
+  void _checkLocalTime(MethodInvocation node) {
+    if (node.target == null) return;
+    if (!_localTimeCalls.contains(node.methodName.name)) return;
+    if (path.endsWith('/$_localTimeFile')) return;
+    _add(
+      node.offset,
+      'local-time-format',
+      '${node.methodName.name}() turns a time into local text outside '
+          'lib/$_localTimeFile. Use formatLocalDateTime there so the zone '
+          '(UTC+9) is written after it.',
+    );
   }
 
   @override

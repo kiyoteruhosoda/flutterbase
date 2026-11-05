@@ -107,6 +107,7 @@ import 'package:flutterbase/infrastructure/repositories/web_api_app_release_repo
 import 'package:flutterbase/infrastructure/repositories/web_api_device_registration_repository.dart';
 import 'package:flutterbase/infrastructure/store/play_store_update_gateway.dart';
 import 'package:flutterbase/main.dart';
+import 'package:flutterbase/presentation/formatting/local_time.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations_en.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations_ja.dart';
@@ -151,6 +152,7 @@ import 'package:flutterbase/presentation/widgets/ui/app_card.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_drawer.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_footer.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_header.dart';
+import 'package:flutterbase/presentation/widgets/ui/app_identity_icon.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_license_launcher.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_primary_button.dart';
 import 'package:flutterbase/presentation/widgets/ui/app_state_views.dart';

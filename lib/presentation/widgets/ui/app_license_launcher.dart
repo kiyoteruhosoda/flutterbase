@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
+import 'package:flutterbase/presentation/widgets/ui/app_identity_icon.dart';
 import 'package:flutterbase/shared/app_config.dart';
 import 'package:flutterbase/shared/build_info.dart';
 
@@ -22,22 +23,8 @@ class _AppLicenseIcon extends StatelessWidget {
   const _AppLicenseIcon();
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-      child: Container(
-        width: AppSpacing.aboutIconContainer,
-        height: AppSpacing.aboutIconContainer,
-        decoration: const BoxDecoration(
-          color: AppColors.brandContainer,
-          borderRadius: AppRadius.xlBorder,
-        ),
-        child: const Icon(
-          Icons.web_asset,
-          size: AppSpacing.aboutIconSize,
-          color: AppColors.brand,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+    child: AppIdentityIcon(),
+  );
 }

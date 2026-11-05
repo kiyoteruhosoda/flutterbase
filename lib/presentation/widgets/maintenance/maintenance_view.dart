@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutterbase/domain/entities/service_outage.dart';
+import 'package:flutterbase/presentation/formatting/local_time.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
 
@@ -96,13 +97,6 @@ class MaintenanceView extends StatelessWidget {
 }
 
 /// [instant] as a date and time in the device's time zone, in the app's
-/// language.
-String formatLocalInstant(BuildContext context, DateTime instant) {
-  final local = instant.toLocal();
-  final material = MaterialLocalizations.of(context);
-  final time = material.formatTimeOfDay(
-    TimeOfDay.fromDateTime(local),
-    alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-  );
-  return '${material.formatMediumDate(local)} $time';
-}
+/// language, with the zone (`UTC+9`) after it.
+String formatLocalInstant(BuildContext context, DateTime instant) =>
+    formatLocalDateTime(context, instant, date: LocalDateLength.medium);

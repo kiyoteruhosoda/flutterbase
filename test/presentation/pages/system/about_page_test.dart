@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations_en.dart';
 import 'package:flutterbase/presentation/pages/system/about_page.dart';
@@ -16,6 +17,18 @@ void main() {
       expect(find.text(AppConfig.appName), findsOneWidget);
       expect(find.text(AppConfig.appDescription), findsOneWidget);
       expect(find.text(l10n.aboutTitle), findsOneWidget);
+    });
+
+    testWidgets('shows the launcher icon, not a stock glyph', (tester) async {
+      await pumpInScope(tester, const AboutPage());
+      final image = tester.widget<Image>(
+        find.descendant(
+          of: find.byType(AppIdentityIcon),
+          matching: find.byType(Image),
+        ),
+      );
+      expect((image.image as AssetImage).assetName, AppIdentityIcon.asset);
+      expect(find.byIcon(Icons.web_asset), findsNothing);
     });
 
     testWidgets('shows every build metadata row', (tester) async {
