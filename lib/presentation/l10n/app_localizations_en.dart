@@ -226,11 +226,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get logsClearSuccess => 'Logs cleared';
   @override
-  String get logsDownload => 'Export';
+  String get logsDownload => 'Save to a file';
   @override
-  String get logsDownloadSuccess => 'Logs saved to file';
+  String logsSavedTo(String fileName, String folder) =>
+      'Saved $fileName to $folder';
+  @override
+  String logsSaved(String fileName) => 'Saved $fileName';
   @override
   String get logsDownloadError => 'Failed to save logs';
+  @override
+  String get logsShare => 'Share';
+  @override
+  String get logsShareError => 'Could not open the share screen';
   @override
   String get logsEmpty => 'No log entries';
   @override

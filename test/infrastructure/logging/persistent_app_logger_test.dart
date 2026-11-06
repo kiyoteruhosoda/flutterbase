@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/domain/entities/log_entry.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/infrastructure/logging/persistent_app_logger.dart';
@@ -220,29 +221,83 @@ void main() {
       await log.init(savedLevel: LogLevel.warning);
       expect(log.minLevel, equals(LogLevel.warning));
     });
+  });
 
-    test('exportLogs writes the buffer to a new file', () async {
-      final log = _fresh();
-      await log.init();
-      log
+  group('PersistentAppLogger — saving and sharing', () {
+    const channel = MethodChannel('nolumia/log_files');
+    late List<MethodCall> calls;
+
+    void answer(Object? Function(MethodCall call) reply) {
+      calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return reply(call);
+          });
+    }
+
+    tearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+
+    test('exportLogs hands the buffer to the "save to" screen', () async {
+      answer(
+        (_) => <String, Object?>{'name': 'x-log.log', 'folder': 'Download'},
+      );
+      final log = _fresh()
         ..info('line one')
         ..error('line two');
 
-      final exported = await log.exportLogs();
-      expect(exported, isNotNull);
+      final result = await log.exportLogs();
 
-      final contents = await File(exported!).readAsString();
-      expect(contents, contains('line one'));
-      expect(contents, contains('line two'));
+      expect(calls.single.method, 'saveAs');
+      final args = calls.single.arguments as Map<Object?, Object?>;
+      expect(args['name'], matches(RegExp(r'^log_\d{8}_\d{6}\.log$')));
+      expect(args['text'], contains('line one'));
+      expect(args['text'], contains('line two'));
+      expect(result, isA<LogExportSaved>());
+      final saved = result as LogExportSaved;
+      expect(saved.fileName, 'x-log.log');
+      expect(saved.folder, 'Download');
     });
 
     test(
-      'exportLogs returns null when the platform has no directory',
+      'exportLogs leaves the folder out when Android does not say',
       () async {
-        _stubDocumentsDirectory(null);
-        expect(await _fresh().exportLogs(), isNull);
+        answer((_) => <String, Object?>{'name': 'x-log.log', 'folder': null});
+        final result = await _fresh().exportLogs() as LogExportSaved;
+        expect(result.folder, isNull);
       },
     );
+
+    test('exportLogs reports backing out as cancelled', () async {
+      answer((_) => null);
+      expect(await _fresh().exportLogs(), isA<LogExportCancelled>());
+    });
+
+    test('exportLogs reports a write failure as failed', () async {
+      answer((_) => throw PlatformException(code: 'log_files'));
+      expect(await _fresh().exportLogs(), isA<LogExportFailed>());
+    });
+
+    test('exportLogs fails where there is no Android side', () async {
+      expect(await _fresh().exportLogs(), isA<LogExportFailed>());
+    });
+
+    test('shareLogs hands the buffer to the share sheet', () async {
+      answer((_) => null);
+      final log = _fresh()..info('shared line');
+      expect(await log.shareLogs(), isTrue);
+      expect(calls.single.method, 'share');
+      final args = calls.single.arguments as Map<Object?, Object?>;
+      expect(args['text'], contains('shared line'));
+    });
+
+    test('shareLogs answers false when the sheet cannot open', () async {
+      answer((_) => throw PlatformException(code: 'log_files'));
+      expect(await _fresh().shareLogs(), isFalse);
+    });
   });
 }
 

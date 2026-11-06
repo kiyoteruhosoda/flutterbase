@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
 import 'package:flutterbase/presentation/l10n/app_localizations_en.dart';
 import 'package:flutterbase/presentation/pages/system/logs_page.dart';
@@ -126,27 +127,71 @@ void main() {
     });
   });
 
-  group('LogsPage — export', () {
-    testWidgets('reports success when the logger produced a file', (
-      tester,
-    ) async {
-      await pumpInScope(tester, const LogsPage(), scope: scopeWithEntries());
+  group('LogsPage — saving', () {
+    testWidgets('says which file was saved and where', (tester) async {
+      final scope = scopeWithEntries();
+      await pumpInScope(tester, const LogsPage(), scope: scope);
       await tester.tap(find.byIcon(Icons.download_outlined));
       await tester.pumpAndSettle();
-      expect(find.text(l10n.logsDownloadSuccess), findsOneWidget);
+      expect(scope.logger.exportCalls, 1);
+      expect(
+        find.text(
+          l10n.logsSavedTo('flutterbase-log_20240101_000000.log', 'Download'),
+        ),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('reports failure when the logger could not write', (
+    testWidgets('names only the file when the place is unknown', (
       tester,
     ) async {
-      final scope = scopeWithoutEntries();
-      scope.logger
-        ..info('entry')
-        ..exportFails = true;
+      final scope = scopeWithEntries();
+      scope.logger.exportResult = const LogExportSaved(fileName: 'a.log');
+      await pumpInScope(tester, const LogsPage(), scope: scope);
+      await tester.tap(find.byIcon(Icons.download_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.logsSaved('a.log')), findsOneWidget);
+    });
+
+    testWidgets('says nothing when the person backed out', (tester) async {
+      final scope = scopeWithEntries();
+      scope.logger.exportResult = const LogExportCancelled();
+      await pumpInScope(tester, const LogsPage(), scope: scope);
+      await tester.tap(find.byIcon(Icons.download_outlined));
+      await tester.pumpAndSettle();
+      expect(scope.logger.exportCalls, 1);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('reports failure when nothing could be written', (
+      tester,
+    ) async {
+      final scope = scopeWithEntries();
+      scope.logger.exportResult = const LogExportFailed();
       await pumpInScope(tester, const LogsPage(), scope: scope);
       await tester.tap(find.byIcon(Icons.download_outlined));
       await tester.pumpAndSettle();
       expect(find.text(l10n.logsDownloadError), findsOneWidget);
+    });
+  });
+
+  group('LogsPage — sharing', () {
+    testWidgets('opens the share sheet without a message', (tester) async {
+      final scope = scopeWithEntries();
+      await pumpInScope(tester, const LogsPage(), scope: scope);
+      await tester.tap(find.byIcon(Icons.share_outlined));
+      await tester.pumpAndSettle();
+      expect(scope.logger.shareCalls, 1);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('says so when the share sheet could not open', (tester) async {
+      final scope = scopeWithEntries();
+      scope.logger.shareSucceeds = false;
+      await pumpInScope(tester, const LogsPage(), scope: scope);
+      await tester.tap(find.byIcon(Icons.share_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.logsShareError), findsOneWidget);
     });
   });
 

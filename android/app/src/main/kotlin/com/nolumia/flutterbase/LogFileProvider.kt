@@ -1,0 +1,22 @@
+package com.nolumia.flutterbase
+
+import android.content.Context
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
+
+/**
+ * Hands the copy of the logs being shared to the app the person picks
+ * (docs/adr/0018-save-logs-where-the-person-can-open-them.md).
+ *
+ * Its own subclass so it never collides with another FileProvider an app
+ * built from this template declares (two <provider> entries naming
+ * androidx.core.content.FileProvider are one component to Android).
+ * Only cache/shared_logs/ is reachable (res/xml/log_file_paths.xml).
+ */
+class LogFileProvider : FileProvider(R.xml.log_file_paths) {
+    companion object {
+        fun uriFor(context: Context, file: File): Uri =
+            getUriForFile(context, "${context.packageName}.logs", file)
+    }
+}

@@ -224,11 +224,18 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get logsClearSuccess => 'ログをクリアしました';
   @override
-  String get logsDownload => 'エクスポート';
+  String get logsDownload => 'ファイルに保存';
   @override
-  String get logsDownloadSuccess => 'ログをファイルに保存しました';
+  String logsSavedTo(String fileName, String folder) =>
+      '「$folder」に $fileName を保存しました';
+  @override
+  String logsSaved(String fileName) => '$fileName を保存しました';
   @override
   String get logsDownloadError => 'ログの保存に失敗しました';
+  @override
+  String get logsShare => '共有';
+  @override
+  String get logsShareError => '共有の画面を開けませんでした';
   @override
   String get logsEmpty => 'ログはありません';
   @override

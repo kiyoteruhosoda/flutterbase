@@ -9,8 +9,20 @@ import 'package:flutterbase/domain/value_objects/log_level.dart';
 final class RecordingAppLogger implements AppLogger {
   final List<LogEntry> _entries = <LogEntry>[];
 
-  /// Set when [exportLogs] should report a failure.
-  bool exportFails = false;
+  /// What [exportLogs] answers: a file saved to Download by default.
+  LogExportResult exportResult = const LogExportSaved(
+    fileName: 'flutterbase-log_20240101_000000.log',
+    folder: 'Download',
+  );
+
+  /// Number of times [exportLogs] was called.
+  int exportCalls = 0;
+
+  /// What [shareLogs] answers.
+  bool shareSucceeds = true;
+
+  /// Number of times [shareLogs] was called.
+  int shareCalls = 0;
 
   /// Number of times [clearBuffer] was called.
   int clearBufferCalls = 0;
@@ -96,8 +108,16 @@ final class RecordingAppLogger implements AppLogger {
   }
 
   @override
-  Future<String?> exportLogs() async =>
-      exportFails ? null : '/tmp/recording-app-logger.log';
+  Future<LogExportResult> exportLogs() async {
+    exportCalls++;
+    return exportResult;
+  }
+
+  @override
+  Future<bool> shareLogs() async {
+    shareCalls++;
+    return shareSucceeds;
+  }
 
   @override
   Future<List<String>> logFilePaths() async => const <String>[];
