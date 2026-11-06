@@ -32,7 +32,7 @@ abstract interface class AppLogger {
   /// Clears the in-memory buffer. Persistent files are unaffected.
   void clearBuffer();
 
-  /// Saves the buffer as a `.log` file where the person chooses — Android's
+  /// Saves the buffer as a text file where the person chooses — Android's
   /// "save to" screen (Downloads, a Drive folder…) — so they can open it
   /// later from the Files app (docs/adr/0018-save-logs-where-the-person-can-open-them.md).
   ///
@@ -40,7 +40,7 @@ abstract interface class AppLogger {
   /// [LogExportFailed] when nothing could be written.
   Future<LogExportResult> exportLogs();
 
-  /// Hands the buffer, as a `.log` file, to Android's share sheet (mail it to
+  /// Hands the buffer, as a text file, to Android's share sheet (mail it to
   /// yourself, a chat, Drive…). Answers false when the sheet could not be
   /// opened.
   Future<bool> shareLogs();

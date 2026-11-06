@@ -12,9 +12,10 @@ import java.io.File
  * Its own subclass so it never collides with another FileProvider an app
  * built from this template declares (two <provider> entries naming
  * androidx.core.content.FileProvider are one component to Android).
- * Only cache/shared_logs/ is reachable (res/xml/log_file_paths.xml).
+ * Only cache/shared_logs/ is reachable (res/xml/log_file_paths.xml, named
+ * by the <provider>'s meta-data in AndroidManifest.xml).
  */
-class LogFileProvider : FileProvider(R.xml.log_file_paths) {
+class LogFileProvider : FileProvider() {
     companion object {
         fun uriFor(context: Context, file: File): Uri =
             getUriForFile(context, "${context.packageName}.logs", file)

@@ -130,7 +130,7 @@ final class PersistentAppLogger implements AppLogger {
     }
   }
 
-  /// The buffer as `.log` text and the name the file is offered under.
+  /// The buffer as log lines and the name the file is offered under.
   /// Android puts the app's own name in front (`MainActivity`), so files
   /// from several apps in Downloads can be told apart.
   Map<String, Object?> _exportArguments() => <String, Object?>{
@@ -138,7 +138,10 @@ final class PersistentAppLogger implements AppLogger {
     'text': _buffer.map((e) => '${e.toLogLine()}\n').join(),
   };
 
-  String _exportName() => 'log_${_fileTimestamp()}.log';
+  /// `.txt`, not `.log`: Android's Files app opens nothing for `.log` (no
+  /// app claims the type), and the "save to" screen would turn it into
+  /// `.log.txt` anyway (docs/adr/0018-*).
+  String _exportName() => 'log_${_fileTimestamp()}.txt';
 
   @override
   Future<List<String>> logFilePaths() async {

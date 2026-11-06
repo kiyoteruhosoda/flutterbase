@@ -254,6 +254,6 @@ dependencies {
     // link.
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
     // FileProvider for sharing the logs as a file (LogFileProvider,
-    // docs/adr/0018-*). The constructor taking the paths resource is 1.9+.
+    // docs/adr/0018-*).
     implementation "androidx.core:core-ktx:1.16.0"
 }

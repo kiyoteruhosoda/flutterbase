@@ -106,7 +106,11 @@
             android:name=".LogFileProvider"
             android:authorities="${applicationId}.logs"
             android:exported="false"
-            android:grantUriPermissions="true" />
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/log_file_paths" />
+        </provider>
 
         <meta-data
             android:name="flutterEmbedding"

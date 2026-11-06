@@ -29,7 +29,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, LOG_FILES_CHANNEL)
             .setMethodCallHandler { call, result ->
                 try {
-                    val name = fileNameFor(call.argument<String>("name") ?: "log.log")
+                    val name = fileNameFor(call.argument<String>("name") ?: "log.txt")
                     val text = (call.argument<String>("text") ?: "").toByteArray(Charsets.UTF_8)
                     when (call.method) {
                         "saveAs" -> saveAs(name, text, result)
@@ -40,7 +40,7 @@ class MainActivity : FlutterActivity() {
                         else -> result.notImplemented()
                     }
                 } catch (e: Exception) {
-                    result.error("log_files", e.javaClass.simpleName, null)
+                    result.error("log_files", e.javaClass.simpleName, e.message)
                 }
             }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DPOP_KEY_CHANNEL)
@@ -66,7 +66,7 @@ class MainActivity : FlutterActivity() {
     // own log files are in its private storage; these hand a copy to
     // Android's "save to" screen or share sheet instead.
 
-    /** `flutterbase-log_….log`: the app's id in front, so files from several apps can be told apart. */
+    /** `flutterbase-log_….txt`: the app's id in front, so files from several apps can be told apart. */
     private fun fileNameFor(name: String): String =
         "${packageName.substringAfterLast('.')}-${File(name).name}"
 
@@ -105,7 +105,7 @@ class MainActivity : FlutterActivity() {
             out.use { it.write(text) }
             result.success(mapOf("name" to displayName(uri), "folder" to folderOf(uri)))
         } catch (e: Exception) {
-            result.error("log_files", e.javaClass.simpleName, null)
+            result.error("log_files", e.javaClass.simpleName, e.message)
         }
     }
 
@@ -118,7 +118,7 @@ class MainActivity : FlutterActivity() {
 
     /**
      * Where the file went, in the words the Files app uses: the folder for
-     * the phone's own storage ("primary:Download/x.log" → "Download"),
+     * the phone's own storage ("primary:Download/x.txt" → "Download"),
      * otherwise the provider's name ("Downloads", "Drive").
      */
     private fun folderOf(uri: Uri): String? {

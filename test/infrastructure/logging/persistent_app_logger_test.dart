@@ -253,7 +253,7 @@ void main() {
 
       expect(calls.single.method, 'saveAs');
       final args = calls.single.arguments as Map<Object?, Object?>;
-      expect(args['name'], matches(RegExp(r'^log_\d{8}_\d{6}\.log$')));
+      expect(args['name'], matches(RegExp(r'^log_\d{8}_\d{6}\.txt$')));
       expect(args['text'], contains('line one'));
       expect(args['text'], contains('line two'));
       expect(result, isA<LogExportSaved>());
