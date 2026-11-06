@@ -23,9 +23,9 @@ import 'package:path_provider/path_provider.dart';
 /// await sl<AppLogger>().init();
 /// ```
 final class PersistentAppLogger implements AppLogger {
-  PersistentAppLogger({
-    MethodChannel logFiles = const MethodChannel('nolumia/log_files'),
-  }) : _logFiles = logFiles {
+  PersistentAppLogger([
+    this._logFiles = const MethodChannel('nolumia/log_files'),
+  ]) {
     _logger = Logger(
       filter: _PassThroughFilter(),
       printer: _PlainPrinter(),
