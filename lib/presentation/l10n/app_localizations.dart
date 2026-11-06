@@ -154,8 +154,15 @@ abstract class AppLocalizations {
   String get logsClearConfirmBody;
   String get logsClearSuccess;
   String get logsDownload;
-  String get logsDownloadSuccess;
+
+  /// After saving: [fileName] as saved, [folder] as the Files app names it.
+  String logsSavedTo(String fileName, String folder);
+
+  /// After saving, when the platform did not say where.
+  String logsSaved(String fileName);
   String get logsDownloadError;
+  String get logsShare;
+  String get logsShareError;
   String get logsEmpty;
   String get logsCancel;
   String get logsConfirm;

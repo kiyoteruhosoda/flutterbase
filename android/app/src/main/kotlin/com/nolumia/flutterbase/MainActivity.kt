@@ -1,11 +1,17 @@
 package com.nolumia.flutterbase
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import java.math.BigInteger
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -15,8 +21,28 @@ import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
 
 class MainActivity : FlutterActivity() {
+    /** The `saveAs` call waiting for the "save to" screen to come back. */
+    private var pendingSave: Pair<MethodChannel.Result, ByteArray>? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, LOG_FILES_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                try {
+                    val name = fileNameFor(call.argument<String>("name") ?: "log.txt")
+                    val text = (call.argument<String>("text") ?: "").toByteArray(Charsets.UTF_8)
+                    when (call.method) {
+                        "saveAs" -> saveAs(name, text, result)
+                        "share" -> {
+                            share(name, text)
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (e: Exception) {
+                    result.error("log_files", e.javaClass.simpleName, e.message)
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DPOP_KEY_CHANNEL)
             .setMethodCallHandler { call, result ->
                 try {
@@ -33,6 +59,104 @@ class MainActivity : FlutterActivity() {
                     result.error("device_key", e.javaClass.simpleName, null)
                 }
             }
+    }
+
+    // ── Logs: save where the person can open them, or share ─────────────
+    // docs/adr/0018-save-logs-where-the-person-can-open-them.md. The app's
+    // own log files are in its private storage; these hand a copy to
+    // Android's "save to" screen or share sheet instead.
+
+    /** `flutterbase-log_….txt`: the app's id in front, so files from several apps can be told apart. */
+    private fun fileNameFor(name: String): String =
+        "${packageName.substringAfterLast('.')}-${File(name).name}"
+
+    private fun saveAs(name: String, text: ByteArray, result: MethodChannel.Result) {
+        if (pendingSave != null) {
+            result.error("log_files", "busy", null)
+            return
+        }
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TITLE, name)
+        }
+        pendingSave = result to text
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, SAVE_LOGS)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode != SAVE_LOGS) {
+            @Suppress("DEPRECATION")
+            super.onActivityResult(requestCode, resultCode, data)
+            return
+        }
+        val (result, text) = pendingSave ?: return
+        pendingSave = null
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            result.success(null) // backed out: nothing written, nothing to say
+            return
+        }
+        try {
+            val out = contentResolver.openOutputStream(uri, "wt")
+                ?: throw IllegalStateException("no output stream")
+            out.use { it.write(text) }
+            result.success(mapOf("name" to displayName(uri), "folder" to folderOf(uri)))
+        } catch (e: Exception) {
+            result.error("log_files", e.javaClass.simpleName, e.message)
+        }
+    }
+
+    private fun displayName(uri: Uri): String? = try {
+        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { if (it.moveToFirst()) it.getString(0) else null }
+    } catch (e: Exception) {
+        null
+    }
+
+    /**
+     * Where the file went, in the words the Files app uses: the folder for
+     * the phone's own storage ("primary:Download/x.txt" → "Download"),
+     * otherwise the provider's name ("Downloads", "Drive").
+     */
+    private fun folderOf(uri: Uri): String? {
+        val id = try {
+            DocumentsContract.getDocumentId(uri)
+        } catch (e: Exception) {
+            null
+        }
+        if (id != null) {
+            val path = when {
+                id.startsWith("raw:") -> id.removePrefix("raw:").removePrefix("/storage/emulated/0/")
+                uri.authority == "com.android.externalstorage.documents" -> id.substringAfter(':')
+                else -> null
+            }
+            val folder = path?.substringBeforeLast('/', "")
+            if (!folder.isNullOrEmpty()) return folder
+        }
+        return try {
+            val authority = uri.authority ?: return null
+            packageManager.resolveContentProvider(authority, 0)
+                ?.loadLabel(packageManager)?.toString()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun share(name: String, text: ByteArray) {
+        val dir = File(cacheDir, LOG_SHARE_DIR).apply { mkdirs() }
+        dir.listFiles()?.forEach { it.delete() } // only the latest copy is kept
+        val file = File(dir, name).apply { writeBytes(text) }
+        val uri = LogFileProvider.uriFor(this, file)
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, name)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(send, null))
     }
 
     /**
@@ -105,5 +229,9 @@ class MainActivity : FlutterActivity() {
 
     private companion object {
         const val DPOP_KEY_CHANNEL = "nolumia/dpop_key"
+        const val LOG_FILES_CHANNEL = "nolumia/log_files"
+        const val SAVE_LOGS = 0x4c6f // "Lo"
+        /** Must match the cache-path in res/xml/log_file_paths.xml. */
+        const val LOG_SHARE_DIR = "shared_logs"
     }
 }

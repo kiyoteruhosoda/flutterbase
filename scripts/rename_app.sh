@@ -182,10 +182,15 @@ else
     git mv "$OLD_KOTLIN_DIR" "$NEW_KOTLIN_DIR"
 fi
 
-# ─── 5. Rewrite MainActivity.kt package line ─────────────────────────────
+# ─── 5. Rewrite the Kotlin files' package line ───────────────────────────
+# Every file in the moved tree (MainActivity.kt, LogFileProvider.kt, …):
+# a file left on the old package no longer matches its directory or the
+# manifest's ".LogFileProvider".
 MAIN_ACTIVITY="$NEW_KOTLIN_DIR/MainActivity.kt"
 [[ -f "$MAIN_ACTIVITY" ]] || die "expected $MAIN_ACTIVITY after move"
-$SED -i.bak "1s|^package $OLD_ANDROID_PKG$|package $NEW_ANDROID_PKG|" "$MAIN_ACTIVITY"
+while IFS= read -r -d '' kotlin_file; do
+    $SED -i.bak "1s|^package $OLD_ANDROID_PKG$|package $NEW_ANDROID_PKG|" "$kotlin_file"
+done < <(find "$NEW_KOTLIN_DIR" -name '*.kt' -type f -print0)
 
 # ─── 5b. The Android package in docs ─────────────────────────────────────
 # The assetlinks.json sample and the `adb shell pm …` commands name the

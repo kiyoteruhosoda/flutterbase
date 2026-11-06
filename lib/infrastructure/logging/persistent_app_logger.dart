@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/domain/entities/log_entry.dart';
 import 'package:flutterbase/domain/value_objects/log_level.dart';
@@ -11,13 +12,20 @@ import 'package:path_provider/path_provider.dart';
 /// [AppLogger] implementation that writes to the console and to rotating
 /// log files under `<documents>/logs/`.
 ///
+/// Those files are inside the app's own storage, which the person cannot
+/// reach. Saving and sharing therefore go through `MainActivity`'s
+/// `nolumia/log_files` channel: Android's "save to" screen and share sheet
+/// (docs/adr/0018-save-logs-where-the-person-can-open-them.md).
+///
 /// Register as a singleton in `app/di/service_locator.dart`:
 /// ```dart
 /// sl.registerSingleton<AppLogger>(PersistentAppLogger());
 /// await sl<AppLogger>().init();
 /// ```
 final class PersistentAppLogger implements AppLogger {
-  PersistentAppLogger() {
+  PersistentAppLogger([
+    this._logFiles = const MethodChannel('nolumia/log_files'),
+  ]) {
     _logger = Logger(
       filter: _PassThroughFilter(),
       printer: _PlainPrinter(),
@@ -31,6 +39,7 @@ final class PersistentAppLogger implements AppLogger {
   static const int maxFileSizeBytes = 1024 * 1024; // 1 MB
 
   late final Logger _logger;
+  final MethodChannel _logFiles;
   final List<LogEntry> _buffer = [];
   IOSink? _fileSink;
   File? _currentFile;
@@ -90,22 +99,49 @@ final class PersistentAppLogger implements AppLogger {
   void clearBuffer() => _buffer.clear();
 
   @override
-  Future<String?> exportLogs() async {
+  Future<LogExportResult> exportLogs() async {
     try {
-      final dir = await _logsDirectory();
-      final file = File('${dir.path}/export_${_fileTimestamp()}.log');
-      final sink = file.openWrite();
-      for (final entry in _buffer) {
-        sink.writeln(entry.toLogLine());
-      }
-      await sink.flush();
-      await sink.close();
-      return file.path;
+      final answer = await _logFiles.invokeMapMethod<String, Object?>(
+        'saveAs',
+        _exportArguments(),
+      );
+      // No answer is the person backing out of the "save to" screen.
+      if (answer == null) return const LogExportCancelled();
+      final name = answer['name'];
+      final folder = answer['folder'];
+      return LogExportSaved(
+        fileName: name is String && name.isNotEmpty ? name : _exportName(),
+        folder: folder is String && folder.isNotEmpty ? folder : null,
+      );
     } on Exception catch (e) {
       debugPrint('[PersistentAppLogger] Export failed: $e');
-      return null;
+      return const LogExportFailed();
     }
   }
+
+  @override
+  Future<bool> shareLogs() async {
+    try {
+      await _logFiles.invokeMethod<void>('share', _exportArguments());
+      return true;
+    } on Exception catch (e) {
+      debugPrint('[PersistentAppLogger] Share failed: $e');
+      return false;
+    }
+  }
+
+  /// The buffer as log lines and the name the file is offered under.
+  /// Android puts the app's own name in front (`MainActivity`), so files
+  /// from several apps in Downloads can be told apart.
+  Map<String, Object?> _exportArguments() => <String, Object?>{
+    'name': _exportName(),
+    'text': _buffer.map((e) => '${e.toLogLine()}\n').join(),
+  };
+
+  /// `.txt`, not `.log`: Android's Files app opens nothing for `.log` (no
+  /// app claims the type), and the "save to" screen would turn it into
+  /// `.log.txt` anyway (docs/adr/0018-*).
+  String _exportName() => 'log_${_fileTimestamp()}.txt';
 
   @override
   Future<List<String>> logFilePaths() async {

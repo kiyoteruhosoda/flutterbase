@@ -11,7 +11,8 @@ import 'package:flutterbase/presentation/providers/app_providers.dart';
 import 'package:flutterbase/presentation/theme/theme.dart';
 import 'package:flutterbase/presentation/widgets/ui/widgets.dart';
 
-/// Displays the in-memory log buffer with level filtering and export.
+/// Displays the in-memory log buffer with level filtering, saving and
+/// sharing (docs/adr/0018-save-logs-where-the-person-can-open-them.md).
 class LogsPage extends ConsumerStatefulWidget {
   const LogsPage({super.key});
 
@@ -40,6 +41,11 @@ class _LogsPageState extends ConsumerState<LogsPage> {
             icon: const Icon(Icons.download_outlined),
             tooltip: l10n.logsDownload,
             onPressed: _exportLogs,
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: l10n.logsShare,
+            onPressed: _shareLogs,
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -76,14 +82,30 @@ class _LogsPageState extends ConsumerState<LogsPage> {
     );
   }
 
+  /// Opens Android's "save to" screen; says where the file went, or nothing
+  /// when the person backed out.
   Future<void> _exportLogs() async {
-    final path = await _logger.exportLogs();
+    final result = await _logger.exportLogs();
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final msg = path != null
-        ? l10n.logsDownloadSuccess
-        : l10n.logsDownloadError;
+    final msg = switch (result) {
+      LogExportSaved(:final fileName, folder: final String folder) =>
+        l10n.logsSavedTo(fileName, folder),
+      LogExportSaved(:final fileName) => l10n.logsSaved(fileName),
+      LogExportCancelled() => null,
+      LogExportFailed() => l10n.logsDownloadError,
+    };
+    if (msg == null) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  /// Opens Android's share sheet with the logs as a file.
+  Future<void> _shareLogs() async {
+    final shared = await _logger.shareLogs();
+    if (shared || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.logsShareError)));
   }
 
   Future<void> _confirmClear() async {
