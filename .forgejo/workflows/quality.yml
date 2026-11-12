@@ -115,32 +115,34 @@ jobs:
 
       # ⚠ CI の設定（.forgejo/）だけの push では版を上げない（2026-10-25 からの決まり。
       #   台の像の digest は週次の作り直しが上げるので、上げると毎週配り直される）。
-      #   以前の version_bump.yml の paths-ignore と同じ判定をここでする。変えた道が全部
-      #   NO_RELEASE_PATHS（拡張正規表現）に当たれば上げない。派生はここに足してよい。
+      #   ⚠ **比べるのは「前の push」ではなく「最後の版の tag」。** 前の push と比べると、
+      #   打ち切られた・赤だった run の変更が、その後の .forgejo/ だけの push で配られない
+      #   まま残る（試しのリポジトリで実測）。最後の版の後に NO_RELEASE_PATHS（拡張正規表現）
+      #   の外の変更が 1 つでもあれば上げる。派生はここに道を足してよい。
       - name: Decide whether this push releases
         id: decide
         env:
           NO_RELEASE_PATHS: '^\.forgejo/'
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
-          BEFORE: ${{ github.event.before }}
-          AFTER: ${{ github.sha }}
         run: |
           if [ "$EVENT" != push ] || [ "$REF" != refs/heads/main ]; then
             echo "Not a push to main ($EVENT $REF); no release."
             echo "bump=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ -z "$BEFORE" ] || [ -z "${BEFORE//0/}" ] \
-             || ! changed="$(git diff --name-only "$BEFORE" "$AFTER")"; then
-            echo "No usable previous commit ($BEFORE); releasing."
+          # Same tag lookup as scripts/bump_version.sh.
+          last_tag="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -1)"
+          if [ -z "$last_tag" ]; then
+            echo "No version tag yet; releasing."
             echo "bump=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Changed files:"
+          changed="$(git diff --name-only "$last_tag" HEAD)"
+          echo "Changed since $last_tag:"
           printf '%s\n' "$changed"
-          if [ -z "$(printf '%s\n' "$changed" | grep -Ev "$NO_RELEASE_PATHS" || true)" ]; then
-            echo "Every change matches $NO_RELEASE_PATHS; no release."
+          if [ -z "$(printf '%s\n' "$changed" | grep -Ev "$NO_RELEASE_PATHS" | grep -v '^$' || true)" ]; then
+            echo "Nothing outside $NO_RELEASE_PATHS changed since $last_tag; no release."
             echo "bump=false" >> "$GITHUB_OUTPUT"
           else
             echo "bump=true" >> "$GITHUB_OUTPUT"

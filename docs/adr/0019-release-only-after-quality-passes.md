@@ -16,9 +16,11 @@ deck は main への push の知らせを受け、pubspec の版が変わって�
 1. **版上げを `quality.yml` の最後のジョブ `bump-version` にする。** `needs` で同じ workflow のほかのジョブ全部を待ち、
    全部成功したときだけ動く（1 つでも赤・打ち切りなら skipped）。版上げの push が無ければ deck は配らない。
 2. main への push のときだけ実際に版を上げる。PR と手動の Quality では版を上げず、下の 4 の検査だけをする。
-3. **CI の設定（`.forgejo/`）だけの push では版を上げない**（2026-10-25 からの決まり）。以前の `paths-ignore` と同じく、
-   push の前後の差分が全部 `.forgejo/` の下なら上げない。道の決まりは版上げのジョブの `NO_RELEASE_PATHS`（拡張正規表現）1 か所で、
-   派生は自分の決まりを足してよい（photonestapp は説明書だけの push も上げない）。前の commit が分からないとき（枝の作り直しなど）は上げる。
+3. **CI の設定（`.forgejo/`）だけの変更では版を上げない**（2026-10-25 からの決まり）。比べる相手は**最後の版の tag**:
+   その後に `NO_RELEASE_PATHS`（版上げのジョブの拡張正規表現 1 か所）の外の変更が 1 つでもあれば上げる。
+   派生は自分の決まりを足してよい（photonestapp は説明書だけの変更も上げない）。tag が無ければ上げる。
+   「前の push との差分」で比べない: 打ち切られた・赤だった run の変更が、その後の `.forgejo/` だけの push で
+   配られないまま残る（試しのリポジトリで実測）。
 4. **ジョブを足したら `needs` にも足す。** 足し忘れると、そのジョブが赤でも配られる。`scripts/check_bump_waits_for_quality.py`
    が PR ごとに「`bump-version` がほかの全ジョブを待っているか」を確かめ、ずれていれば落とす。
 5. **手動の版上げ（`version_bump.yml` の workflow_dispatch）は残す。** push の引き金だけを外した。
