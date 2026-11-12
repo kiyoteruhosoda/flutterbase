@@ -108,7 +108,7 @@ class NoticeInboxNotifier extends Notifier<AppNoticeInbox> {
     (inbox) => inbox.markedRead(notice.id, _now()),
   );
 
-  /// Records every notice as read (「すべて既読」).
+  /// Records every notice as read ("Mark all as read").
   Future<bool> markAllRead() => _apply(
     () => ref.read(markAllNoticesReadUseCaseProvider).execute(),
     (inbox) => inbox.allMarkedRead(_now()),

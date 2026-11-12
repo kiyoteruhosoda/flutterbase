@@ -1,7 +1,7 @@
 import 'package:flutterbase/application/ports/app_logger.dart';
 import 'package:flutterbase/domain/repositories/app_notice_repository.dart';
 
-/// Records every notice as read on the server (the bell's 「すべて既読」).
+/// Records every notice as read on the server (the bell's "Mark all as read").
 final class MarkAllNoticesReadUseCase {
   const MarkAllNoticesReadUseCase(this._notices, this._logger);
 

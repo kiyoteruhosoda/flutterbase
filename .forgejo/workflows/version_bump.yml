@@ -1,9 +1,9 @@
 name: Version Bump
 
-# ⚠ **手動の版上げだけ。** main への push での版上げ（＝配布）は quality.yml の
-#   最後のジョブ `bump-version` が、同じ commit の検査が全部緑のときだけ行う
-#   （task #994・ADR-0019）。以前はここが push で Quality と並んで走り、試験が
-#   赤でも配られた。push の引き金をここへ戻さない。
+# ⚠ **Manual version bumps only.** The bump (= release) on a push to main is done by
+#   the last job of quality.yml, `bump-version`, only when every check on the same
+#   commit is green (task #994, ADR-0019). This used to run on push alongside Quality,
+#   and releases went out even with red tests. Do not bring the push trigger back here.
 on:
   workflow_dispatch:
     inputs:
@@ -24,26 +24,26 @@ env:
 permissions:
   contents: write
 
-# 実行場所は nolumialab のセルフホストランナー（forge へ移したとき変えた）。
+# Runs on the nolumialab self-hosted runner (changed when moving to forge).
 jobs:
   bump-version:
     runs-on: [self-hosted, nolumialab]
-    # ⚠ **ジョブのイメージに node が要る。** `uses:` の JS アクションは
-    #   ジョブのコンテナの中の node を呼ぶ ——素の python イメージだと
-    #   `exec: "node": executable file not found` で checkout から落ちる。
-    #   この関門は git と bash しか使わないので、軽いほうの台でよい。
+    # ⚠ **The job image needs node.** JS actions in `uses:` call node inside
+    #   the job container -- a plain python image fails right at checkout with
+    #   `exec: "node": executable file not found`.
+    #   This job only uses git and bash, so the lighter image is enough.
     container:
       image: hub.nolumia.com:5000/builder/ci-python311@sha256:da68dafef0d3aff23c1abf1bc4e9d43d8a16f87b8511a637198547c6509744cf
-    # ⚠ 既定は 6 時間。ぶら下がったジョブが台を食い潰すので上限を置く。
+    # ⚠ The default is 6 hours. A hung job would eat the runner, so set a ceiling.
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          # ⚠ **GITHUB_TOKEN では保護された main へ push できない。** forge の
-          #   pre-receive が Actions の仮の利用者（uid -2）を引けずに 500 を返す
-          #   （上流の未解決の不具合 forgejo/forgejo#11159）。実在の利用者
-          #   actions-push のトークン（kyon の Actions の秘密）で checkout して押す。
+          # ⚠ **GITHUB_TOKEN cannot push to the protected main.** forge's pre-receive
+          #   cannot look up the Actions pseudo user (uid -2) and returns 500
+          #   (an unresolved upstream bug, forgejo/forgejo#11159). Check out and push with
+          #   the token of the real user actions-push (kyon's Actions secret).
           token: ${{ secrets.PUSH_TOKEN }}
 
       - name: Bump the version and push (deck publishes on this push)

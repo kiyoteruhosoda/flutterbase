@@ -129,8 +129,9 @@ void main() {
     });
 
     test('toLogLine renders a local instant in UTC', () {
-      // 契約: ソースは UTC で持つ。オフセットの無い ISO 文字列は読み手の
-      // ローカル時刻として解釈されるので、行に残す時刻は必ず Z で終わらせる。
+      // Contract: the source holds UTC. An ISO string without an offset is
+      // read as the reader's local time, so a time written to a line must
+      // always end in Z.
       final entry = LogEntry(
         timestamp: DateTime.utc(2026, 4, 7, 3, 0, 0).toLocal(),
         level: LogLevel.info,

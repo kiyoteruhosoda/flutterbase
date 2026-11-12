@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// デジタル庁デザインシステム 角丸トークン
+/// Digital Agency (Japan) design system: corner radius tokens
 class AppRadius {
   AppRadius._();
 

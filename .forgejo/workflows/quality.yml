@@ -24,38 +24,37 @@ concurrency:
 permissions:
   contents: read
 
-# 実行場所は **nolumialab のセルフホストランナー**（forge へ移したとき変えた）。
+# Runs on the **nolumialab self-hosted runner** (changed when moving to forge).
 #
-# ⚠ **`ubuntu-latest` をやめた理由は枠ではない。** このリポジトリは public なので
-#   GitHub-hosted は無料だった。移したのは**正が forge になった**からで、
-#   ミラーの上で走る CI は forge の PR に合否を返せない ——マージしてから
-#   落ちる網になる。
+# ⚠ **`ubuntu-latest` was not dropped over quota.** This repository is public, so
+#   GitHub-hosted runners were free. It moved because **forge became the source of truth**:
+#   CI running on the mirror cannot report results to forge PRs -- it would be a net
+#   that only catches failures after merging.
 #
-# ⚠ **public × セルフホストの危険は forge 側では消えている。** 素性の知れない
-#   fork から PR が来る筋が無い（登録を止めてあり、forge 側の写しは private）。
-#   ⚠ **GitHub 側は public のまま**だが、そちらの workflow は消してある。
+# ⚠ **The public x self-hosted risk is gone on the forge side.** There is no path for
+#   PRs from unknown forks (sign-up is closed and the forge copy is private).
+#   ⚠ **The GitHub copy is still public**, but its workflows have been removed.
 jobs:
   checks:
     runs-on: [self-hosted, nolumialab]
     timeout-minutes: 60
-    # ⚠ **ジョブそのものをこのイメージの中で走らせる**（forge へ移したとき変えた）。
-    #   GitHub では `setup-java` ＋ `flutter-action` で毎回 SDK を取り直していたが、
-    #   act_runner では `container:` が使えるので、**リリースと同じビルダーを
-    #   digest で継いだ台**をそのまま使う。取り直しが消えるぶん速く、
-    #   何より**リリースと同じ SDK で検査される**。
-    # ⚠ **タグではなく digest で固定する。** Flutter / Android SDK の版が動くと
-    #   `pubspec.lock` がその SDK で解決できなくなり、`--enforce-lockfile` が
-    #   落ちる。上げるときは `pubspec.yaml` の `environment:` と揃えること。
-    #   いま入っているのは **Flutter 3.47.1 / OpenJDK 21**（実測。task #689 で 17 から上げた）で、
-    #   `environment: flutter: ">=3.47.1"` と一致している。
-    # ⚠ **`setup-java` は要らないが、`java` は PATH に居ない。**
-    #   `JAVA_HOME=/opt/java/openjdk` は設定済みで Gradle はそこから見つけるが、
-    #   `java` を直に呼ぶ道具を足すときは PATH を自分で通すこと。
-    # ⚠ **キャッシュは `actions/cache` ではなく名前付きボリューム。**
-    #   act_runner のキャッシュ置き場はランナーのコンテナの IP で待っており、
-    #   ジョブのコンテナからは経路が無い（他のリポジトリで実測）。
-    #   台の `valid_volumes` が `flutter-pub-cache` と `flutter-gradle-cache-*`
-    #   を許している。
+    # ⚠ **The job itself runs inside this image** (changed when moving to forge).
+    #   On GitHub, `setup-java` + `flutter-action` re-fetched the SDK every time, but
+    #   act_runner supports `container:`, so we use **an image built on the release
+    #   builder by digest** as is. Skipping the re-fetch makes it faster and, above all,
+    #   **checks run with the same SDK as the release**.
+    # ⚠ **Pin by digest, not tag.** If the Flutter / Android SDK version moves,
+    #   `pubspec.lock` may no longer resolve with that SDK and `--enforce-lockfile`
+    #   fails. When bumping, keep `environment:` in `pubspec.yaml` in step.
+    #   It currently ships **Flutter 3.47.1 / OpenJDK 21** (measured; raised from 17 in task #689),
+    #   matching `environment: flutter: ">=3.47.1"`.
+    # ⚠ **`setup-java` is not needed, but `java` is not on PATH.**
+    #   `JAVA_HOME=/opt/java/openjdk` is set and Gradle finds it there, but
+    #   when adding a tool that calls `java` directly, put it on PATH yourself.
+    # ⚠ **The cache is a named volume, not `actions/cache`.**
+    #   act_runner's cache server listens on the runner container's IP, which
+    #   the job container has no route to (measured in another repository).
+    #   The runner's `valid_volumes` allows `flutter-pub-cache` and `flutter-gradle-cache-*`.
     container:
       image: hub.nolumia.com:5000/builder/ci-flutter@sha256:c613b975c5242a60abd7c159688159788ac2b9c6f8339f10f4ce928dbac483b9
       options: >-
@@ -70,10 +69,9 @@ jobs:
       - name: Run the quality gate
         run: ./scripts/ci.sh
 
-      # ⚠ **v7 を使わない。** act_runner では v4 以降が
-      #   `GHESNotSupportedError` を**警告として出したまま緑で終わり、
-      #   成果物が 1 つも上がらない**（2026-09-10 に実測）。
-      #   ⚠ 壊れたことに気付けないので、必ずこのタグで固定する。
+      # ⚠ **Do not use v7.** On act_runner, v4 and later **print `GHESNotSupportedError`
+      #   as a warning, finish green, and upload no artifacts at all** (measured 2026-09-10).
+      #   ⚠ The breakage is invisible, so always pin to this tag.
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v3.2.2-node20
@@ -83,20 +81,20 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # ── 版上げ（＝配布）。task #994・ADR-0019 ──────────────────────────────────
-  # ⚠ **上の検査が全部緑のときだけ走る。** 以前は version_bump.yml が push で
-  #   Quality と並んで走り、試験が赤でも版が上がって deck が配った（2026-11-12
-  #   AutoRule 1.33.0）。forge（Forgejo 15）に workflow_run は頼らず、同じ run の
-  #   needs で繋ぐ ——同じ commit の結果だけを見る。
-  # ⚠ **このファイルにジョブを足したら needs にも足す。** 足し忘れると、そのジョブが
-  #   赤でも配られる。PR でも下の検査（check_bump_waits_for_quality.py）が落とす。
-  # ⚠ 自分の版上げの push（actions-push）で起きた run では何もしない。
+  # ── Version bump (= release). task #994, ADR-0019 ──────────────────────────
+  # ⚠ **Runs only when every check above is green.** version_bump.yml used to run on
+  #   push alongside Quality, so the version went up and deck released even with red
+  #   tests (2026-11-12, AutoRule 1.33.0). Rather than relying on workflow_run in forge
+  #   (Forgejo 15), chain with needs in the same run -- only this commit's results count.
+  # ⚠ **When adding a job to this file, add it to needs too.** Otherwise a red result
+  #   in that job still releases. The check below (check_bump_waits_for_quality.py) fails PRs that forget.
+  # ⚠ Runs triggered by our own bump push (actions-push) do nothing.
   bump-version:
-    name: 版上げ（main への push で、上の検査が全部緑のときだけ）
+    name: Version bump (on push to main, only when every check above is green)
     needs: [checks]
     if: success() && github.actor != 'actions-push'
     runs-on: [self-hosted, nolumialab]
-    # git と bash と python3 だけを使うので軽い台でよい（node は checkout が要る）。
+    # Uses only git, bash and python3, so the light image is enough (node is needed by checkout).
     container:
       image: hub.nolumia.com:5000/builder/ci-python311@sha256:da68dafef0d3aff23c1abf1bc4e9d43d8a16f87b8511a637198547c6509744cf
     timeout-minutes: 20
@@ -106,19 +104,19 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          # ⚠ GITHUB_TOKEN では保護された main へ push できない（forgejo/forgejo#11159）。
-          #   main への push のときだけ actions-push のトークン（kyon の Actions の秘密）で取る。
+          # ⚠ GITHUB_TOKEN cannot push to the protected main (forgejo/forgejo#11159).
+          #   Only on a push to main, check out with the actions-push token (kyon's Actions secret).
           token: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.PUSH_TOKEN || github.token }}
 
       - name: This job waits for every Quality job
         run: python3 scripts/check_bump_waits_for_quality.py
 
-      # ⚠ CI の設定（.forgejo/）だけの push では版を上げない（2026-10-25 からの決まり。
-      #   台の像の digest は週次の作り直しが上げるので、上げると毎週配り直される）。
-      #   ⚠ **比べるのは「前の push」ではなく「最後の版の tag」。** 前の push と比べると、
-      #   打ち切られた・赤だった run の変更が、その後の .forgejo/ だけの push で配られない
-      #   まま残る（試しのリポジトリで実測）。最後の版の後に NO_RELEASE_PATHS（拡張正規表現）
-      #   の外の変更が 1 つでもあれば上げる。派生はここに道を足してよい。
+      # ⚠ A push that only touches CI settings (.forgejo/) does not bump (rule since 2026-10-25:
+      #   the weekly rebuild bumps the runner image digests, so bumping would re-release every week).
+      #   ⚠ **Compare against the last release tag, not the previous push.** Comparing with the
+      #   previous push leaves changes from cancelled or red runs unreleased after a later
+      #   .forgejo/-only push (measured in a trial repository). Bump if anything changed since
+      #   the last release outside NO_RELEASE_PATHS (extended regex). Derived apps may add paths here.
       - name: Decide whether this push releases
         id: decide
         env:
