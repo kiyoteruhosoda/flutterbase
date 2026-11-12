@@ -115,10 +115,12 @@ jobs:
 
       # ⚠ CI の設定（.forgejo/）だけの push では版を上げない（2026-10-25 からの決まり。
       #   台の像の digest は週次の作り直しが上げるので、上げると毎週配り直される）。
-      #   以前の version_bump.yml の paths-ignore と同じ判定をここでする。
+      #   以前の version_bump.yml の paths-ignore と同じ判定をここでする。変えた道が全部
+      #   NO_RELEASE_PATHS（拡張正規表現）に当たれば上げない。派生はここに足してよい。
       - name: Decide whether this push releases
         id: decide
         env:
+          NO_RELEASE_PATHS: '^\.forgejo/'
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           BEFORE: ${{ github.event.before }}
@@ -137,8 +139,8 @@ jobs:
           fi
           echo "Changed files:"
           printf '%s\n' "$changed"
-          if [ -z "$(printf '%s\n' "$changed" | grep -v '^\.forgejo/' || true)" ]; then
-            echo "Only .forgejo/ changed; no release."
+          if [ -z "$(printf '%s\n' "$changed" | grep -Ev "$NO_RELEASE_PATHS" || true)" ]; then
+            echo "Every change matches $NO_RELEASE_PATHS; no release."
             echo "bump=false" >> "$GITHUB_OUTPUT"
           else
             echo "bump=true" >> "$GITHUB_OUTPUT"
