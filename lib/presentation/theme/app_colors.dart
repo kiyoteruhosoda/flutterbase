@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// デジタル庁デザインシステム カラートークン
+/// Digital Agency (Japan) design system: colour tokens
 /// https://design.digital.go.jp/dads/foundations/color/
 class AppColors {
   AppColors._();
@@ -85,9 +85,10 @@ class AppColors {
   static const Color sumi900 = Color(0xFF1A1A1A);
 
   // ─── Semantic: Brand ───────────────────────────────────────────────
-  /// アプリケーションのテーマカラー（ブランドカラー）
-  /// 全体のプライマリアクセントとして使用し、LicensePage や About の
-  /// アプリアイコン背景などアプリ全体で一貫した識別色として機能する。
+  /// The application's theme colour (brand colour).
+  /// Used as the primary accent throughout, it acts as the app's consistent
+  /// identifying colour, e.g. for the app icon background on LicensePage and
+  /// About.
   static const Color brand = blue800;
   static const Color brandContainer = blue100;
   static const Color onBrand = white;

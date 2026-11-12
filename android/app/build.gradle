@@ -33,15 +33,15 @@ if (keystorePropertiesFile.exists()) {
 }
 def hasKeystore = keystoreProperties.getProperty("storeFile") != null
 
-// CI 用の「署名なし」モード。
+// "Unsigned" mode for CI.
 //
-// NOLUMIA_SIGNING=none を渡すと release から signingConfig を外し、Gradle は
-// 署名しない成果物を出す。署名はビルドの後段で、**アプリのコードを実行しない
-// 別コンテナ**が apksigner / jarsigner で行う。こうすると署名鍵が pub パッケージや
-// Gradle プラグインから見えなくなる。
+// Passing NOLUMIA_SIGNING=none drops signingConfig from release, so Gradle
+// produces unsigned outputs. Signing happens in a later build stage, in a
+// **separate container that never runs the app's code**, with apksigner / jarsigner.
+// That keeps the signing key out of sight of pub packages and Gradle plugins.
 //
-// 手元のビルドや従来の key.properties 方式は今までどおり動く。
-// 詳細は deploy-repo の docs/flutter-signing.md を参照。
+// Local builds and the traditional key.properties flow keep working as before.
+// See docs/flutter-signing.md in deploy-repo for details.
 def unsignedRelease = (System.getenv("NOLUMIA_SIGNING") == "none")
 
 // Project-local debug keystore — checked into the repo so every dev and CI
@@ -144,9 +144,9 @@ android {
 
     buildTypes {
         release {
-            // ⚠ 鍵が無いと debug 署名に落ちる。CI ではこれが「緑のまま Play に
-            //    出せない成果物が出る」事故になるので、署名なしモードでは
-            //    そもそも signingConfig を付けず、後段で明示的に署名する。
+            // ⚠ Without a key this falls back to debug signing. In CI that becomes the
+            //    accident of "green, but the output cannot go to Play", so in unsigned
+            //    mode no signingConfig is attached at all and a later stage signs explicitly.
             signingConfig = unsignedRelease
                 ? null
                 : (hasKeystore ? signingConfigs.release : signingConfigs.debug)
@@ -202,12 +202,12 @@ project.afterEvaluate {
                         // 1. Next to the AGP output.
                         new File(src.parentFile, dstName).bytes = src.bytes
 
-                        // 1b. 署名なしモードでは AGP の出力が
-                        //     app[-<abi>]-<type>-unsigned.apk になる。Flutter の CLI は
-                        //     app[-<abi>]-<type>.apk を決め打ちで探し、無いと
-                        //     "Gradle build failed to produce an .apk file" で
-                        //     落ちるので、既定名のコピーも置く（中身は unsigned）。
-                        //     --split-per-abi では ABI ごとに 1 本ずつ要る。
+                        // 1b. In unsigned mode AGP outputs
+                        //     app[-<abi>]-<type>-unsigned.apk. The Flutter CLI looks for
+                        //     app[-<abi>]-<type>.apk by a fixed name and, when it is missing,
+                        //     fails with "Gradle build failed to produce an .apk file",
+                        //     so also place a copy under the default name (still unsigned).
+                        //     With --split-per-abi one copy is needed per ABI.
                         if (src.name.endsWith("-unsigned.apk")) {
                             def flutterName = src.name.replace("-unsigned.apk", ".apk")
                             new File(src.parentFile, flutterName).bytes = src.bytes

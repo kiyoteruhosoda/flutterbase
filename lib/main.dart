@@ -9,26 +9,26 @@ import 'package:flutterbase/presentation/licenses/app_license_registry.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ステータスバーをシースルーに設定
+  // Make the status bar transparent
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
-  // 縦向き固定 (必要に応じてコメントアウト)
+  // Lock to portrait (comment out if not needed)
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // 依存性注入の初期化
+  // Initialise dependency injection
   await setupServiceLocator();
 
-  // LicenseRegistry に独自ライセンスを登録
+  // Register our own licences with LicenseRegistry
   AppLicenseRegistrar.register();
 
-  // ProviderScope は Riverpod のルート。overrides で合成ルートが
-  // Presentation の provider に実体を注入する
-  // (lib/app/di/provider_overrides.dart)。
+  // ProviderScope is the Riverpod root. Through overrides, the composition root
+  // injects the implementations into the Presentation providers
+  // (lib/app/di/provider_overrides.dart).
   runApp(
     ProviderScope(
       overrides: buildProviderOverrides(),
