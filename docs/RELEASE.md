@@ -6,8 +6,9 @@ release の AAB / APK は **CI ではなく deck の配る段（nolumiadeck ADR-
 ## 流れ
 
 ```
-merge → quality（品質ゲート。緑でなければ main へ入らない）
-      → Version Bump … pubspec のバージョンを上げて main へ commit
+merge → main の push で Quality（PR と同じ検査）
+      → Quality の最後のジョブ「版上げ」… 同じ commit の検査が**全部緑のときだけ**
+        pubspec のバージョンを上げて main へ commit（赤なら版を上げない＝配らない。ADR-0019）
 forge の push の知らせ → deck /api/release/hooks/push/app/flutterbase
       └─ deck の配る段（deploy-repo の bin/flutter-release.sh）
            stage 1  ビルド    鍵を渡さない → 未署名の APK / AAB
@@ -18,6 +19,8 @@ forge の push の知らせ → deck /api/release/hooks/push/app/flutterbase
 ```
 
 `pubspec.yaml` の `version` が前回ビルドから変わっていなければスキップされる。
+CI の設定（`.forgejo/`）だけの push では版を上げない。手で版を上げるときは Version Bump（`version_bump.yml`）を
+workflow_dispatch で起こす（auto / major / minor / patch）。
 
 成果物には `SHA256SUMS` と `signing-report.txt`（alias / 証明書指紋 / applicationId /
 commit）が付く。
