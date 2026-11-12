@@ -1,7 +1,7 @@
 name: flutterbase
 description: flutterbase
 publish_to: "none"
-version: 1.20.1+276
+version: 1.20.2+284
 
 # The Flutter version here is also the version `pubspec.lock` was resolved
 # with. Flutter pins the versions of its own vendored packages (`meta`,
