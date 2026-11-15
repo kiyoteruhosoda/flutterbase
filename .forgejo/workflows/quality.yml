@@ -55,11 +55,19 @@ jobs:
     #   act_runner's cache server listens on the runner container's IP, which
     #   the job container has no route to (measured in another repository).
     #   The runner's `valid_volumes` allows `flutter-pub-cache` and `flutter-gradle-cache-*`.
+    # ⚠ **The Gradle cache volume is this app's own.** Gradle's cache lock does not work
+    #   across containers (the owner's PID is invisible, so it never lets go), and the
+    #   later job fails with "Timeout waiting to lock journal cache". The template used
+    #   one ending in `-ci`, derived apps copied it, and a derived app's PR turned the
+    #   template's main red (2026-11-15). scripts/rename_app.sh now puts the new app's
+    #   name into these volume names; the template itself moved to `-checks` so it no
+    #   longer meets the older apps that still carry the template's `-ci` volume.
+    #   Jobs of this repository that share it take turns via scripts/with-gradle-lock.sh.
     container:
       image: hub.nolumia.com:5000/builder/ci-flutter@sha256:c613b975c5242a60abd7c159688159788ac2b9c6f8339f10f4ce928dbac483b9
       options: >-
         -v flutter-pub-cache:/cache/pub
-        -v flutter-gradle-cache-flutterbase-ci:/cache/gradle
+        -v flutter-gradle-cache-flutterbase-checks:/cache/gradle
     env:
       PUB_CACHE: /cache/pub
       GRADLE_USER_HOME: /cache/gradle

@@ -3,6 +3,15 @@
 完了した重要な変更の短い要約を、新しいものから並べます。
 詳しい経緯が必要なものは `docs/history/`、設計判断は `docs/adr/` にあります。
 
+## 2026-11-15 — Gradle の置き場をアプリごとにし、同じ置き場を使う検査は順番に組む
+
+- 派生アプリ（tvremote）の PR の検査が雛形と同じ Gradle の置き場（`flutter-gradle-cache-flutterbase-ci`）を同時に使い、
+  雛形の main の検査がリリース版の組み立てで `Timeout waiting to lock journal cache` で落ちた（Gradle の鍵はコンテナを
+  またぐと譲られない）。雛形の置き場を `-checks` へ移し、`scripts/rename_app.sh` が置き場の名前を新しいアプリ名に
+  書き換えるようにした。リリース版の組み立ては `scripts/with-gradle-lock.sh`（keep から）で包み、同じリポジトリの PR と
+  main が重なっても順番待ちになる。⚠ 既にある派生アプリ（tvremote・noticeapp・decktrialapp・ssotrialapp）は
+  まだ `-flutterbase-ci` を互いに共有している（task #995）
+
 ## 2026-11-12 — 版上げ（＝配布）は main の Quality が全部緑のときだけ
 
 - 版上げが main への push で Quality と並んで走り、試験が赤でも配られていた（AutoRule 1.33.0）。版上げを Quality の
