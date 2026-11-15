@@ -141,11 +141,14 @@ run "coverage thresholds" dart run tool/check_coverage.dart --verbose
 # names and unsigned-output behaviour the pipeline reads. Those had no check
 # anywhere, so breaking them stayed green until the build host ran.
 # See scripts/check_release_contract.sh and docs/RELEASE.md.
+# It is the only Gradle step, so it runs under scripts/with-gradle-lock.sh: CI
+# jobs that share the Gradle cache volume (a PR and main of this repository)
+# take turns instead of failing on "Timeout waiting to lock journal cache".
 if [ "$FAST" -eq 1 ]; then
   printf '\n%s━━━ release contract %s\n' "$BOLD" "$OFF"
   printf '%sskipped — --fast%s\n' "$DIM" "$OFF"
 else
-  run "release contract" bash scripts/check_release_contract.sh
+  run "release contract" bash scripts/with-gradle-lock.sh bash scripts/check_release_contract.sh
 fi
 
 summary

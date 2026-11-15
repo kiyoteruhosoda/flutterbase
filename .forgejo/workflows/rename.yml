@@ -72,6 +72,7 @@ jobs:
         if: steps.template.outputs.run == 'true'
         run: |
           if git grep -n -e 'package:flutterbase/' -e 'com\.nolumia\.flutterbase' \
+               -e 'flutter-gradle-cache-flutterbase-' \
                -- ':!docs/CHANGELOG.md' ':!scripts/rename_app.sh'; then
             echo "Some names were not replaced (lines above). Fix scripts/rename_app.sh." >&2
             exit 1

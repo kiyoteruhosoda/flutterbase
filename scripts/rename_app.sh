@@ -17,6 +17,8 @@
 #                              (the Android package name in samples/commands)
 #   - .forgejo/workflows/rename.yml    (removed: it checks the template's
 #                                       rename and has no job in a fork)
+#   - .forgejo/workflows/*.yml         (Gradle cache volume names
+#                                       flutter-gradle-cache-flutterbase-* -> this app's)
 #   - docs/release-registration.md     (generated: what the release side needs)
 #
 # The result must pass ./scripts/ci.sh unchanged — the template's own CI runs
@@ -207,6 +209,14 @@ done
 if [[ -f .forgejo/workflows/rename.yml ]]; then
     git rm --quiet .forgejo/workflows/rename.yml
 fi
+
+# ─── 5d. Gradle cache volumes are per app ────────────────────────────────
+# Gradle's cache lock does not work across containers, so two apps sharing
+# one named volume fail each other's release build ("Timeout waiting to lock
+# journal cache"). Copied as is, every fork shared the template's volume.
+while IFS= read -r -d '' workflow; do
+    $SED -i "s|flutter-gradle-cache-flutterbase-|flutter-gradle-cache-${NEW_DART_NAME}-|g" "$workflow"
+done < <(find .forgejo/workflows -type f -name '*.yml' -print0 2>/dev/null)
 
 # ─── 6. Clean up .bak files ──────────────────────────────────────────────
 # Delete the known single-file backups directly (passing a plain file path
